@@ -1,5 +1,37 @@
 package model;
 
-public class Categorie {
+import java.time.LocalDateTime;
+import java.io.Serializable;
 
+public class Categorie implements Serializable {
+    private int idCategorie;
+    private String nom;
+    private String description;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    public Categorie() {}
+
+    public Categorie(int idCategorie, String nom, String description, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.idCategorie = idCategorie;
+        this.nom = nom;
+        this.description = description;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+
+    public int getIdCategorie() { return idCategorie; }
+    public void setIdCategorie(int idCategorie) { this.idCategorie = idCategorie; }
+
+    public String getNom() { return nom; }
+    public void setNom(String nom) { this.nom = nom; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
