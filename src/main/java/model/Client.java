@@ -26,6 +26,7 @@ public class Client extends Utilisateur {
         this.deletedAt = deletedAt;
     }
 
+
     public String getNom() { return nom; }
     public void setNom(String nom) { this.nom = nom; }
 
