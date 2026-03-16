@@ -3,8 +3,9 @@ package model;
 import java.time.LocalDateTime;
 import java.io.Serializable;
 import java.math.BigDecimal;
+
+import model.enums.MethodePaiement;
 import model.enums.StatutPaiement;
-import model.enums.ModePaiement;
 
 public class Paiement implements Serializable {
     private int idPaiement;
@@ -12,13 +13,13 @@ public class Paiement implements Serializable {
     private Integer idCarte;
     private BigDecimal montant;
     private StatutPaiement statutPaiement;
-    private ModePaiement methodePaiement;
+    private MethodePaiement methodePaiement;
     private LocalDateTime datePaiement;
 
     public Paiement() {}
 
     public Paiement(int idPaiement, int idCommande, Integer idCarte, BigDecimal montant, 
-                    StatutPaiement statutPaiement, ModePaiement methodePaiement, LocalDateTime datePaiement) {
+                    StatutPaiement statutPaiement, MethodePaiement methodePaiement, LocalDateTime datePaiement) {
         this.idPaiement = idPaiement;
         this.idCommande = idCommande;
         this.idCarte = idCarte;
@@ -43,8 +44,8 @@ public class Paiement implements Serializable {
     public StatutPaiement getStatutPaiement() { return statutPaiement; }
     public void setStatutPaiement(StatutPaiement statutPaiement) { this.statutPaiement = statutPaiement; }
 
-    public ModePaiement getMethodePaiement() { return methodePaiement; }
-    public void setMethodePaiement(ModePaiement methodePaiement) { this.methodePaiement = methodePaiement; }
+    public MethodePaiement getMethodePaiement() { return methodePaiement; }
+    public void setMethodePaiement(MethodePaiement methodePaiement) { this.methodePaiement = methodePaiement; }
 
     public LocalDateTime getDatePaiement() { return datePaiement; }
     public void setDatePaiement(LocalDateTime datePaiement) { this.datePaiement = datePaiement; }
