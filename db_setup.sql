@@ -79,17 +79,7 @@ CREATE TABLE Categorie (
     PRIMARY KEY (idCategorie)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ------------------------------------------------------------
--- Table associative : CategorieVariante  (M:N entre Categorie et Variante)
--- Une variante peut appartenir à plusieurs catégories et vice-versa
--- ------------------------------------------------------------
-CREATE TABLE CategorieVariante (
-    idCategorie     INT     NOT NULL,
-    idVariante      INT     NOT NULL,
-    PRIMARY KEY (idCategorie, idVariante),
-    CONSTRAINT fk_cv_categorie FOREIGN KEY (idCategorie) REFERENCES Categorie(idCategorie) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_cv_variante  FOREIGN KEY (idVariante)  REFERENCES Variante(idVariante)   ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- ------------------------------------------------------------
 -- Table : Produit
@@ -114,6 +104,18 @@ CREATE TABLE Variante (
     PRIMARY KEY (idVariante)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+
+-- ------------------------------------------------------------
+-- Table associative : CategorieVariante  (M:N entre Categorie et Variante)
+-- Une variante peut appartenir à plusieurs catégories et vice-versa
+-- ------------------------------------------------------------
+CREATE TABLE CategorieVariante (
+   idCategorie     INT     NOT NULL,
+   idVariante      INT     NOT NULL,
+   PRIMARY KEY (idCategorie, idVariante),
+   CONSTRAINT fk_cv_categorie FOREIGN KEY (idCategorie) REFERENCES Categorie(idCategorie) ON DELETE CASCADE ON UPDATE CASCADE,
+   CONSTRAINT fk_cv_variante  FOREIGN KEY (idVariante)  REFERENCES Variante(idVariante)   ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- ------------------------------------------------------------
 -- Table associative : ProduitVarValeur
 -- Lie un Produit à une Variante avec la valeur de l'attribut
@@ -161,7 +163,7 @@ CREATE TABLE Commande (
     idCommande          INT             NOT NULL AUTO_INCREMENT,
     IdClient            INT             NOT NULL,
     idAdresse           INT             NULL,
-    reference       VARCHAR(50)     NOT NULL UNIQUE, 
+    reference       VARCHAR(50)     NOT NULL UNIQUE,
     statut              ENUM('en_attente','validée','expédiée','livrée') NOT NULL DEFAULT 'en_attente',
     dateLivraisonPrevue     DATETIME        NULL,   -- estimée à la commande
     dateLivraisonReelle     DATETIME        NULL,   -- remplie quand livrée
