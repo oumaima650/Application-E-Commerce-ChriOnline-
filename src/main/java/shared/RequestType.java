@@ -11,6 +11,8 @@ public enum RequestType {
     REMOVE_FROM_CART,
     GET_CART,
     CLEAR_CART,
+    TOTAL_CART,
+    UPDATE_QUANTITY_CART,
     VALIDATE_ORDER,
     PROCESS_PAYMENT,
     GET_ORDERS,

@@ -69,6 +69,32 @@ public class ClientHandler implements Runnable {
             case LOGIN  -> authService.login(requete);
             case LOGOUT -> authService.logout(requete);
             case REGISTER  -> authService.signup(requete);
+            
+            // Cart Operations
+            case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART -> {
+                String token = requete.getTokenSession();
+                int userId = AuthService.getUserIdFromToken(token);
+                if (userId <= 0) {
+                    yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
+                }
+                
+                // Inject the authenticated userId into the request parameters
+                if (requete.getParametres() == null) {
+                    requete.setParametres(new java.util.HashMap<>());
+                }
+                requete.getParametres().put("idClient", userId);
+                
+                service.PanierService panierService = new service.PanierService();
+                
+                yield switch (requete.getType()) {
+                    case ADD_TO_CART -> panierService.ajouter(requete);
+                    case REMOVE_FROM_CART -> panierService.supprimer(requete);
+                    case CLEAR_CART -> panierService.vider(requete);
+                    case GET_CART -> panierService.afficher(requete);
+                    default -> new Reponse(false, "Opération panier non supportée.", null);
+                };
+            }
+            
             default -> {
                 String token = requete.getTokenSession();
                 if (!AuthService.isAuthenticated(token)) {
