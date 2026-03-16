@@ -13,19 +13,19 @@ public class Paiement implements Serializable {
     private BigDecimal montant;
     private StatutPaiement statutPaiement;
     private ModePaiement methodePaiement;
-    private LocalDateTime createdAt;
+    private LocalDateTime datePaiement;
 
     public Paiement() {}
 
     public Paiement(int idPaiement, int idCommande, Integer idCarte, BigDecimal montant, 
-                    StatutPaiement statutPaiement, ModePaiement methodePaiement, LocalDateTime createdAt) {
+                    StatutPaiement statutPaiement, ModePaiement methodePaiement, LocalDateTime datePaiement) {
         this.idPaiement = idPaiement;
         this.idCommande = idCommande;
         this.idCarte = idCarte;
         this.montant = montant;
         this.statutPaiement = statutPaiement;
         this.methodePaiement = methodePaiement;
-        this.createdAt = createdAt;
+        this.datePaiement = datePaiement;
     }
 
     public int getIdPaiement() { return idPaiement; }
@@ -46,6 +46,6 @@ public class Paiement implements Serializable {
     public ModePaiement getMethodePaiement() { return methodePaiement; }
     public void setMethodePaiement(ModePaiement methodePaiement) { this.methodePaiement = methodePaiement; }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getDatePaiement() { return datePaiement; }
+    public void setDatePaiement(LocalDateTime datePaiement) { this.datePaiement = datePaiement; }
 }

@@ -8,6 +8,7 @@ public class Commande implements Serializable {
     private int idCommande;
     private int idClient;
     private Integer idAdresse;
+    private String reference;
     private StatutCommande statut;
     private LocalDateTime dateLivraisonPrevue;
     private LocalDateTime dateLivraisonReelle;
@@ -16,12 +17,13 @@ public class Commande implements Serializable {
 
     public Commande() {}
 
-    public Commande(int idCommande, int idClient, Integer idAdresse, 
+    public Commande(int idCommande, int idClient, Integer idAdresse, String reference,
                     StatutCommande statut, LocalDateTime dateLivraisonPrevue, 
                     LocalDateTime dateLivraisonReelle, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.idCommande = idCommande;
         this.idClient = idClient;
         this.idAdresse = idAdresse;
+        this.reference = reference;
         this.statut = statut;
         this.dateLivraisonPrevue = dateLivraisonPrevue;
         this.dateLivraisonReelle = dateLivraisonReelle;
@@ -37,6 +39,9 @@ public class Commande implements Serializable {
 
     public Integer getIdAdresse() { return idAdresse; }
     public void setIdAdresse(Integer idAdresse) { this.idAdresse = idAdresse; }
+
+    public String getReference() { return reference; }
+    public void setReference(String reference) { this.reference = reference; }
 
     public StatutCommande getStatut() { return statut; }
     public void setStatut(StatutCommande statut) { this.statut = statut; }
