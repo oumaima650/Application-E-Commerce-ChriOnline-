@@ -2,6 +2,8 @@ package model;
 
 import java.time.LocalDateTime;
 import java.io.Serializable;
+import java.util.List;
+import java.util.ArrayList;
 import model.enums.StatutCommande;
 
 public class Commande implements Serializable {
@@ -12,10 +14,13 @@ public class Commande implements Serializable {
     private StatutCommande statut;
     private LocalDateTime dateLivraisonPrevue;
     private LocalDateTime dateLivraisonReelle;
+    private List<LigneCommande> lignes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public Commande() {}
+    public Commande() {
+        this.lignes = new ArrayList<>();
+    }
 
     public Commande(int idCommande, int idClient, Integer idAdresse, String reference,
                     StatutCommande statut, LocalDateTime dateLivraisonPrevue, 
@@ -27,6 +32,7 @@ public class Commande implements Serializable {
         this.statut = statut;
         this.dateLivraisonPrevue = dateLivraisonPrevue;
         this.dateLivraisonReelle = dateLivraisonReelle;
+        this.lignes = new ArrayList<>();
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -51,6 +57,9 @@ public class Commande implements Serializable {
 
     public LocalDateTime getDateLivraisonReelle() { return dateLivraisonReelle; }
     public void setDateLivraisonReelle(LocalDateTime dateLivraisonReelle) { this.dateLivraisonReelle = dateLivraisonReelle; }
+
+    public List<LigneCommande> getLignes() { return lignes; }
+    public void setLignes(List<LigneCommande> lignes) { this.lignes = lignes; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -30,7 +30,7 @@ public class ConnexionBDD {
             e.printStackTrace();
         } catch (SQLException e) {
             System.err.println(" Erreur lors de la connexion à la base de données !");
-            System.err.println("Assurez-vous que MySQL tourne et que la base 'chri_online' existe.");
+            System.err.println("Assurez-vous que MySQL tourne et que la base 'chri_online' existe");
             e.printStackTrace();
         }
         return connection;
