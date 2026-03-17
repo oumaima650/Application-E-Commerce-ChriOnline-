@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.text.Text?>
+
+<ScrollPane fitToWidth="true" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controllers.CheckoutController">
+    <VBox alignment="CENTER" spacing="30" styleClass="root">
+        <padding><Insets top="40" right="60" bottom="40" left="60"/></padding>
+
+        <!-- Titre -->
+        <Label text="Paiement Sécurisé" styleClass="header-title"/>
+
+        <!-- Indicateur de progression -->
+        <HBox alignment="CENTER" spacing="15">
+            <VBox alignment="CENTER">
+                <Label fx:id="step1Circle" text="1" styleClass="step-circle-active"/>
+                <Label text="Adresse"/>
+            </VBox>
+            <Region style="-fx-background-color: #ABA3F6; -fx-pref-height: 4px; -fx-pref-width: 60px; -fx-translate-y: -10px;"/>
+            <VBox alignment="CENTER">
+                <Label fx:id="step2Circle" text="2" styleClass="step-circle-done"/>
+                <Label text="Paiement"/>
+            </VBox>
+            <Region style="-fx-background-color: #24316B; -fx-pref-height: 4px; -fx-pref-width: 60px; -fx-translate-y: -10px;"/>
+            <VBox alignment="CENTER">
+                <Label fx:id="step3Circle" text="3" styleClass="step-circle-done"/>
+                <Label text="Confirmation"/>
+            </VBox>
+        </HBox>
+
+        <!-- ETAPE 1 : ADRESSE -->
+        <VBox fx:id="step1Form" spacing="15" maxWidth="500" styleClass="card-pink">
+            <Label text="Détails de livraison" style="-fx-font-weight: bold; -fx-font-size: 18px;"/>
+            
+            <TextField promptText="Nom complet" styleClass="input-field"/>
+            <TextField promptText="Adresse complète" styleClass="input-field"/>
+            
+            <HBox spacing="15">
+                <TextField promptText="Ville" styleClass="input-field" HBox.hgrow="ALWAYS"/>
+                <TextField promptText="Code postal" styleClass="input-field" HBox.hgrow="ALWAYS"/>
+            </HBox>
+            
+            <TextField promptText="Téléphone" styleClass="input-field"/>
+            
+            <HBox alignment="CENTER_RIGHT" spacing="15" style="-fx-padding: 10px 0 0 0;">
+                <Button text="Continuer →" styleClass="btn-primary" onAction="#goToStep2"/>
+            </HBox>
+        </VBox>
+
+
+        <!-- ETAPE 2 : PAIEMENT (Cachée par défaut) -->
+        <VBox fx:id="step2Form" spacing="15" maxWidth="500" styleClass="card-pink" visible="false" managed="false">
+            <Label text="Méthode de paiement" style="-fx-font-weight: bold; -fx-font-size: 18px;"/>
+            
+            <HBox spacing="20">
+                <RadioButton fx:id="radioCard" text="Carte bancaire" selected="true"/>
+                <RadioButton fx:id="radioCash" text="Paiement à la livraison"/>
+            </HBox>
+
+            <VBox fx:id="cardFormBox" spacing="10" style="-fx-padding: 10px; -fx-background-color: white; -fx-background-radius: 10px;">
+                <!-- Fausse carte UI -->
+                <VBox style="-fx-background-color: linear-gradient(to right, #24316B, #ABA3F6); -fx-background-radius: 12px; -fx-padding: 15px;" minHeight="120">
+                    <Label text="Credit Card" textFill="#F8FFA1"/>
+                    <Region VBox.vgrow="ALWAYS"/>
+                    <Label fx:id="lblCardNumberPreview" text="**** **** **** ****" textFill="white" style="-fx-font-size: 20px; -fx-letter-spacing: 2px;"/>
+                    <HBox spacing="20">
+                        <Label fx:id="lblExpiryPreview" text="MM/YY" textFill="white"/>
+                    </HBox>
+                </VBox>
+
+                <TextField fx:id="txtCardNumber" promptText="Numéro de carte" styleClass="input-field" onKeyReleased="#updateCardPreview"/>
+                <HBox spacing="10">
+                    <TextField fx:id="txtExpiry" promptText="MM/YY" styleClass="input-field" HBox.hgrow="ALWAYS"/>
+                    <TextField promptText="CVV" styleClass="input-field" HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </VBox>
+
+            <HBox alignment="CENTER_RIGHT" spacing="15" style="-fx-padding: 10px 0 0 0;">
+                <Button text="← Retour" styleClass="button" onAction="#goToStep1"/>
+                <Button text="Confirmer le paiement" styleClass="btn-navy" onAction="#goToStep3"/>
+            </HBox>
+        </VBox>
+
+        <!-- ETAPE 3 : CONFIRMATION (Cachée par défaut) -->
+        <VBox fx:id="step3Form" spacing="20" maxWidth="500" styleClass="card" alignment="CENTER" visible="false" managed="false">
+            <Label text="✅" style="-fx-font-size: 60px;"/>
+            <Label text="Commande confirmée !" style="-fx-font-weight: bold; -fx-font-size: 24px; -fx-text-fill: #24316B;"/>
+            
+            <Label text="ID Commande : #CHR-20260317" styleClass="subtitle"/>
+            
+            <VBox spacing="5" alignment="CENTER" style="-fx-background-color: #FAFAFA; -fx-padding: 15px; -fx-background-radius: 8px;">
+                <Label text="Montant payé : 12500 MAD" style="-fx-font-weight: bold; -fx-text-fill: #ABA3F6;"/>
+                <Label text="Une notification a été envoyée." textFill="gray"/>
+            </VBox>
+
+            <Button text="Retour à l'accueil" styleClass="btn-primary"/>
+        </VBox>
+
+    </VBox>
+</ScrollPane>
