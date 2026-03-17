@@ -7,6 +7,7 @@ import model.ProduitVarValeur;
 
 public class ProduitVarValeurDAO {
 
+    // Récupère toutes les valeurs de variantes
     public List<ProduitVarValeur> getAll() {
         List<ProduitVarValeur> list = new ArrayList<>();
         String query = "SELECT * FROM ProduitVarValeur";
@@ -22,6 +23,7 @@ public class ProduitVarValeurDAO {
         return list;
     }
 
+    // Récupère une valeur par son ID
     public ProduitVarValeur getById(int id) {
         String query = "SELECT * FROM ProduitVarValeur WHERE idPVV = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -38,6 +40,7 @@ public class ProduitVarValeurDAO {
         return null;
     }
 
+    // Enregistre une valeur de variante
     public boolean save(ProduitVarValeur pvv) {
         String query = "INSERT INTO ProduitVarValeur (idProduit, idVariante, valeur) VALUES (?, ?, ?)";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -60,6 +63,7 @@ public class ProduitVarValeurDAO {
         return false;
     }
 
+    // Met à jour une valeur de variante
     public boolean update(ProduitVarValeur pvv) {
         String query = "UPDATE ProduitVarValeur SET idProduit = ?, idVariante = ?, valeur = ? WHERE idPVV = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -74,6 +78,7 @@ public class ProduitVarValeurDAO {
         }
     }
 
+    // Supprime une valeur de variante
     public boolean delete(int id) {
         String query = "DELETE FROM ProduitVarValeur WHERE idPVV = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -85,23 +90,25 @@ public class ProduitVarValeurDAO {
         }
     }
    
-public List<ProduitVarValeur> getByProduit(int idProduit) {
-    List<ProduitVarValeur> list = new ArrayList<>();
-    String query = "SELECT * FROM ProduitVarValeur WHERE idProduit = ?";
-    try (Connection conn = ConnexionBDD.getConnection();
-         PreparedStatement pstmt = conn.prepareStatement(query)) {
-        pstmt.setInt(1, idProduit);
-        try (ResultSet rs = pstmt.executeQuery()) {
-            while (rs.next()) {
-                list.add(mapResultSetToPVV(rs));
+    // Récupère les valeurs par produit
+    public List<ProduitVarValeur> getByProduit(int idProduit) {
+        List<ProduitVarValeur> list = new ArrayList<>();
+        String query = "SELECT * FROM ProduitVarValeur WHERE idProduit = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, idProduit);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSetToPVV(rs));
+                }
             }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur récupération PVV par produit", e);
         }
-    } catch (SQLException e) {
-        throw new RuntimeException("Erreur récupération PVV par produit", e);
+        return list;
     }
-    return list;
-}
 
+    // Convertit un résultat SQL en objet ProduitVarValeur
     private ProduitVarValeur mapResultSetToPVV(ResultSet rs) throws SQLException {
         ProduitVarValeur pvv = new ProduitVarValeur();
         pvv.setIdPVV(rs.getInt("idPVV"));
