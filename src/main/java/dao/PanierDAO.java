@@ -32,20 +32,7 @@ public class PanierDAO {
         return BigDecimal.ZERO;
     }
 
-    /**
-     * Trouve le panier d'un client. S'il n'existe pas, il est créé.
-     */
-    public Panier findOrCreateByClientId(int idClient) {
-        Panier panier = getPanierByClientId(idClient);
-        if (panier == null) {
-            int idPanier = createPanier(idClient);
-            panier = new Panier(idPanier, idClient, 0.0, null);
-        }
-        panier.setLignes(getLignesByPanierId(panier.getIdPanier()));
-        return panier;
-    }
-
-    private Panier getPanierByClientId(int idClient) {
+    public Panier getPanierByClientId(int idClient) {
         String query = "SELECT * FROM Panier WHERE IdClient = ?";
         try (Connection conn = ConnexionBDD.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -64,7 +51,7 @@ public class PanierDAO {
         return null;
     }
 
-    private int createPanier(int idClient) {
+    public int createPanier(int idClient) {
         String query = "INSERT INTO Panier (IdClient) VALUES (?)";
         try (Connection conn = ConnexionBDD.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
@@ -82,17 +69,19 @@ public class PanierDAO {
 
     public List<LignePanier> getLignesByPanierId(int idPanier) {
         List<LignePanier> lignes = new ArrayList<>();
-        String query = "SELECT * FROM LignePanier WHERE idPanier = ?";
+        String query = "SELECT lp.*, s.prix FROM LignePanier lp JOIN SKU s ON lp.SKU = s.SKU WHERE lp.idPanier = ?";
         try (Connection conn = ConnexionBDD.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, idPanier);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
+                BigDecimal prix = rs.getBigDecimal("prix");
+                BigDecimal sousTotal = prix != null ? prix.multiply(new BigDecimal(rs.getInt("quantite"))) : BigDecimal.ZERO;
                 lignes.add(new LignePanier(
                     rs.getInt("idPanier"),
                     rs.getString("SKU"),
                     rs.getInt("quantite"),
-                    BigDecimal.ZERO // Le sous-total n'est pas en BDD, on l'initialise
+                    sousTotal
                 ));
             }
         } catch (SQLException e) {
