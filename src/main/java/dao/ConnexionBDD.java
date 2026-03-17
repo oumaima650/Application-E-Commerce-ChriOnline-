@@ -12,7 +12,6 @@ public class ConnexionBDD {
 
     private static Connection connection = null;
 
-
     private ConnexionBDD() {}
 
 

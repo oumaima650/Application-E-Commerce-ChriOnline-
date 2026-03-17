@@ -1,6 +1,6 @@
 package model.enums;
 
-public enum ModePaiement {
+public enum MethodePaiement {
     CARD,
     CASH
 }
