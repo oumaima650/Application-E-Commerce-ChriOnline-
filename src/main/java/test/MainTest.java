@@ -58,8 +58,8 @@ public class MainTest {
             }
             
             // Tester findByClient
-            List<Adresse> listAdr = adresseDAO.findByClient(1);
-            System.out.println("✅ Nombre d'adresses pour le client 1 : " + listAdr.size());
+            List<Adresse> listAdr = adresseDAO.findByClient(3);
+            System.out.println("✅ Nombre d'adresses pour le client 3 : " + listAdr.size());
 
             // Tester la suppression (soft delete)
             if (adresseDAO.delete(adr.getIdAdresse())) {
@@ -68,7 +68,7 @@ public class MainTest {
                 System.err.println("❌ Échec de la suppression de l'adresse.");
             }
         } else {
-            System.err.println("❌ Échec de l'insertion de l'adresse. (Vérifiez si le Client avec ID=1 existe vraiment)");
+            System.err.println("❌ Échec de l'insertion de l'adresse. (Vérifiez si le Client avec ID=3 existe vraiment)");
         }
 
         // 3. Tester PaiementDAO
