@@ -1,0 +1,146 @@
+/* 
+  CHRIONLINE UI KIT - CORAL THEME 
+  Basé sur chrionline_uikit_coral.html
+*/
+
+* {
+    -coral: #FF724C;
+    -saffron: #FDBF50;
+    -offwhite: #F4F4F8;
+    -night: #2A2C41;
+    -soft: #FFF0EB;
+    -border-gray: #e8e8ee;
+}
+
+.root {
+    -fx-font-family: 'Arial', sans-serif;
+    -fx-background-color: -offwhite;
+}
+
+/* TYPOGRAPHIE */
+.header-title {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -night;
+}
+
+.subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #888888;
+}
+
+.price-text {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -coral;
+}
+
+/* BOUTONS */
+.button {
+    -fx-background-radius: 50px;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.btn-primary {
+    -fx-background-color: -coral;
+    -fx-text-fill: white;
+    -fx-padding: 12px 28px;
+    -fx-font-size: 13px;
+}
+.btn-primary:hover {
+    -fx-background-color: derive(-coral, -10%);
+}
+
+.btn-navy { /* Correspondant à .b-night */
+    -fx-background-color: -night;
+    -fx-text-fill: -saffron;
+    -fx-padding: 12px 28px;
+    -fx-font-size: 13px;
+}
+.btn-navy:hover {
+    -fx-background-color: derive(-night, -10%);
+}
+
+/* CHAMPS DE SAISIE */
+.input-field {
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-color: -border-gray;
+    -fx-border-width: 1.5px;
+    -fx-padding: 12px 18px;
+    -fx-background-color: white;
+    -fx-text-fill: -night;
+}
+.input-field:focused {
+    -fx-border-color: -coral;
+    /* Simulate box-shadow focusing in JavaFX */
+    -fx-effect: dropshadow(gaussian, rgba(255,114,76,0.3), 6, 0.0, 0, 0);
+}
+
+/* CARDS */
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 20px;
+    -fx-border-color: -border-gray;
+    -fx-border-width: 1px;
+    -fx-border-radius: 20px;
+    -fx-padding: 24px;
+}
+.card:hover {
+    -fx-border-color: -coral;
+    -fx-effect: dropshadow(gaussian, rgba(255,114,76,0.12), 32, 0, 0, 8);
+}
+
+.card-pink { /* Utilisé pour le checkout, on le passe en Soft Coral */
+    -fx-background-color: -soft;
+    -fx-background-radius: 16px;
+    -fx-padding: 24px;
+}
+
+/* BADGES ET CERCLES */
+.badge {
+    -fx-background-color: -saffron;
+    -fx-text-fill: -night;
+    -fx-background-radius: 50px;
+    -fx-padding: 4px 10px;
+    -fx-font-weight: bold;
+    -fx-font-size: 10px;
+}
+
+.step-circle-active {
+    -fx-background-color: -coral;
+    -fx-text-fill: white;
+    -fx-background-radius: 50%;
+    -fx-font-weight: bold;
+    -fx-pref-width: 34px;
+    -fx-pref-height: 34px;
+    -fx-alignment: center;
+}
+
+.step-circle-done {
+    -fx-background-color: #22c55e;
+    -fx-text-fill: white;
+    -fx-background-radius: 50%;
+    -fx-font-weight: bold;
+    -fx-pref-width: 34px;
+    -fx-pref-height: 34px;
+    -fx-alignment: center;
+}
+
+/* TABLEAUX (Pour l'Admin) */
+.table-view {
+    -fx-selection-bar: rgba(255,114,76,0.15);
+    -fx-selection-bar-non-focused: rgba(255,114,76,0.15);
+    -fx-background-radius: 16px;
+    -fx-border-radius: 16px;
+    -fx-border-color: -border-gray;
+}
+.table-view .column-header-background {
+    -fx-background-color: -offwhite;
+}
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-text-fill: -night;
+    -fx-font-weight: bold;
+}
