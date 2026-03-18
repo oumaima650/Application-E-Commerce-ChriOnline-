@@ -7,6 +7,7 @@ import model.Produit;
 
 public class ProduitDAO {
 
+    // Récupère tous les produits
     public List<Produit> getAll() {
 
         List<Produit> produits = new ArrayList<>();
@@ -25,6 +26,7 @@ public class ProduitDAO {
 
     }
 
+    // Récupère un produit par son ID
     public Produit getById(int id) {
 
         String query = "SELECT * FROM Produit WHERE idProduit = ?"; // protege contre les injections SQL
@@ -48,8 +50,7 @@ public class ProduitDAO {
 
     }
 
-
-
+    // Recherche des produits par nom
     public List<Produit> getByNom(String nom) {
         List<Produit> produits = new ArrayList<>();
 
@@ -71,6 +72,7 @@ public class ProduitDAO {
         return produits;
     }
 
+    // Ajoute un nouveau produit
     public boolean save(Produit produit) {
 
         String query = "INSERT INTO Produit (nom, description) VALUES (?, ?)";
@@ -98,7 +100,7 @@ public class ProduitDAO {
         return false;
     }
 
-
+    // Met à jour un produit
     public boolean update(Produit produit) {
 
         String query = "UPDATE Produit SET nom = ?, description = ? WHERE idProduit = ?";
@@ -116,7 +118,7 @@ public class ProduitDAO {
         }
     }
 
-
+    // Supprime un produit par son ID
     public boolean delete(int id) {
 
         String query = "DELETE FROM Produit WHERE idProduit = ?";
@@ -132,7 +134,7 @@ public class ProduitDAO {
         }
     }
 
-
+    // Compte le nombre total de produits
     public int count() {
         String query = "SELECT COUNT(*) FROM Produit";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -149,6 +151,7 @@ public class ProduitDAO {
         return 0;
     }
 
+    // Convertit un résultat SQL en objet Produit
     private Produit mapResultSetToProduit(ResultSet rs) throws SQLException {
         Produit prod = new Produit();
         prod.setIdProduit(rs.getInt("idProduit"));

@@ -7,6 +7,7 @@ import model.Variante;
 
 public class VarianteDAO {
 
+    // Récupère toutes les variantes
     public List<Variante> getAll() {
         List<Variante> variantes = new ArrayList<>();
         String query = "SELECT * FROM Variante";
@@ -22,6 +23,7 @@ public class VarianteDAO {
         return variantes;
     }
 
+    // Récupère une variante par son ID
     public Variante getById(int id) {
         String query = "SELECT * FROM Variante WHERE idVariante = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -38,6 +40,7 @@ public class VarianteDAO {
         return null;
     }
 
+    // Enregistre une nouvelle variante
     public boolean save(Variante var) {
         String query = "INSERT INTO Variante (nom, description) VALUES (?, ?)";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -59,6 +62,7 @@ public class VarianteDAO {
         return false;
     }
 
+    // Met à jour une variante
     public boolean update(Variante var) {
         String query = "UPDATE Variante SET nom = ?, description = ? WHERE idVariante = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -72,6 +76,7 @@ public class VarianteDAO {
         }
     }
 
+    // Supprime une variante
     public boolean delete(int id) {
         String query = "DELETE FROM Variante WHERE idVariante = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -102,6 +107,7 @@ public List<Variante> getByCategorie(int idCategorie) {
     return variantes;
 }
 
+    // Convertit un résultat SQL en objet Variante
     private Variante mapResultSetToVariante(ResultSet rs) throws SQLException {
         Variante var = new Variante();
         var.setIdVariante(rs.getInt("idVariante"));
