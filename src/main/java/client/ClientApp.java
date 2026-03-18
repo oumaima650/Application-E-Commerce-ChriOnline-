@@ -14,7 +14,8 @@ public class ClientApp extends Application {
         
         SceneManager.init(primaryStage);
         
-        SceneManager.switchTo("checkout.fxml", "ChriOnline - Paiement sécurisé");
+        // Démarrer sur la page Admin pour visualiser l'interface demandée
+        SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         
         primaryStage.show();
         
