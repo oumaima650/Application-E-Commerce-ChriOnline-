@@ -16,9 +16,9 @@ public class CarteBancaireService {
     }
 
     public Reponse addCard(Requete requete) {
-        Integer idClient = (Integer) requete.getBody().get("idClient");
-        String numeroCarte = (String) requete.getBody().get("numeroCarte");
-        String typeCarte = (String) requete.getBody().get("typeCarte");
+        Integer idClient = (Integer) requete.getParametres().get("idClient");
+        String numeroCarte = (String) requete.getParametres().get("numeroCarte");
+        String typeCarte = (String) requete.getParametres().get("typeCarte");
         
         if (idClient == null || numeroCarte == null || typeCarte == null) {
             return new Reponse(false, "Données de la carte manquantes.", null);
@@ -31,24 +31,24 @@ public class CarteBancaireService {
 
         boolean success = carteBancaireDAO.create(carte);
         if (success) {
-            return new Reponse(true, "Carte bancaire ajoutée avec succès.", carte);
+            return new Reponse(true, "Carte bancaire ajoutée avec succès.", java.util.Map.of("carte", carte));
         } else {
             return new Reponse(false, "Échec lors de l'ajout de la carte bancaire.", null);
         }
     }
 
     public Reponse getCards(Requete requete) {
-        Integer idClient = (Integer) requete.getBody().get("idClient");
+        Integer idClient = (Integer) requete.getParametres().get("idClient");
         if (idClient == null) {
             return new Reponse(false, "ID Client manquant.", null);
         }
 
         List<CarteBancaire> cartes = carteBancaireDAO.findByClient(idClient);
-        return new Reponse(true, "Cartes récupérées avec succès.", cartes);
+        return new Reponse(true, "Cartes récupérées avec succès.", java.util.Map.of("cartes", cartes));
     }
     
     public Reponse removeCard(Requete requete) {
-        Integer idCarte = (Integer) requete.getBody().get("idCarte");
+        Integer idCarte = (Integer) requete.getParametres().get("idCarte");
         if (idCarte == null) {
             return new Reponse(false, "ID Carte manquant.", null);
         }

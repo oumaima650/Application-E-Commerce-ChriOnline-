@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="20" styleClass="card" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.ProduitFormController" prefWidth="400">
+    <padding><Insets top="30" right="30" bottom="30" left="30"/></padding>
+
+    <Label fx:id="lblTitle" text="Modifier Produit" styleClass="header-title"/>
+    
+    <VBox spacing="10">
+        <Label text="Nom du produit" style="-fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+        <TextField fx:id="txtNom" promptText="Ex: iPhone 15 Pro" styleClass="input-field"/>
+    </VBox>
+
+    <VBox spacing="10">
+        <Label text="Catégorie" style="-fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+        <TextField fx:id="txtCategorie" promptText="Ex: Smartphones" styleClass="input-field"/>
+    </VBox>
+
+    <HBox spacing="15">
+        <VBox spacing="10" HBox.hgrow="ALWAYS">
+            <Label text="Prix (MAD)" style="-fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+            <TextField fx:id="txtPrix" promptText="Ex: 12500" styleClass="input-field"/>
+        </VBox>
+        <VBox spacing="10" HBox.hgrow="ALWAYS">
+            <Label text="Stock" style="-fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+            <TextField fx:id="txtStock" promptText="Ex: 24" styleClass="input-field"/>
+        </VBox>
+    </HBox>
+
+    <HBox spacing="15" alignment="CENTER_RIGHT" style="-fx-padding: 20 0 0 0;">
+        <Button text="Annuler" styleClass="button" style="-fx-background-color: transparent; -fx-border-color: #2A2C41; -fx-text-fill: #2A2C41; -fx-padding: 10 20;" onAction="#fermerFenetre"/>
+        <Button text="Sauvegarder" styleClass="btn-primary" onAction="#sauvegarderProduit"/>
+    </HBox>
+</VBox>
