@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+
+<BorderPane styleClass="root" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AdminController">
+    <!-- Header Admin -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #24316B; -fx-padding: 15px 30px;">
+            <Label text="ChriOnline Admin" style="-fx-text-fill: #F8FFA1; -fx-font-weight: bold; -fx-font-size: 24px;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Se déconnecter" styleClass="btn-primary"/>
+        </HBox>
+    </top>
+
+    <!-- Contenu Principal -->
+    <center>
+        <TabPane tabClosingPolicy="UNAVAILABLE" style="-fx-background-color: transparent;">
+            
+            <!-- TAB 1 : PRODUITS -->
+            <Tab text="📦 Produits">
+                <VBox spacing="15" style="-fx-padding: 20px;">
+                    <HBox spacing="15" alignment="CENTER_LEFT">
+                        <TextField promptText="Rechercher un produit..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
+                        <Button text="+ Ajouter produit" styleClass="btn-primary"/>
+                    </HBox>
+                    <TableView fx:id="tableProduits" VBox.vgrow="ALWAYS" styleClass="table-view">
+                        <columns>
+                            <TableColumn text="ID" prefWidth="50" >
+                                <cellValueFactory><PropertyValueFactory property="id" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Image" prefWidth="60">
+                                <cellValueFactory><PropertyValueFactory property="image" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Nom du Produit" prefWidth="200">
+                                <cellValueFactory><PropertyValueFactory property="nom" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Catégorie" prefWidth="120">
+                                <cellValueFactory><PropertyValueFactory property="categorie" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Prix" prefWidth="100">
+                                <cellValueFactory><PropertyValueFactory property="prix" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Stock" prefWidth="80">
+                                <cellValueFactory><PropertyValueFactory property="stock" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn fx:id="colActionsProduit" text="Actions" prefWidth="150"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+            <!-- TAB 2 : COMMANDES -->
+            <Tab text="🛒 Commandes">
+                <VBox spacing="15" style="-fx-padding: 20px;">
+                    <HBox spacing="15" alignment="CENTER_LEFT">
+                        <TextField promptText="Filtrer les commandes..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                    <TableView fx:id="tableCommandes" VBox.vgrow="ALWAYS" styleClass="table-view">
+                        <columns>
+                            <TableColumn text="ID Commande" prefWidth="120">
+                                <cellValueFactory><PropertyValueFactory property="id" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Client" prefWidth="150">
+                                <cellValueFactory><PropertyValueFactory property="client" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Date" prefWidth="120">
+                                <cellValueFactory><PropertyValueFactory property="date" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Total" prefWidth="120">
+                                <cellValueFactory><PropertyValueFactory property="total" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Statut" prefWidth="120">
+                                <cellValueFactory><PropertyValueFactory property="statut" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn fx:id="colActionsCommande" text="Changer Statut" prefWidth="180"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+            <!-- TAB 3 : UTILISATEURS -->
+            <Tab text="👥 Utilisateurs">
+                <VBox spacing="15" style="-fx-padding: 20px;">
+                    <HBox spacing="15" alignment="CENTER_LEFT">
+                        <TextField promptText="Rechercher un utilisateur..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                    <TableView fx:id="tableUtilisateurs" VBox.vgrow="ALWAYS" styleClass="table-view">
+                        <columns>
+                            <TableColumn text="ID" prefWidth="50">
+                                <cellValueFactory><PropertyValueFactory property="id" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Nom Comptes" prefWidth="200">
+                                <cellValueFactory><PropertyValueFactory property="nom" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Email" prefWidth="200">
+                                <cellValueFactory><PropertyValueFactory property="email" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn text="Rôle" prefWidth="120">
+                                <cellValueFactory><PropertyValueFactory property="role" /></cellValueFactory>
+                            </TableColumn>
+                            <TableColumn fx:id="colActionsUtilisateur" text="Actions" prefWidth="150"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+        </TabPane>
+    </center>
+</BorderPane>

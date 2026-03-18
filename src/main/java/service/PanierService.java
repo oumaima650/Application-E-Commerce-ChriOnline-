@@ -19,7 +19,15 @@ public class PanierService {
      * Récupère le panier d'un client (charge depuis la BDD ou crée un nouveau).
      */
     public Panier recupererPanier(int idClient) {
-        return panierDAO.findOrCreateByClientId(idClient);
+        Panier panier = panierDAO.getPanierByClientId(idClient);
+        if (panier == null) {
+            int idPanier = panierDAO.createPanier(idClient);
+            panier = new Panier(idPanier, idClient, 0.0, java.time.LocalDateTime.now());
+        } else {
+            panier.setLignes(panierDAO.getLignesByPanierId(panier.getIdPanier()));
+            calculerTotal(panier);
+        }
+        return panier;
     }
 
     /**
