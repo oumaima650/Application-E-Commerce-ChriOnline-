@@ -4,7 +4,7 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.cell.PropertyValueFactory?>
 
-<BorderPane styleClass="root" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controllers.AdminController">
+<BorderPane styleClass="root" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AdminController">
     <!-- Header Admin -->
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #24316B; -fx-padding: 15px 30px;">

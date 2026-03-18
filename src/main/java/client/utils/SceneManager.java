@@ -1,6 +1,6 @@
 package client.utils;
 
-import client.MainApp;
+import client.ClientApp;
 import javafx.animation.FadeTransition;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -20,13 +20,13 @@ public class SceneManager {
 
     public static void switchTo(String fxmlFile, String title) {
         try {
-            FXMLLoader loader = new FXMLLoader(MainApp.class.getResource("/com/chrionline/fxml/" + fxmlFile));
+            FXMLLoader loader = new FXMLLoader(ClientApp.class.getResource("/com/chrionline/fxml/" + fxmlFile));
             Parent root = loader.load();
 
             Scene scene = new Scene(root);
             
             // Appliquer le CSS global
-            String cssPath = MainApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
+            String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);
 
             primaryStage.setTitle(title);

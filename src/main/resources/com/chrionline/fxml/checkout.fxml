@@ -5,7 +5,7 @@
 <?import javafx.scene.shape.Circle?>
 <?import javafx.scene.text.Text?>
 
-<ScrollPane fitToWidth="true" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controllers.CheckoutController">
+<ScrollPane fitToWidth="true" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.CheckoutController">
     <VBox alignment="CENTER" spacing="30" styleClass="root">
         <padding><Insets top="40" right="60" bottom="40" left="60"/></padding>
 

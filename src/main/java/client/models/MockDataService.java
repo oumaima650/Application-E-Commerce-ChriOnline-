@@ -67,13 +67,36 @@ public class MockDataService {
     }
 
     public static List<ProduitMock> getMockProducts() {
-        return List.of(
-            new ProduitMock("1", "📱", "iPhone 15 Pro", "Smartphones", "12500 MAD", 24),
-            new ProduitMock("2", "📱", "Samsung Galaxy S24", "Smartphones", "11000 MAD", 15),
-            new ProduitMock("3", "💻", "MacBook Air M2", "Ordinateurs", "14500 MAD", 8),
-            new ProduitMock("4", "🎧", "AirPods Pro 2", "Accessoires", "2800 MAD", 50),
-            new ProduitMock("5", "⌚", "Apple Watch S9", "Accessoires", "4500 MAD", 30)
-        );
+        List<ProduitMock> realProducts = new ArrayList<>();
+        try {
+            dao.ProduitDAO pDao = new dao.ProduitDAO();
+            List<model.Produit> dbProducts = pDao.getAll();
+            
+            for (model.Produit p : dbProducts) {
+                // On mappe les données de la base vers notre modèle d'interface graphique
+                realProducts.add(new ProduitMock(
+                    String.valueOf(p.getIdProduit()),
+                    "🏷️", // Pas d'image dans la DB pour l'instant
+                    p.getNom() != null ? p.getNom() : "Produit Inconnu",
+                    "Générique", // Pas de catégorie dans Produit entity 
+                    "0 MAD", // Pas de prix dans Produit entity
+                    0 // Pas de stock dans Produit entity
+                ));
+            }
+        } catch (Exception e) {
+            System.err.println("Impossible de charger les produits depuis la BDD: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // Si la base est vide ou erreur, on garde quelques mocks pour ne pas casser l'UI
+        if (realProducts.isEmpty()) {
+            return List.of(
+                new ProduitMock("1", "📱", "iPhone 15 Pro", "Smartphones", "12500 MAD", 24),
+                new ProduitMock("2", "📱", "Samsung Galaxy S24", "Smartphones", "11000 MAD", 15)
+            );
+        }
+        
+        return realProducts;
     }
     
     public static List<CommandeMock> getMockOrders() {
