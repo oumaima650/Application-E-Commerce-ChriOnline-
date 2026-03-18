@@ -7,6 +7,7 @@ import model.SKU;
 
 public class SKUDAO {
 
+    // Récupère tous les SKUs
     public List<SKU> getAll() {
         List<SKU> skus = new ArrayList<>();
         String query = "SELECT * FROM SKU";
@@ -22,6 +23,7 @@ public class SKUDAO {
         return skus;
     }
 
+    // Récupère un SKU par son identifiant
     public SKU getBySku(String skuId) {
         String query = "SELECT * FROM SKU WHERE SKU = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -38,6 +40,7 @@ public class SKUDAO {
         return null;
     }
 
+    // Enregistre un nouveau SKU
     public boolean save(SKU sku) {
         String query = "INSERT INTO SKU (SKU, prix, quantite, image) VALUES (?, ?, ?, ?)";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -52,6 +55,7 @@ public class SKUDAO {
         }
     }
 
+    // Met à jour les informations d'un SKU
     public boolean update(SKU sku) {
         String query = "UPDATE SKU SET prix = ?, quantite = ?, image = ? WHERE SKU = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -66,6 +70,7 @@ public class SKUDAO {
         }
     }
 
+    // Supprime un SKU par son identifiant
     public boolean delete(String skuId) {
         String query = "DELETE FROM SKU WHERE SKU = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -98,6 +103,7 @@ public List<SKU> getByProduit(int idProduit) {
 }
 
 
+    // Lie une valeur de variante à un SKU
     public boolean addValeur(String sku, int idPVV) {
         String query = "INSERT INTO SKUVarValeur (SKU, idPVV) VALUES (?, ?)";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -110,6 +116,7 @@ public List<SKU> getByProduit(int idProduit) {
         }
     }
 
+    // Supprime le lien entre une valeur et un SKU
     public boolean removeValeur(String sku, int idPVV) {
         String query = "DELETE FROM SKUVarValeur WHERE SKU = ? AND idPVV = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -122,6 +129,7 @@ public List<SKU> getByProduit(int idProduit) {
         }
     }
 
+    // Convertit un résultat SQL en objet SKU
     private SKU mapResultSetToSKU(ResultSet rs) throws SQLException {
         SKU sku = new SKU();
         sku.setSku(rs.getString("SKU"));

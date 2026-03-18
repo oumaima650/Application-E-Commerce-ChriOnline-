@@ -10,6 +10,7 @@
         <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #24316B; -fx-padding: 15px 30px;">
             <Label text="ChriOnline Admin" style="-fx-text-fill: #F8FFA1; -fx-font-weight: bold; -fx-font-size: 24px;"/>
             <Region HBox.hgrow="ALWAYS"/>
+            <Button text="🔔 Notifications" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 13px;" onAction="#ouvrirNotifications"/>
             <Button text="Se déconnecter" styleClass="btn-primary"/>
         </HBox>
     </top>

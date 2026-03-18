@@ -28,4 +28,14 @@ public class ProduitVarValeur implements Serializable {
 
     public String getValeur() { return valeur; }
     public void setValeur(String valeur) { this.valeur = valeur; }
+
+    @Override
+    public String toString() {
+        return "ProduitVarValeur{" +
+                "idPVV=" + idPVV +
+                ", idProduit=" + idProduit +
+                ", idVariante=" + idVariante +
+                ", valeur='" + valeur + '\'' +
+                '}';
+    }
 }

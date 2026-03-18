@@ -8,6 +8,7 @@ import model.Variante;
 
 public class CategorieDAO {
 
+    // Récupère toutes les catégories
     public List<Categorie> getAll() {
         List<Categorie> categories = new ArrayList<>();
         String query = "SELECT * FROM Categorie";
@@ -23,6 +24,7 @@ public class CategorieDAO {
         return categories;
     }
 
+    // Récupère une catégorie par son ID
     public Categorie getById(int id) {
         String query = "SELECT * FROM Categorie WHERE idCategorie = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -39,6 +41,7 @@ public class CategorieDAO {
         return null;
     }
 
+    // Enregistre une nouvelle catégorie
     public boolean save(Categorie cat) {
         String query = "INSERT INTO Categorie (nom, description) VALUES (?, ?)";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -60,6 +63,7 @@ public class CategorieDAO {
         return false;
     }
 
+    // Met à jour une catégorie
     public boolean update(Categorie cat) {
         String query = "UPDATE Categorie SET nom = ?, description = ? WHERE idCategorie = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -73,6 +77,7 @@ public class CategorieDAO {
         }
     }
 
+    // Supprime une catégorie
     public boolean delete(int id) {
         String query = "DELETE FROM Categorie WHERE idCategorie = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -84,8 +89,7 @@ public class CategorieDAO {
         }
     }
 
-
-
+    // Lie une variante à une catégorie
     public boolean addVariante(int idCategorie, int idVariante) {
         String query = "INSERT INTO CategorieVariante (idCategorie, idVariante) VALUES (?, ?)";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -98,6 +102,7 @@ public class CategorieDAO {
         }
     }
 
+    // Retire le lien entre une variante et une catégorie
     public boolean removeVariante(int idCategorie, int idVariante) {
         String query = "DELETE FROM CategorieVariante WHERE idCategorie = ? AND idVariante = ?";
         try (Connection conn = ConnexionBDD.getConnection();
@@ -110,6 +115,7 @@ public class CategorieDAO {
         }
     }
 
+    // Convertit un résultat SQL en objet Categorie
     private Categorie mapResultSetToCategorie(ResultSet rs) throws SQLException {
         Categorie cat = new Categorie();
         cat.setIdCategorie(rs.getInt("idCategorie"));

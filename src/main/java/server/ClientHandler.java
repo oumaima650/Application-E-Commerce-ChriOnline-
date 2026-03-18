@@ -1,6 +1,9 @@
 package server;
 
 import service.AuthService;
+import service.CarteBancaireService;
+import service.NotificationService;
+import service.PaiementService;
 import shared.Reponse;
 import shared.Requete;
 
@@ -13,6 +16,9 @@ public class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final AuthService authService;
+    private final CarteBancaireService carteBancaireService;
+    private final NotificationService notificationService;
+    private final PaiementService paiementService;
 
     private ObjectOutputStream out;
     private ObjectInputStream  in;
@@ -20,6 +26,9 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket) {
         this.socket      = socket;
         this.authService = new AuthService();
+        this.carteBancaireService = new CarteBancaireService();
+        this.notificationService = new NotificationService();
+        this.paiementService = new PaiementService();
     }
 
     @Override
@@ -102,11 +111,36 @@ public class ClientHandler implements Runnable {
             
             default -> {
                 String token = requete.getTokenSession();
-                if (!AuthService.isAuthenticated(token)) {
+                int userId = -1;
+                
+                if (token != null) {
+                    userId = AuthService.getUserIdFromToken(token);
+                }
+                
+                if (userId <= 0 && requete.getType() != shared.RequestType.LOGIN && requete.getType() != shared.RequestType.REGISTER) {
                     yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
                 }
-                // TODO: dispatch to other services (ProduitService, CommandeService…)
-                yield new Reponse(false, "Fonctionnalité '" + requete.getType() + "' non encore implémentée.", null);
+                
+                if (requete.getParametres() == null) {
+                    requete.setParametres(new java.util.HashMap<>());
+                }
+                
+                // Injecter l'ID utilisateur sécurisé depuis le token pour les requêtes qui en ont besoin
+                requete.getParametres().put("idClient", userId);
+                requete.getParametres().put("idUtilisateur", userId);
+                
+                yield switch (requete.getType()) {
+                    case ADD_CARD -> carteBancaireService.addCard(requete);
+                    case GET_CARDS -> carteBancaireService.getCards(requete);
+                    case REMOVE_CARD -> carteBancaireService.removeCard(requete);
+                    
+                    case GET_NOTIFICATIONS -> notificationService.getNotifications(requete);
+                    case MARK_NOTIFICATION_READ -> notificationService.markAsRead(requete);
+                    
+                    case PROCESS_PAYMENT -> paiementService.processPayment(requete);
+                    
+                    default -> new Reponse(false, "Fonctionnalité '" + requete.getType() + "' non encore implémentée.", null);
+                };
             }
         };
     }

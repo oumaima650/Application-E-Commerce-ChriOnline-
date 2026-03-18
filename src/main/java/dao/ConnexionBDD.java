@@ -2,9 +2,12 @@ package dao;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 import java.util.Properties;
 
 public class ConnexionBDD {
@@ -29,6 +32,26 @@ public class ConnexionBDD {
             }
         } catch (IOException ex) {
             ex.printStackTrace();
+        }
+    }
+
+    private static String URL;
+    private static String USER;
+    private static String PASSWORD;
+
+    // Chargement des credentials depuis le fichier db.properties (non committé)
+    static {
+        try (InputStream input = ConnexionBDD.class.getClassLoader().getResourceAsStream("db.properties")) {
+            Properties props = new Properties();
+            if (input == null) {
+                throw new RuntimeException("Fichier db.properties introuvable dans le classpath !");
+            }
+            props.load(input);
+            URL      = props.getProperty("db.url");
+            USER     = props.getProperty("db.user");
+            PASSWORD = props.getProperty("db.password");
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur lors du chargement de db.properties", e);
         }
     }
 
