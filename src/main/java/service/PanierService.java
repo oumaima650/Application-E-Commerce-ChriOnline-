@@ -160,6 +160,7 @@ public class PanierService {
                 Map<String, Object> l = new java.util.HashMap<>();
                 l.put("sku", ligne.getSku());
                 l.put("quantite", ligne.getQuantite());
+                l.put("image", ligne.getImage());
                 // We use sousTotal because the LignePanier model does not store the unit price directly
                 l.put("sousTotal", ligne.getSousTotal() != null ? ligne.getSousTotal().doubleValue() : 0.0);
                 lignesMap.add(l);
@@ -171,6 +172,29 @@ public class PanierService {
             return new shared.Reponse(true, "Panier récupéré.", donnees);
         } catch (Exception e) {
             return new shared.Reponse(false, "Erreur lors de la récupération du panier : " + e.getMessage(), null);
+        }
+    }
+
+    public shared.Reponse modifierQuantite(shared.Requete requete) {
+        Map<String, Object> params = requete.getParametres();
+        Integer idClient = (Integer) params.get("idClient");
+        String sku = (String) params.get("sku");
+        Integer nouvelleQuantite = (Integer) params.get("quantite");
+
+        if (idClient == null || sku == null || nouvelleQuantite == null) {
+            return new shared.Reponse(false, "Paramètres manquants.", null);
+        }
+
+        try {
+            Panier panier = recupererPanier(idClient);
+            if (nouvelleQuantite <= 0) {
+                panierDAO.supprimerLigne(panier.getIdPanier(), sku);
+            } else {
+                panierDAO.setLigneQuantite(panier.getIdPanier(), sku, nouvelleQuantite);
+            }
+            return new shared.Reponse(true, "Quantité mise à jour.", null);
+        } catch (Exception e) {
+            return new shared.Reponse(false, "Erreur : " + e.getMessage(), null);
         }
     }
 }

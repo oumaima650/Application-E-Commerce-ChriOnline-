@@ -15,7 +15,7 @@ public class ClientApp extends Application {
         SceneManager.init(primaryStage);
         
         // Démarrer sur la page Admin pour visualiser l'interface demandée
-        SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
+        SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier");
         
         primaryStage.show();
         

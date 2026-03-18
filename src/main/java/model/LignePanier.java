@@ -8,6 +8,7 @@ public class LignePanier implements Serializable {
     private String sku;
     private int quantite;
     private BigDecimal sousTotal;
+    private String image;
 
     public LignePanier() {}
 
@@ -17,6 +18,9 @@ public class LignePanier implements Serializable {
         this.quantite = quantite;
         this.sousTotal = sousTotal;
     }
+
+    public String getImage() { return image; }
+    public void setImage(String image) { this.image = image; }
 
     public int getIdPanier() { return idPanier; }
     public void setIdPanier(int idPanier) { this.idPanier = idPanier; }

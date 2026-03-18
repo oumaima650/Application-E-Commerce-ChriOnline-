@@ -69,7 +69,7 @@ public class PanierDAO {
 
     public List<LignePanier> getLignesByPanierId(int idPanier) {
         List<LignePanier> lignes = new ArrayList<>();
-        String query = "SELECT lp.*, s.prix FROM LignePanier lp JOIN SKU s ON lp.SKU = s.SKU WHERE lp.idPanier = ?";
+        String query = "SELECT lp.*, s.prix, s.image FROM LignePanier lp JOIN SKU s ON lp.SKU = s.SKU WHERE lp.idPanier = ?";
         try (Connection conn = ConnexionBDD.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, idPanier);
@@ -77,12 +77,14 @@ public class PanierDAO {
             while (rs.next()) {
                 BigDecimal prix = rs.getBigDecimal("prix");
                 BigDecimal sousTotal = prix != null ? prix.multiply(new BigDecimal(rs.getInt("quantite"))) : BigDecimal.ZERO;
-                lignes.add(new LignePanier(
+                LignePanier lp = new LignePanier(
                     rs.getInt("idPanier"),
                     rs.getString("SKU"),
                     rs.getInt("quantite"),
                     sousTotal
-                ));
+                );
+                lp.setImage(rs.getString("image"));
+                lignes.add(lp);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -122,6 +124,19 @@ public class PanierDAO {
         try (Connection conn = ConnexionBDD.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, idPanier);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setLigneQuantite(int idPanier, String sku, int quantite) {
+        String query = "UPDATE LignePanier SET quantite = ? WHERE idPanier = ? AND SKU = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, quantite);
+            stmt.setInt(2, idPanier);
+            stmt.setString(3, sku);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();

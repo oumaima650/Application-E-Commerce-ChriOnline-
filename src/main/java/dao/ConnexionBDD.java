@@ -1,14 +1,36 @@
 package dao;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 public class ConnexionBDD {
-    // Paramètres de connexion
-    private static final String URL = "jdbc:mysql://localhost:3306/chri_online";
-    private static final String USER = "root";
-    private static final String PASSWORD = "";
+    private static String URL;
+    private static String USER;
+    private static String PASSWORD;
+
+    //private static final String URL = "jdbc:mysql://localhost:3306/chri_online";
+    //private static final String USER = "root";
+    //private static final String PASSWORD = "";
+
+    static {
+        Properties properties = new Properties();
+        try (InputStream input = ConnexionBDD.class.getClassLoader().getResourceAsStream("db.properties")) {
+            if (input == null) {
+                System.out.println("Désolé, impossible de trouver db.properties");
+            } else {
+                properties.load(input);
+                URL = properties.getProperty("db.url");
+                USER = properties.getProperty("db.user");
+                PASSWORD = properties.getProperty("db.password");
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
 
     private static Connection connection = null;
 
@@ -22,7 +44,7 @@ public class ConnexionBDD {
                 Class.forName("com.mysql.cj.jdbc.Driver");
                 
                 connection = DriverManager.getConnection(URL, USER, PASSWORD);
-                System.out.println(" Connexion à la base de données 'chri_online' réussie !");
+                System.out.println(" Connexion a la base de donnees 'chri_online' reussie !");
             }
         } catch (ClassNotFoundException e) {
             System.err.println(" Erreur : Driver MySQL non trouvé !");
