@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.Circle?>
+
+<BorderPane styleClass="root" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.NotificationsController">
+    <!-- Header UDP Notifications -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #24316B; -fx-padding: 15px 30px;">
+            <Button text="← Retour" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 14px; -fx-padding: 5 12;" onAction="#retourArriere"/>
+            <Label text="Mes Notifications UDP" style="-fx-text-fill: #F8FFA1; -fx-font-weight: bold; -fx-font-size: 24px;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <StackPane>
+                <Label text="🔔" style="-fx-font-size: 20px;"/>
+                <Circle radius="8" fill="#FF724C" translateX="10" translateY="-10"/>
+                <Label text="3" style="-fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold;" translateX="10" translateY="-10"/>
+            </StackPane>
+        </HBox>
+    </top>
+
+    <!-- Contenu Principal -->
+    <center>
+        <VBox alignment="TOP_CENTER" spacing="20" style="-fx-padding: 30px;">
+            <HBox maxWidth="600">
+                <Label text="Réception en temps réel" styleClass="subtitle" />
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Marquer tout comme lu" styleClass="button" style="-fx-background-color: transparent; -fx-text-fill: #888888; -fx-cursor: hand;" onAction="#clearNotifications"/>
+            </HBox>
+
+            <!-- Liste dynamique de notifications UDP -->
+            <VBox fx:id="notificationsBox" spacing="15" maxWidth="600">
+                <!-- Les notifications arriveront ici programmatiquement -->
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>

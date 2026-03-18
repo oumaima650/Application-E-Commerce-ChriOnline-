@@ -4,7 +4,7 @@ import dao.CommandeDAO;
 import dao.PaiementDAO;
 import model.Commande;
 import model.Paiement;
-import model.enums.ModePaiement;
+import model.enums.MethodePaiement;
 import model.enums.StatutPaiement;
 import shared.Reponse;
 import shared.Requete;
@@ -23,10 +23,10 @@ public class PaiementService {
     }
 
     public Reponse processPayment(Requete requete) {
-        Integer idCommande = (Integer) requete.getBody().get("idCommande");
-        Integer idCarte = (Integer) requete.getBody().get("idCarte");
-        String montantStr = (String) requete.getBody().get("montant");
-        String methode = (String) requete.getBody().get("methodePaiement");
+        Integer idCommande = (Integer) requete.getParametres().get("idCommande");
+        Integer idCarte = (Integer) requete.getParametres().get("idCarte");
+        String montantStr = (String) requete.getParametres().get("montant");
+        String methode = (String) requete.getParametres().get("methodePaiement");
 
         if (idCommande == null || montantStr == null || methode == null) {
             return new Reponse(false, "Paramètres de paiement manquants.", null);
@@ -39,14 +39,14 @@ public class PaiementService {
             return new Reponse(false, "Montant invalide.", null);
         }
 
-        ModePaiement modePaiement;
+        MethodePaiement modePaiement;
         try {
-            modePaiement = ModePaiement.valueOf(methode.toUpperCase());
+            modePaiement = MethodePaiement.valueOf(methode.toUpperCase());
         } catch (IllegalArgumentException e) {
             return new Reponse(false, "Méthode de paiement invalide.", null);
         }
 
-        if (modePaiement == ModePaiement.CARD && idCarte == null) {
+        if (modePaiement == MethodePaiement.CARD && idCarte == null) {
             return new Reponse(false, "Une carte bancaire est requise pour le paiement par carte.", null);
         }
 
@@ -66,7 +66,7 @@ public class PaiementService {
             // int clientId = commande.getIdClient();
             // notificationService.creerNotification(clientId, "Votre paiement de " + montantStr + " a été approuvé.");
             
-            return new Reponse(true, "Paiement traité avec succès.", paiement);
+            return new Reponse(true, "Paiement traité avec succès.", java.util.Map.of("paiement", paiement));
         } else {
             return new Reponse(false, "Échec du traitement du paiement.", null);
         }

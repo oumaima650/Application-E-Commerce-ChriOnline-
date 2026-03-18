@@ -1,8 +1,7 @@
 package client;
 
 import javafx.application.Platform;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
+import ui.NotificationsController;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -11,8 +10,18 @@ public class ClientUDP extends Thread {
     private int portEcoute;
     private boolean running = true;
 
+    // Référence optionnelle au contrôleur de la page Notifications
+    // Si non null, les messages UDP alimentent directement la page de notifs
+    // Si null, on affiche juste dans la console
+    private NotificationsController notificationsController;
+
     public ClientUDP(int port) {
         this.portEcoute = port;
+        setDaemon(true); // S'arrête automatiquement quand le programme se ferme
+    }
+
+    public void setNotificationsController(NotificationsController controller) {
+        this.notificationsController = controller;
     }
 
     @Override
@@ -24,25 +33,33 @@ public class ClientUDP extends Thread {
             while (running) {
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 socket.receive(packet); // Bloquant
-                
+
                 String message = new String(packet.getData(), 0, packet.getLength());
-                
                 System.out.println("\n[🔔 NOTIFICATION UDP] => " + message);
-                
-                // Mettre à jour l'UI JavaFX de manière sécurisée (depuis un autre thread)
+
+                // Mettre à jour l'UI JavaFX depuis le thread JavaFX
                 Platform.runLater(() -> {
-                    Alert alert = new Alert(AlertType.INFORMATION);
-                    alert.setTitle("Nouvelle Notification");
-                    alert.setHeaderText("ChriOnline - Info Rapide");
-                    alert.setContentText(message);
-                    
-                    // Style direct pour respecter la charte si besoin
-                    alert.getDialogPane().setStyle("-fx-background-color: #F6D5EE; -fx-text-fill: #24316B;");
-                    alert.show();
+                    if (notificationsController != null) {
+                        // Afficher dans la page Notifications dédiée
+                        notificationsController.addNotification("Notification reçue", message);
+                    } else {
+                        // Fallback : afficher une Alert si la page n'est pas encore ouverte
+                        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
+                        alert.setTitle("Nouvelle Notification UDP");
+                        alert.setHeaderText("ChriOnline - Nouvelle Info");
+                        alert.setContentText(message);
+                        alert.getDialogPane().setStyle("-fx-background-color: #FFF0EB;");
+                        alert.show();
+                    }
                 });
             }
         } catch (Exception e) {
             System.err.println("Erreur de Thread UDP: " + e.getMessage());
         }
+    }
+
+    public void stopListening() {
+        running = false;
+        interrupt();
     }
 }

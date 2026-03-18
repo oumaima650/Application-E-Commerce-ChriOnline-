@@ -28,17 +28,17 @@ public class NotificationService {
     }
 
     public Reponse getNotifications(Requete requete) {
-        Integer idUtilisateur = (Integer) requete.getBody().get("idUtilisateur");
+        Integer idUtilisateur = (Integer) requete.getParametres().get("idUtilisateur");
         if (idUtilisateur == null) {
             return new Reponse(false, "ID Utilisateur manquant.", null);
         }
 
         List<Notification> notifications = notificationDAO.findByUtilisateur(idUtilisateur);
-        return new Reponse(true, "Notifications récupérées.", notifications);
+        return new Reponse(true, "Notifications récupérées.", java.util.Map.of("notifications", notifications));
     }
     
     public Reponse markAsRead(Requete requete) {
-        Integer idNotification = (Integer) requete.getBody().get("idNotification");
+        Integer idNotification = (Integer) requete.getParametres().get("idNotification");
         if (idNotification == null) {
             return new Reponse(false, "ID Notification manquant.", null);
         }

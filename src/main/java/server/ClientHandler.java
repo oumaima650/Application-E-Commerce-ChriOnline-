@@ -116,13 +116,13 @@ public class ClientHandler implements Runnable {
                     yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
                 }
                 
-                if (requete.getBody() == null) {
-                    requete.setBody(new java.util.HashMap<>());
+                if (requete.getParametres() == null) {
+                    requete.setParametres(new java.util.HashMap<>());
                 }
                 
                 // Injecter l'ID utilisateur sécurisé depuis le token pour les requêtes qui en ont besoin
-                requete.getBody().put("idClient", userId);
-                requete.getBody().put("idUtilisateur", userId);
+                requete.getParametres().put("idClient", userId);
+                requete.getParametres().put("idUtilisateur", userId);
                 
                 yield switch (requete.getType()) {
                     case ADD_CARD -> carteBancaireService.addCard(requete);

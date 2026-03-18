@@ -4,6 +4,7 @@ import client.models.MockDataService.CommandeMock;
 import client.models.MockDataService.ProduitMock;
 import client.models.MockDataService.UserMock;
 import client.models.MockDataService;
+import client.utils.SceneManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -20,6 +21,11 @@ public class AdminController {
     @FXML private TableColumn<ProduitMock, Void> colActionsProduit;
     @FXML private TableColumn<CommandeMock, Void> colActionsCommande;
     @FXML private TableColumn<UserMock, Void> colActionsUtilisateur;
+
+    @FXML
+    private void ouvrirNotifications() {
+        SceneManager.switchToCached("notifications.fxml", "ChriOnline - Notifications");
+    }
 
     @FXML
     public void initialize() {
@@ -52,6 +58,11 @@ public class AdminController {
                         btnEdit.setStyle("-fx-background-color: #F8FFA1; -fx-background-radius: 5px; -fx-cursor: hand;");
                         btnDelete.setStyle("-fx-background-color: #F6D5EE; -fx-background-radius: 5px; -fx-cursor: hand; -fx-text-fill: red;");
                         
+                        btnEdit.setOnAction(event -> {
+                            ProduitMock item = getTableView().getItems().get(getIndex());
+                            openEditModal(item);
+                        });
+
                         btnDelete.setOnAction(event -> {
                             ProduitMock item = getTableView().getItems().get(getIndex());
                             tableProduits.getItems().remove(item);
@@ -152,6 +163,34 @@ public class AdminController {
                 };
             }
         });
+    }
+
+    private void openEditModal(ProduitMock item) {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/chrionline/fxml/produit_form.fxml"));
+            javafx.scene.Parent root = loader.load();
+            
+            ProduitFormController controller = loader.getController();
+            controller.setProduit(item, () -> {
+                tableProduits.refresh();
+                System.out.println("Vue Produit Rofraîchie : " + item.getNom());
+            });
+            
+            javafx.stage.Stage stage = new javafx.stage.Stage();
+            stage.setTitle("Modifier Produit");
+            
+            javafx.scene.Scene scene = new javafx.scene.Scene(root);
+            try {
+                scene.getStylesheets().add(getClass().getResource("/com/chrionline/css/styles.css").toExternalForm());
+            } catch (Exception ignored) {}
+            
+            stage.setScene(scene);
+            stage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            stage.showAndWait();
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+            System.err.println("Impossible de charger la modale produit_form.fxml");
+        }
     }
 }
 
