@@ -4,7 +4,7 @@ import dao.CommandeDAO;
 import dao.PaiementDAO;
 import model.Commande;
 import model.Paiement;
-import model.enums.ModePaiement;
+import model.enums.MethodePaiement;
 import model.enums.StatutPaiement;
 import shared.Reponse;
 import shared.Requete;
