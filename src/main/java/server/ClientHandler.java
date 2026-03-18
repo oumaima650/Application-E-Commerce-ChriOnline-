@@ -71,7 +71,7 @@ public class ClientHandler implements Runnable {
             case REGISTER  -> authService.signup(requete);
             
             // Cart Operations
-            case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART -> {
+            case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART, UPDATE_QUANTITY_CART -> {
                 String token = requete.getTokenSession();
                 int userId = AuthService.getUserIdFromToken(token);
                 
