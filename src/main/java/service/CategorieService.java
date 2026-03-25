@@ -2,11 +2,16 @@ package service;
 
 import dao.CategorieDAO;
 import model.Categorie;
+import shared.Reponse;
+import shared.Requete;
 import java.util.List;
+import java.util.Map;
+import service.VarianteService;
 
 public class CategorieService {
 
     private CategorieDAO categorieDAO = new CategorieDAO();
+    private final VarianteService varianteService = new VarianteService();
 
     // Récupère toutes les catégories
     public List<Categorie> getAll() {
@@ -79,6 +84,114 @@ public class CategorieService {
             categorieDAO.removeVariante(idCategorie, idVariante);
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors du retrait de la variante de la catégorie", e);
+        }
+    }
+
+    // ───────────────────────────────
+    // WRAPPERS REQUETE / REPONSE
+    // ───────────────────────────────
+
+    public Reponse getAll(Requete requete) {
+        try {
+            return new Reponse(true, "Liste des catégories récupérée.", Map.of("categories", getAll()));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse getById(Requete requete) {
+        try {
+            Object idParam = requete.getParametres().get("idCategorie");
+            if (!(idParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idCategorie doit être Integer).", null);
+            }
+            Integer id = (Integer) idParam;
+            return new Reponse(true, "Catégorie trouvée.", Map.of("categorie", getById(id)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse creer(Requete requete) {
+        try {
+            Object catParam = requete.getParametres().get("categorie");
+            if (!(catParam instanceof Categorie)) {
+                return new Reponse(false, "Type de données invalide (categorie doit être Categorie).", null);
+            }
+            Categorie cat = (Categorie) catParam;
+            creer(cat); // Le DAO injecte l'ID généré dans cat
+            return new Reponse(true, "Catégorie créée avec succès.", Map.of("categorie", cat));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse modifier(Requete requete) {
+        try {
+            Object catParam = requete.getParametres().get("categorie");
+            if (!(catParam instanceof Categorie)) {
+                return new Reponse(false, "Type de données invalide (categorie doit être Categorie).", null);
+            }
+            Categorie cat = (Categorie) catParam;
+            modifier(cat);
+            return new Reponse(true, "Catégorie modifiée avec succès.", Map.of("categorie", cat));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse supprimer(Requete requete) {
+        try {
+            Object idParam = requete.getParametres().get("idCategorie");
+            if (!(idParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idCategorie doit être Integer).", null);
+            }
+            Integer id = (Integer) idParam;
+            supprimer(id);
+            return new Reponse(true, "Catégorie supprimée avec succès.", null);
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse ajouterVariante(Requete requete) {
+        try {
+            Object idCatParam = requete.getParametres().get("idCategorie");
+            Object idVarParam = requete.getParametres().get("idVariante");
+            
+            if (!(idCatParam instanceof Integer) || !(idVarParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idCategorie et idVariante doivent être Integer).", null);
+            }
+            
+            Integer idCategorie = (Integer) idCatParam;
+            Integer idVariante = (Integer) idVarParam;
+            
+            // Vérification existence variante
+            varianteService.getById(idVariante);
+            
+            ajouterVariante(idCategorie, idVariante);
+            return new Reponse(true, "Variante liée à la catégorie avec succès.", null);
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse retirerVariante(Requete requete) {
+        try {
+            Object idCatParam = requete.getParametres().get("idCategorie");
+            Object idVarParam = requete.getParametres().get("idVariante");
+            
+            if (!(idCatParam instanceof Integer) || !(idVarParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idCategorie et idVariante doivent être Integer).", null);
+            }
+            
+            Integer idCategorie = (Integer) idCatParam;
+            Integer idVariante = (Integer) idVarParam;
+            
+            retirerVariante(idCategorie, idVariante);
+            return new Reponse(true, "Variante retirée de la catégorie avec succès.", null);
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
         }
     }
 }
