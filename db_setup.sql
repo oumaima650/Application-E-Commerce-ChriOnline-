@@ -67,6 +67,92 @@ CREATE TABLE Carte_bancaire (
         REFERENCES Client(IdUtilisateur) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ------------------------------------------------------------
+-- Table : Categorie
+-- ------------------------------------------------------------
+CREATE TABLE Categorie (
+    idCategorie     INT             NOT NULL AUTO_INCREMENT,
+    nom             VARCHAR(100)    NOT NULL,
+    description     TEXT,
+    created_At      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_At      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (idCategorie)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ------------------------------------------------------------
+-- Table associative : CategorieVariante  (M:N entre Categorie et Variante)
+-- Une variante peut appartenir à plusieurs catégories et vice-versa
+-- ------------------------------------------------------------
+CREATE TABLE CategorieVariante (
+    idCategorie     INT     NOT NULL,
+    idVariante      INT     NOT NULL,
+    PRIMARY KEY (idCategorie, idVariante),
+    CONSTRAINT fk_cv_categorie FOREIGN KEY (idCategorie) REFERENCES Categorie(idCategorie) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_cv_variante  FOREIGN KEY (idVariante)  REFERENCES Variante(idVariante)   ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ------------------------------------------------------------
+-- Table : Produit
+-- ------------------------------------------------------------
+CREATE TABLE Produit (
+    idProduit       INT             NOT NULL AUTO_INCREMENT,
+    nom             VARCHAR(150)    NOT NULL,
+    description     TEXT,
+    created_At      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (idProduit)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ------------------------------------------------------------
+-- Table : Variante (appartient à Produit — 1..N variantes par produit)
+-- ------------------------------------------------------------
+CREATE TABLE Variante (
+    idVariante      INT             NOT NULL AUTO_INCREMENT,
+    nom             VARCHAR(150)    NOT NULL,
+    description     TEXT,
+    created_At      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_At      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (idVariante)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ------------------------------------------------------------
+-- Table associative : ProduitVarValeur
+-- Lie un Produit à une Variante avec la valeur de l'attribut
+-- (ex: Produit "T-shirt" -- Variante "Couleur" -- valeur "Rouge")
+-- ------------------------------------------------------------
+CREATE TABLE ProduitVarValeur (
+    idPVV           INT             NOT NULL AUTO_INCREMENT,
+    idProduit       INT             NOT NULL,
+    idVariante      INT             NOT NULL,
+    valeur          VARCHAR(100)    NOT NULL,
+    PRIMARY KEY (idPVV),
+    UNIQUE KEY uq_pvv (idProduit, idVariante, valeur),
+    CONSTRAINT fk_pvv_produit  FOREIGN KEY (idProduit)  REFERENCES Produit(idProduit)   ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_pvv_variante FOREIGN KEY (idVariante) REFERENCES Variante(idVariante) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ------------------------------------------------------------
+-- Table : SKU  (stock keeping unit – déclinaison vendable)
+-- Attributs : SKU (PK), prix, quantite, image
+-- ------------------------------------------------------------
+CREATE TABLE SKU (
+    SKU             VARCHAR(100)    NOT NULL,
+    prix            DECIMAL(10,2)   NOT NULL,
+    quantite        INT             NOT NULL DEFAULT 0,
+    image           VARCHAR(255),
+    PRIMARY KEY (SKU)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ------------------------------------------------------------
+-- Table associative : SKUVarValeur
+-- Lie un SKU à une ligne de ProduitVarValeur (idProduit + idVariante + valeur)
+-- ------------------------------------------------------------
+CREATE TABLE SKUVarValeur (
+    SKU             VARCHAR(100)    NOT NULL,
+    idPVV           INT             NOT NULL,
+    PRIMARY KEY (SKU, idPVV),
+    CONSTRAINT fk_svv_sku FOREIGN KEY (SKU)    REFERENCES SKU(SKU)                ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_svv_pvv FOREIGN KEY (idPVV)  REFERENCES ProduitVarValeur(idPVV) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ------------------------------------------------------------
 -- Table : Commande
@@ -75,7 +161,7 @@ CREATE TABLE Commande (
     idCommande          INT             NOT NULL AUTO_INCREMENT,
     IdClient            INT             NOT NULL,
     idAdresse           INT             NULL,
-    reference       VARCHAR(50)     NOT NULL UNIQUE,
+    reference       VARCHAR(50)     NOT NULL UNIQUE, 
     statut              ENUM('en_attente','validée','expédiée','livrée') NOT NULL DEFAULT 'en_attente',
     dateLivraisonPrevue     DATETIME        NULL,   -- estimée à la commande
     dateLivraisonReelle     DATETIME        NULL,   -- remplie quand livrée
