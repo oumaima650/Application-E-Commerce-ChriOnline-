@@ -9,6 +9,7 @@ public class LignePanier implements Serializable {
     private int quantite;
     private BigDecimal sousTotal;
     private String image;
+    private boolean selected = true; // Par défaut, tout est sélectionné
 
     public LignePanier() {}
 
@@ -19,7 +20,11 @@ public class LignePanier implements Serializable {
         this.sousTotal = sousTotal;
     }
 
+    public boolean isSelected() { return selected; }
+    public void setSelected(boolean selected) { this.selected = selected; }
+
     public String getImage() { return image; }
+
     public void setImage(String image) { this.image = image; }
 
     public int getIdPanier() { return idPanier; }

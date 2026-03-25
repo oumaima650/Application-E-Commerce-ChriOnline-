@@ -1,5 +1,6 @@
 package ui;
 
+import client.utils.SceneManager;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -7,7 +8,9 @@ import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.CheckBox;
 import javafx.scene.layout.HBox;
+
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
@@ -40,18 +43,39 @@ public class PanierController implements Initializable {
     private final Map<String, Double> unitPrices = new HashMap<>();
     private final Map<String, Integer> currentQuantities = new HashMap<>();
     private final Map<String, HBox> itemRows = new HashMap<>();
+    private final Map<String, Boolean> selectedItems = new HashMap<>();
+    private final Map<String, CheckBox> checkBoxes = new HashMap<>();
 
-    // Pour l'exercice, on va dire que le client connecté est l'ID 4
+
     private final int ID_CLIENT = 7;
     private final String DEBUG_TOKEN = "DEBUG";
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        chargerPanier();
+        // --- PERFORMANCE OPTIMIZATION: PRE-CHARGEMENT DU CHECKOUT ---
+        // Démarrer immédiatement avant même de charger le panier
+        SceneManager.loadAsync("checkout.fxml");
         
+        chargerPanier();
+
         if(btnValider != null) {
-            btnValider.setOnAction(e -> System.out.println("Validation de la commande..."));
+            btnValider.setOnAction(e -> {
+                List<String> skus = selectedItems.entrySet().stream()
+                    .filter(Map.Entry::getValue)
+                    .map(Map.Entry::getKey)
+                    .toList();
+                
+                if (skus.isEmpty()) {
+                    // Optionnel : afficher une alerte
+                    return;
+                }
+                
+                System.out.println("Navigation vers le checkout avec " + skus.size() + " articles...");
+                CheckoutController.setSelectedSkus(skus);
+                SceneManager.switchTo("checkout.fxml", "ChriOnline - Paiement Sécurisé");
+            });
         }
+
     }
 
     private void chargerPanier() {
@@ -74,6 +98,9 @@ public class PanierController implements Initializable {
         unitPrices.clear();
         currentQuantities.clear();
         itemRows.clear();
+        selectedItems.clear();
+        checkBoxes.clear();
+
         
         int totalArticles = 0;
         double totalGlobal = 0.0;
@@ -93,8 +120,11 @@ public class PanierController implements Initializable {
                     double unitPrice = (qty > 0) ? sousTotal / qty : 0;
                     unitPrices.put(sku, unitPrice);
                     currentQuantities.put(sku, qty);
+                    selectedItems.put(sku, true); // Par défaut tout est coché
+                    
                     totalArticles += qty;
                     totalGlobal += sousTotal;
+
                     
                     boolean isHighlighted = (i == 0);
                     HBox row = createCartItemRow(sku, sku, "Ref: " + sku, qty, sousTotal, "cat-phone", icon, isHighlighted);
@@ -143,12 +173,23 @@ public class PanierController implements Initializable {
     }
 
     private void recalculateTotalsFromLocalData() {
-        int totalItems = currentQuantities.values().stream().mapToInt(Integer::intValue).sum();
-        double totalSum = currentQuantities.entrySet().stream()
-                .mapToDouble(entry -> entry.getValue() * unitPrices.getOrDefault(entry.getKey(), 0.0))
-                .sum();
+        int totalItems = 0;
+        double totalSum = 0;
+        
+        for (String sku : currentQuantities.keySet()) {
+            if (selectedItems.getOrDefault(sku, false)) {
+                int qty = currentQuantities.get(sku);
+                totalItems += qty;
+                totalSum += qty * unitPrices.getOrDefault(sku, 0.0);
+            }
+        }
         updateSummaryLabels(totalItems, totalSum);
+        
+        if (btnValider != null) {
+            btnValider.setDisable(totalItems == 0);
+        }
     }
+
     
     private void removeProduit(String sku) {
         // --- OPTIMISTIC UI REMOVE (Instant) ---
@@ -157,7 +198,10 @@ public class PanierController implements Initializable {
             panierItemsBox.getChildren().remove(row);
         }
         currentQuantities.remove(sku);
+        selectedItems.remove(sku);
+        checkBoxes.remove(sku);
         itemRows.remove(sku);
+
         
         recalculateTotalsFromLocalData();
 
@@ -177,9 +221,21 @@ public class PanierController implements Initializable {
         HBox row = new HBox(14);
         row.getStyleClass().add(highlighted ? "cart-item-highlighted" : "cart-item");
         row.setAlignment(Pos.CENTER_LEFT);
+
+        CheckBox cb = new CheckBox();
+        cb.getStyleClass().add("item-checkbox");
+        cb.setSelected(selectedItems.getOrDefault(sku, true));
+        cb.selectedProperty().addListener((obs, oldVal, newVal) -> {
+            selectedItems.put(sku, newVal);
+            recalculateTotalsFromLocalData();
+        });
+        checkBoxes.put(sku, cb);
+
         
-        if (svgPathStr == null || svgPathStr.isEmpty()) 
+        // Fix for SVGPath warnings: Check if it's a filename or invalid path data
+        if (svgPathStr == null || svgPathStr.isEmpty() || svgPathStr.endsWith(".jpg") || svgPathStr.endsWith(".png")) {
             svgPathStr = IconLibrary.PHONE;
+        }
 
         StackPane thumb = new StackPane();
         thumb.getStyleClass().addAll("item-thumbnail", catClass);
@@ -214,7 +270,18 @@ public class PanierController implements Initializable {
         tr.getStyleClass().add("icon-trash"); bd.setGraphic(tr);
         bd.setOnAction(e -> removeProduit(sku));
         
-        row.getChildren().addAll(thumb, info, sp, qBox, lp, bd);
+        row.getChildren().addAll(cb, thumb, info, sp, qBox, lp, bd);
+
         return row;
+    }
+    
+    @FXML
+    private void goToCommandes() {
+        SceneManager.switchTo("commandes.fxml", "ChriOnline - Mes Commandes");
+    }
+    
+    @FXML
+    private void goToHome() {
+        SceneManager.switchTo("produits.fxml", "ChriOnline - Catalogue");
     }
 }
