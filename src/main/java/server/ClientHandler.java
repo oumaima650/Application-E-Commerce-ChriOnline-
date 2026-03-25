@@ -4,6 +4,7 @@ import service.AuthService;
 import service.CarteBancaireService;
 import service.NotificationService;
 import service.PaiementService;
+import service.ProduitService;
 import shared.Reponse;
 import shared.Requete;
 
@@ -19,6 +20,7 @@ public class ClientHandler implements Runnable {
     private final CarteBancaireService carteBancaireService;
     private final NotificationService notificationService;
     private final PaiementService paiementService;
+    private final ProduitService produitService;
     private final service.CommandeService commandeService;
 
     private ObjectOutputStream out;
@@ -30,6 +32,7 @@ public class ClientHandler implements Runnable {
         this.carteBancaireService = new CarteBancaireService();
         this.notificationService = new NotificationService();
         this.paiementService = new PaiementService();
+        this.produitService = new ProduitService();
         this.commandeService = new service.CommandeService();
     }
 
@@ -149,6 +152,17 @@ public class ClientHandler implements Runnable {
                     case UPDATE_ORDER_STATUS -> commandeService.updateStatutCommande(requete);
 
 
+                    
+                    // ───────────────────────────────
+                    // PRODUIT
+                    // ───────────────────────────────
+                    case GET_ALL_PRODUITS -> produitService.getAll(requete);
+                    case GET_PRODUIT_BY_ID -> produitService.getById(requete);
+                    case SEARCH_PRODUITS_BY_NOM -> produitService.rechercherParNom(requete);
+                    case COUNT_PRODUITS -> produitService.compter(requete);
+                    case ADD_PRODUIT -> produitService.creer(requete);
+                    case UPDATE_PRODUIT -> produitService.modifier(requete);
+                    case DELETE_PRODUIT -> produitService.supprimer(requete);
                     
                     default -> new Reponse(false, "Fonctionnalité '" + requete.getType() + "' non encore implémentée.", null);
                 };

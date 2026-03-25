@@ -22,7 +22,7 @@ public class ClientApp extends Application {
         SceneManager.init(primaryStage);
         
         // Démarrer sur la page Admin pour visualiser l'interface demandée
-        SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier");
+        SceneManager.switchTo(  "login.fxml", "ChriOnline - Mon Panier");
         
         primaryStage.show();
     }
