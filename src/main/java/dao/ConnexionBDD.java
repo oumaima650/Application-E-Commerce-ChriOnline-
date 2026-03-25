@@ -39,7 +39,7 @@ public class ConnexionBDD {
             if (connection == null || connection.isClosed()) {
                 // Charger le driver explicitement (optionnel dans les versions récentes de JDBC)
                 Class.forName("com.mysql.cj.jdbc.Driver");
-                
+
                 connection = DriverManager.getConnection(URL, USER, PASSWORD);
                 System.out.println(" Connexion à la base de données 'chri_online' réussie !");
             }
@@ -65,6 +65,4 @@ public class ConnexionBDD {
             e.printStackTrace();
         }
     }
-
-
 }

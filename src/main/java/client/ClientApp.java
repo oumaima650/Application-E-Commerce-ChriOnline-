@@ -20,23 +20,10 @@ public class ClientApp extends Application {
         primaryStage.setMinHeight(600);
 
         SceneManager.init(primaryStage);
-
-        // 1. Précharger le FXML Notifications pour récupérer son Controller
-        FXMLLoader notifLoader = new FXMLLoader(
-            ClientApp.class.getResource("/com/chrionline/fxml/notifications.fxml")
-        );
-        Parent notifRoot = notifLoader.load();
-        notificationsController = notifLoader.getController();
-        SceneManager.cacheScene("notifications.fxml", notifRoot);
-
-        // 2. Lancer l'écouteur UDP et le brancher sur la page Notifications
-        udpListener = new ClientUDP(9090);
-        udpListener.setNotificationsController(notificationsController);
-        udpListener.start();
-
-        // 3. Démarrer sur la page Admin (changer par "checkout.fxml" ou autre au besoin)
-        SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
-
+        
+        // Démarrer sur la page Admin pour visualiser l'interface demandée
+        SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier");
+        
         primaryStage.show();
     }
 

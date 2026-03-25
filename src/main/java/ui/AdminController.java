@@ -10,7 +10,9 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.shape.SVGPath;
 import javafx.util.Callback;
+import ui.utils.IconLibrary;
 
 public class AdminController {
 
@@ -50,13 +52,13 @@ public class AdminController {
             @Override
             public TableCell<ProduitMock, Void> call(final TableColumn<ProduitMock, Void> param) {
                 return new TableCell<>() {
-                    private final Button btnEdit = new Button("✏️");
-                    private final Button btnDelete = new Button("🗑");
+                    private final Button btnEdit = createIconButton(IconLibrary.SETTINGS, 16, "#24316B");
+                    private final Button btnDelete = createIconButton(IconLibrary.TRASH, 16, "#E74C3C");
                     private final HBox pane = new HBox(10, btnEdit, btnDelete);
 
                     {
-                        btnEdit.setStyle("-fx-background-color: #F8FFA1; -fx-background-radius: 5px; -fx-cursor: hand;");
-                        btnDelete.setStyle("-fx-background-color: #F6D5EE; -fx-background-radius: 5px; -fx-cursor: hand; -fx-text-fill: red;");
+                        btnEdit.setStyle("-fx-background-color: #F8FFA1; -fx-background-radius: 5px; -fx-cursor: hand; -fx-padding: 5px;");
+                        btnDelete.setStyle("-fx-background-color: #F6D5EE; -fx-background-radius: 5px; -fx-cursor: hand; -fx-padding: 5px;");
                         
                         btnEdit.setOnAction(event -> {
                             ProduitMock item = getTableView().getItems().get(getIndex());
@@ -191,6 +193,16 @@ public class AdminController {
             e.printStackTrace();
             System.err.println("Impossible de charger la modale produit_form.fxml");
         }
+    }
+    
+    /**
+     * Crée un bouton avec icône SVG
+     */
+    private Button createIconButton(String iconConstant, double size, String color) {
+        SVGPath icon = IconLibrary.getIcon(iconConstant, size, color);
+        Button button = new Button();
+        button.setGraphic(icon);
+        return button;
     }
 }
 
