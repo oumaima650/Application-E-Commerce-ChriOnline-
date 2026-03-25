@@ -62,4 +62,11 @@ public class ClientUDP extends Thread {
         running = false;
         interrupt();
     }
+    
+    /**
+     * Retourne le port d'écoute UDP pour l'envoyer au serveur
+     */
+    public int getPortEcoute() {
+        return portEcoute;
+    }
 }

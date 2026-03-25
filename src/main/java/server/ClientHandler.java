@@ -1,6 +1,8 @@
 package server;
 
 import service.AuthService;
+import server.ServiceUDP;
+import service.AdminService;
 import service.CarteBancaireService;
 import service.NotificationService;
 import service.PaiementService;
@@ -16,6 +18,8 @@ public class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final AuthService authService;
+    private final AdminService adminService;
+    private final ServiceUDP serviceUDP;
     private final CarteBancaireService carteBancaireService;
     private final NotificationService notificationService;
     private final PaiementService paiementService;
@@ -26,6 +30,8 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket) {
         this.socket      = socket;
         this.authService = new AuthService();
+        this.adminService = new AdminService();
+        this.serviceUDP = ServiceUDP.getInstance();
         this.carteBancaireService = new CarteBancaireService();
         this.notificationService = new NotificationService();
         this.paiementService = new PaiementService();
@@ -78,6 +84,20 @@ public class ClientHandler implements Runnable {
             case LOGIN  -> authService.login(requete);
             case LOGOUT -> authService.logout(requete);
             case REGISTER  -> authService.signup(requete);
+            case REGISTER_UDP_PORT -> {
+                // Enregistrer le port UDP du client pour les notifications
+                Map<String, Object> params = requete.getParametres();
+                if (params != null && params.containsKey("udpPort")) {
+                    int udpPort = (Integer) params.get("udpPort");
+                    int userId = AuthService.getUserIdFromToken(requete.getTokenSession());
+                    String clientIp = socket.getInetAddress().getHostAddress();
+                    
+                    serviceUDP.registerClient(userId, clientIp, udpPort);
+                    yield new Reponse(true, "Port UDP enregistré avec succès", null);
+                } else {
+                    yield new Reponse(false, "Port UDP manquant dans la requête", null);
+                }
+            }
             
             // Cart Operations
             case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART, UPDATE_QUANTITY_CART -> {
@@ -138,6 +158,16 @@ public class ClientHandler implements Runnable {
                     case MARK_NOTIFICATION_READ -> notificationService.markAsRead(requete);
                     
                     case PROCESS_PAYMENT -> paiementService.processPayment(requete);
+                    
+                    // Admin operations
+                    case ADMIN_GET_ALL_PRODUCTS -> adminService.getAllProducts(requete);
+                    case ADMIN_GET_ALL_ORDERS -> adminService.getAllOrders(requete);
+                    case ADMIN_GET_ALL_USERS -> adminService.getAllUsers(requete);
+                    case ADMIN_UPDATE_PRODUCT -> adminService.updateProduct(requete);
+                    case ADMIN_DELETE_PRODUCT -> adminService.deleteProduct(requete);
+                    case ADMIN_UPDATE_ORDER_STATUS -> adminService.updateOrderStatus(requete);
+                    case ADMIN_BAN_USER -> adminService.banUser(requete);
+                    case ADMIN_UNBAN_USER -> adminService.unbanUser(requete);
                     
                     default -> new Reponse(false, "Fonctionnalité '" + requete.getType() + "' non encore implémentée.", null);
                 };
