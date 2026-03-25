@@ -18,6 +18,7 @@ import client.ClientSocket;
 import shared.RequestType;
 import shared.Requete;
 import shared.Reponse;
+import ui.utils.IconLibrary;
 
 import java.net.URL;
 import java.util.List;
@@ -178,12 +179,11 @@ public class PanierController implements Initializable {
         row.setAlignment(Pos.CENTER_LEFT);
         
         if (svgPathStr == null || svgPathStr.isEmpty()) 
-            svgPathStr = "M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M12 18h.01";
+            svgPathStr = IconLibrary.PHONE;
 
         StackPane thumb = new StackPane();
         thumb.getStyleClass().addAll("item-thumbnail", catClass);
-        SVGPath icon = new SVGPath();
-        icon.setContent(svgPathStr);
+        SVGPath icon = IconLibrary.getIcon(svgPathStr, 24, "#FFFFFF");
         icon.getStyleClass().add("item-icon");
         thumb.getChildren().add(icon);
         
@@ -210,7 +210,7 @@ public class PanierController implements Initializable {
         qBox.getChildren().addAll(bm, lq, bp);
         
         Button bd = new Button(); bd.getStyleClass().add("delete-btn");
-        SVGPath tr = new SVGPath(); tr.setContent("M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6");
+        SVGPath tr = IconLibrary.getIcon(IconLibrary.TRASH, 16, "#E74C3C");
         tr.getStyleClass().add("icon-trash"); bd.setGraphic(tr);
         bd.setOnAction(e -> removeProduit(sku));
         
