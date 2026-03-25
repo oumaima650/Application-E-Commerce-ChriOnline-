@@ -19,6 +19,7 @@ public class ClientHandler implements Runnable {
     private final CarteBancaireService carteBancaireService;
     private final NotificationService notificationService;
     private final PaiementService paiementService;
+    private final service.CommandeService commandeService;
 
     private ObjectOutputStream out;
     private ObjectInputStream  in;
@@ -29,7 +30,9 @@ public class ClientHandler implements Runnable {
         this.carteBancaireService = new CarteBancaireService();
         this.notificationService = new NotificationService();
         this.paiementService = new PaiementService();
+        this.commandeService = new service.CommandeService();
     }
+
 
     @Override
     public void run() {
@@ -139,8 +142,17 @@ public class ClientHandler implements Runnable {
                     
                     case PROCESS_PAYMENT -> paiementService.processPayment(requete);
                     
+                    case VALIDATE_ORDER -> commandeService.passerCommande(requete);
+                    case GET_ORDERS -> commandeService.getCommandesByClient(requete);
+                    case GET_ORDER -> commandeService.getCommandeByReference(requete);
+                    case GET_ORDERS_FILTERED -> commandeService.getCommandesFiltrees(requete);
+                    case UPDATE_ORDER_STATUS -> commandeService.updateStatutCommande(requete);
+
+
+                    
                     default -> new Reponse(false, "Fonctionnalité '" + requete.getType() + "' non encore implémentée.", null);
                 };
+
             }
         };
     }

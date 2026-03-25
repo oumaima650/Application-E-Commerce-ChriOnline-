@@ -142,4 +142,63 @@ public class PanierDAO {
             e.printStackTrace();
         }
     }
+
+    public List<LignePanier> getLignesParSkus(int idPanier, List<String> skus) {
+        List<LignePanier> lignes = new ArrayList<>();
+        if (skus == null || skus.isEmpty()) return lignes;
+
+        StringBuilder query = new StringBuilder("SELECT lp.*, s.prix, s.image FROM LignePanier lp JOIN SKU s ON lp.SKU = s.SKU WHERE lp.idPanier = ? AND lp.SKU IN (");
+        for (int i = 0; i < skus.size(); i++) {
+            query.append("?");
+            if (i < skus.size() - 1) query.append(", ");
+        }
+        query.append(")");
+
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query.toString())) {
+            stmt.setInt(1, idPanier);
+            for (int i = 0; i < skus.size(); i++) {
+                stmt.setString(i + 2, skus.get(i));
+            }
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                BigDecimal prix = rs.getBigDecimal("prix");
+                BigDecimal sousTotal = prix != null ? prix.multiply(new BigDecimal(rs.getInt("quantite"))) : BigDecimal.ZERO;
+                LignePanier lp = new LignePanier(
+                    rs.getInt("idPanier"),
+                    rs.getString("SKU"),
+                    rs.getInt("quantite"),
+                    sousTotal
+                );
+                lp.setImage(rs.getString("image"));
+                lignes.add(lp);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return lignes;
+    }
+
+    public void supprimerLignesParSkus(int idPanier, List<String> skus) {
+        if (skus == null || skus.isEmpty()) return;
+        
+        StringBuilder query = new StringBuilder("DELETE FROM LignePanier WHERE idPanier = ? AND SKU IN (");
+        for (int i = 0; i < skus.size(); i++) {
+            query.append("?");
+            if (i < skus.size() - 1) query.append(", ");
+        }
+        query.append(")");
+
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query.toString())) {
+            stmt.setInt(1, idPanier);
+            for (int i = 0; i < skus.size(); i++) {
+                stmt.setString(i + 2, skus.get(i));
+            }
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }
+
