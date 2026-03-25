@@ -12,6 +12,8 @@ import shared.Reponse;
 import shared.Requete;
 import shared.RequestType;
 import client.utils.SceneManager;
+import client.utils.SessionManager;
+
 
 import java.io.*;
 import java.net.Socket;
@@ -125,7 +127,8 @@ public class LoginController implements Initializable {
                 int    userId = toInt(reponse.getDonnees().get("userId"));
                 String type   = (String) reponse.getDonnees().get("typeUtilisateur");
 
-//                SessionManager.getInstance().ouvrir(token, userId, email, type);
+                SessionManager.getInstance().ouvrir(token, userId, email, type);
+
 
                 System.out.println("[Login] Connecté — userId=" + userId + " type=" + type);
                 navigateToMain(type);
