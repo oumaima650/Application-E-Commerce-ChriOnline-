@@ -66,5 +66,15 @@ public class ClientDAO {
             conn.setAutoCommit(true);
         }
     }
+    public static boolean isTelephoneExist(String telephone) throws SQLException {
+        String sql = "SELECT 1 FROM Client WHERE telephone = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, telephone);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
 
 }

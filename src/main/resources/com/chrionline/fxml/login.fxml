@@ -1,3 +1,376 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<AnchorPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
-</AnchorPane>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+
+<StackPane
+    fx:id="rootPane"
+    xmlns="http://javafx.com/javafx/21"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="ui.LoginController"
+    styleClass="login-root"
+    stylesheets="@../css/global.css,@../css/login.css"
+    prefWidth="480" prefHeight="640"
+    minWidth="420" minHeight="560">
+
+    <!-- ══ Background layer ════════════════════════════════════ -->
+    <Region styleClass="bg-pink" maxWidth="Infinity" maxHeight="Infinity"/>
+
+    <!-- Decorative blob — top-left -->
+    <Circle
+        radius="140"
+        styleClass="deco-blob-1"
+        StackPane.alignment="TOP_LEFT"
+        translateX="-60" translateY="-60"/>
+
+    <!-- Decorative blob — bottom-right -->
+    <Circle
+        radius="100"
+        styleClass="deco-blob-2"
+        StackPane.alignment="BOTTOM_RIGHT"
+        translateX="50" translateY="50"/>
+
+    <!-- Decorative small accent — top-right -->
+    <Circle
+        radius="44"
+        styleClass="deco-blob-3"
+        StackPane.alignment="TOP_RIGHT"
+        translateX="-30" translateY="80"/>
+
+    <!-- ══ Auth Card ═══════════════════════════════════════════ -->
+    <VBox
+        fx:id="loginCard"
+        styleClass="login-card"
+        alignment="TOP_CENTER"
+        spacing="0"
+        maxWidth="420"
+        minWidth="340">
+
+        <effect>
+            <DropShadow
+                color="#2A2C4128"
+                radius="36"
+                spread="0.02"
+                offsetX="0" offsetY="10"
+                blurType="GAUSSIAN"/>
+        </effect>
+
+        <!-- ── Logo / Header ────────────────────────────────── -->
+        <VBox styleClass="logo-section" alignment="CENTER" spacing="6">
+            <VBox.margin><Insets top="32" bottom="16" left="24" right="24"/></VBox.margin>
+
+            <!-- Logo row: icon + wordmark -->
+            <HBox alignment="CENTER" spacing="12">
+                <!-- Brand icon pill -->
+                <StackPane styleClass="logo-icon-pill" prefWidth="44" prefHeight="44">
+                    <Label text="C" styleClass="logo-icon-letter"/>
+                </StackPane>
+
+                <!-- Brand wordmark -->
+                <VBox alignment="CENTER_LEFT" spacing="1">
+                    <Label text="ChriOnline" styleClass="logo-wordmark"/>
+                    <Label text="Tech &amp; Smartphones" styleClass="logo-tagline-small"/>
+                </VBox>
+            </HBox>
+
+            <!-- Lemon accent bar under logo -->
+            <Region styleClass="logo-accent-bar" prefHeight="3" prefWidth="60"/>
+
+            <Label
+                text="Connectez-vous ou créez votre compte"
+                styleClass="logo-subtitle"
+                wrapText="true" textAlignment="CENTER" alignment="CENTER"/>
+        </VBox>
+
+        <!-- ── TabPane (Se connecter / S'inscrire) ────────────── -->
+        <TabPane
+            fx:id="mainTabPane"
+            styleClass="auth-tab-pane"
+            tabClosingPolicy="UNAVAILABLE"
+            VBox.vgrow="ALWAYS">
+
+            <!-- ════════════════════════════════════════════════ -->
+            <!-- Tab 1 — SE CONNECTER                            -->
+            <!-- ════════════════════════════════════════════════ -->
+            <Tab fx:id="loginTab" text="Se connecter">
+
+                <VBox
+                    fx:id="loginFormBox"
+                    styleClass="form-box"
+                    spacing="16"
+                    alignment="TOP_CENTER">
+                    <VBox.margin>
+                        <!-- ↑ left/right raised from 36 → 56 for more breathing room -->
+                        <Insets top="28" right="56" bottom="28" left="56"/>
+                    </VBox.margin>
+
+                    <!-- ── Email ─────────────────────────────── -->
+                    <VBox spacing="7">
+                        <Label text="Adresse e-mail" styleClass="field-label"/>
+                        <HBox
+                            fx:id="loginEmailWrapper"
+                            styleClass="input-wrapper"
+                            alignment="CENTER_LEFT"
+                            spacing="10"
+                            prefHeight="48">
+                            <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
+                            <Label text="✉" styleClass="input-icon"/>
+                            <TextField
+                                fx:id="loginEmailField"
+                                promptText="exemple@email.com"
+                                styleClass="auth-field"
+                                HBox.hgrow="ALWAYS"/>
+                        </HBox>
+                    </VBox>
+
+                    <!-- ── Password ──────────────────────────── -->
+                    <VBox spacing="7">
+                        <HBox alignment="CENTER_LEFT">
+                            <Label text="Mot de passe" styleClass="field-label"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Hyperlink
+                                text="Oublié ?"
+                                styleClass="forgot-link"/>
+                        </HBox>
+                        <HBox
+                            fx:id="loginPasswordWrapper"
+                            styleClass="input-wrapper"
+                            alignment="CENTER_LEFT"
+                            spacing="10"
+                            prefHeight="48">
+                            <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
+                            <Label text="🔒" styleClass="input-icon"/>
+                            <PasswordField
+                                fx:id="loginPasswordField"
+                                promptText="••••••••"
+                                styleClass="auth-field"
+                                HBox.hgrow="ALWAYS"/>
+                        </HBox>
+                    </VBox>
+
+                    <!-- ── Error Label ────────────────────────── -->
+                    <Label
+                        fx:id="loginErrorLabel"
+                        text=""
+                        styleClass="error-label"
+                        wrapText="true"
+                        maxWidth="Infinity"/>
+
+                    <!-- ── Login Button ───────────────────────── -->
+                    <Button
+                        fx:id="loginButton"
+                        text="Se connecter"
+                        styleClass="primary-btn"
+                        maxWidth="Infinity"
+                        prefHeight="48"
+                        onAction="#handleLogin"/>
+
+                    <!-- ── OR Divider ─────────────────────────── -->
+                    <HBox alignment="CENTER" spacing="14" styleClass="divider-row">
+                        <Region styleClass="divider-line" HBox.hgrow="ALWAYS"/>
+                        <Label text="ou" styleClass="divider-text"/>
+                        <Region styleClass="divider-line" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+
+                    <!-- ── Register nudge ─────────────────────── -->
+                    <HBox alignment="CENTER" spacing="6">
+                        <Label text="Pas encore de compte ?" styleClass="hint-label"/>
+                        <Hyperlink
+                            text="S'inscrire →"
+                            styleClass="switch-link"
+                            onAction="#handleSwitchToRegister"/>
+                    </HBox>
+
+                </VBox>
+            </Tab>
+
+            <!-- ════════════════════════════════════════════════ -->
+            <!-- Tab 2 — S'INSCRIRE                              -->
+            <!-- ════════════════════════════════════════════════ -->
+            <Tab fx:id="registerTab" text="S'inscrire">
+
+                <ScrollPane
+                    styleClass="form-scroll"
+                    fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED">
+
+                    <VBox
+                        fx:id="registerFormBox"
+                        styleClass="form-box"
+                        spacing="14"
+                        alignment="TOP_CENTER">
+                        <VBox.margin>
+                            <!-- ↑ left/right raised from 36 → 56 for more breathing room -->
+                            <Insets top="24" right="56" bottom="28" left="56"/>
+                        </VBox.margin>
+
+                        <!-- ── First Name + Last Name ────────── -->
+                        <HBox spacing="12">
+                            <!-- Prénom -->
+                            <VBox spacing="7" HBox.hgrow="ALWAYS">
+                                <Label text="Prénom" styleClass="field-label"/>
+                                <HBox
+                                    fx:id="registerFirstNameWrapper"
+                                    styleClass="input-wrapper"
+                                    alignment="CENTER_LEFT"
+                                    spacing="10"
+                                    prefHeight="48">
+                                    <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
+                                    <Label text="👤" styleClass="input-icon"/>
+                                    <TextField
+                                        fx:id="registerPrenomField"
+                                        promptText="Jean"
+                                        styleClass="auth-field"
+                                        HBox.hgrow="ALWAYS"/>
+                                </HBox>
+                            </VBox>
+                            <!-- Nom -->
+                            <VBox spacing="7" HBox.hgrow="ALWAYS">
+                                <Label text="Nom" styleClass="field-label"/>
+                                <HBox
+                                    fx:id="registerNameWrapper"
+                                    styleClass="input-wrapper"
+                                    alignment="CENTER_LEFT"
+                                    spacing="10"
+                                    prefHeight="48">
+                                    <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
+                                    <Label text="👤" styleClass="input-icon"/>
+                                    <TextField
+                                        fx:id="registerNomField"
+                                        promptText="Dupont"
+                                        styleClass="auth-field"
+                                        HBox.hgrow="ALWAYS"/>
+                                </HBox>
+                            </VBox>
+                        </HBox>
+
+                        <!-- ── Email ──────────────────────────── -->
+                        <VBox spacing="7">
+                            <Label text="Adresse e-mail" styleClass="field-label"/>
+                            <HBox
+                                    fx:id="registerEmailWrapper"
+                                    styleClass="input-wrapper"
+                                    alignment="CENTER_LEFT"
+                                    spacing="10"
+                                    prefHeight="48">
+                                <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
+                                <Label text="✉" styleClass="input-icon"/>
+                                <TextField
+                                        fx:id="registerEmailField"
+                                        promptText="exemple@email.com"
+                                        styleClass="auth-field"
+                                        HBox.hgrow="ALWAYS"/>
+                            </HBox>
+                        </VBox>
+                        <!-- ── Phone ──────────────────────────── -->
+                        <VBox spacing="7">
+                            <Label text="Numero de telephone" styleClass="field-label"/>
+                            <HBox
+                                    fx:id="registerPhoneWrapper"
+                                    styleClass="input-wrapper"
+                                    alignment="CENTER_LEFT"
+                                    spacing="10"
+                                    prefHeight="48">
+                                <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
+                                <Label text="✉" styleClass="input-icon"/>
+                                <TextField
+                                        fx:id="registerPhoneField"
+                                        promptText="0600000000"
+                                        styleClass="auth-field"
+                                        HBox.hgrow="ALWAYS"/>
+                            </HBox>
+                        </VBox>
+
+                        <!-- ── Password ───────────────────────── -->
+                        <VBox spacing="7">
+                            <Label text="Mot de passe" styleClass="field-label"/>
+                            <HBox
+                                fx:id="registerPasswordWrapper"
+                                styleClass="input-wrapper"
+                                alignment="CENTER_LEFT"
+                                spacing="10"
+                                prefHeight="48">
+                                <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
+                                <Label text="🔒" styleClass="input-icon"/>
+                                <PasswordField
+                                    fx:id="registerPasswordField"
+                                    promptText="Min. 8 caractères"
+                                    styleClass="auth-field"
+                                    HBox.hgrow="ALWAYS"/>
+                            </HBox>
+
+                            <!-- Password strength bar -->
+                            <VBox spacing="4">
+                                <HBox fx:id="strengthBarBox" spacing="5" prefHeight="6">
+                                    <Region styleClass="strength-seg" HBox.hgrow="ALWAYS"/>
+                                    <Region styleClass="strength-seg" HBox.hgrow="ALWAYS"/>
+                                    <Region styleClass="strength-seg" HBox.hgrow="ALWAYS"/>
+                                    <Region styleClass="strength-seg" HBox.hgrow="ALWAYS"/>
+                                </HBox>
+                                <Label
+                                    fx:id="strengthLabel"
+                                    text=""
+                                    styleClass="strength-text"/>
+                            </VBox>
+                        </VBox>
+
+                        <!-- ── Confirm Password ───────────────── -->
+                        <VBox spacing="7">
+                            <Label text="Confirmer le mot de passe" styleClass="field-label"/>
+                            <HBox
+                                fx:id="registerConfirmWrapper"
+                                styleClass="input-wrapper"
+                                alignment="CENTER_LEFT"
+                                spacing="10"
+                                prefHeight="48">
+                                <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
+                                <Label text="✅" styleClass="input-icon"/>
+                                <PasswordField
+                                    fx:id="registerConfirmPasswordField"
+                                    promptText="Répétez votre mot de passe"
+                                    styleClass="auth-field"
+                                    HBox.hgrow="ALWAYS"/>
+                            </HBox>
+                        </VBox>
+
+                        <!-- ── Error / Success Label ──────────── -->
+                        <Label
+                            fx:id="registerErrorLabel"
+                            text=""
+                            styleClass="error-label"
+                            wrapText="true"
+                            maxWidth="Infinity"/>
+
+                        <!-- ── Register Button ────────────────── -->
+                        <Button
+                            fx:id="registerButton"
+                            text="Créer un compte"
+                            styleClass="primary-btn"
+                            maxWidth="Infinity"
+                            prefHeight="48"
+                            onAction="#handleRegister"/>
+
+                        <!-- ── Terms notice ───────────────────── -->
+                        <Label
+                            text="En créant un compte, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité."
+                            styleClass="terms-label"
+                            wrapText="true"
+                            textAlignment="CENTER"
+                            alignment="CENTER"
+                            maxWidth="Infinity"/>
+
+                    </VBox>
+                </ScrollPane>
+            </Tab>
+
+        </TabPane>
+
+    </VBox>
+    <!-- end login-card -->
+
+</StackPane>
