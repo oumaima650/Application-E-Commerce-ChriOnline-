@@ -4,9 +4,20 @@ public enum RequestType {
     LOGIN,
     REGISTER,
     LOGOUT,
-    GET_PRODUCTS,
-    GET_PRODUCT,
-    SEARCH_PRODUCTS,
+
+    
+    //produits
+    GET_ALL_PRODUITS,
+    GET_PRODUIT_BY_ID,
+    SEARCH_PRODUITS_BY_NOM,
+    ADD_PRODUIT,
+    UPDATE_PRODUIT,
+    DELETE_PRODUIT,
+    COUNT_PRODUITS,
+    GET_CATEGORIES,
+    GET_SKUS_BY_PRODUIT,
+    GET_VARIANTES_BY_PRODUIT,
+
     ADD_TO_CART,
     REMOVE_FROM_CART,
     GET_CART,
@@ -21,5 +32,8 @@ public enum RequestType {
     ADD_CARD,
     REMOVE_CARD,
     GET_NOTIFICATIONS,
-    MARK_NOTIFICATION_READ
+    MARK_NOTIFICATION_READ,
+    
+   
+   
 }

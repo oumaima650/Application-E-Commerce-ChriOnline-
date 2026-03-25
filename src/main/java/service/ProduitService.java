@@ -2,7 +2,10 @@ package service;
 
 import dao.ProduitDAO;
 import model.Produit;
+import shared.Reponse;
+import shared.Requete;
 import java.util.List;
+import java.util.Map;
 
 public class ProduitService {
 
@@ -87,6 +90,79 @@ public class ProduitService {
             return produitDAO.count();
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors du comptage des produits", e);
+        }
+    }
+
+    // ───────────────────────────────
+    // WRAPPERS REQUETE / REPONSE
+    // ───────────────────────────────
+
+    public Reponse getAll(Requete requete) {
+        try {
+            return new Reponse(true, "Liste des produits récupérée.", Map.of("produits", getAll()));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse getById(Requete requete) {
+        try {
+            Integer id = (Integer) requete.getParametres().get("idProduit");
+            if (id == null) return new Reponse(false, "ID Produit manquant.", null);
+            return new Reponse(true, "Produit trouvé.", Map.of("produit", getById(id)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse rechercherParNom(Requete requete) {
+        try {
+            String nom = (String) requete.getParametres().get("nom");
+            if (nom == null) return new Reponse(false, "Nom de recherche manquant.", null);
+            return new Reponse(true, "Résultats de recherche.", Map.of("produits", rechercherParNom(nom)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse compter(Requete requete) {
+        try {
+            return new Reponse(true, "Nombre de produits.", Map.of("count", compter()));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse creer(Requete requete) {
+        try {
+            Produit p = (Produit) requete.getParametres().get("produit");
+            if (p == null) return new Reponse(false, "Données du produit manquantes.", null);
+            creer(p);
+            return new Reponse(true, "Produit créé avec succès.", Map.of("produit", p));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse modifier(Requete requete) {
+        try {
+            Produit p = (Produit) requete.getParametres().get("produit");
+            if (p == null) return new Reponse(false, "Données du produit manquantes.", null);
+            modifier(p);
+            return new Reponse(true, "Produit modifié avec succès.", Map.of("produit", p));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse supprimer(Requete requete) {
+        try {
+            Integer id = (Integer) requete.getParametres().get("idProduit");
+            if (id == null) return new Reponse(false, "ID Produit manquant.", null);
+            supprimer(id);
+            return new Reponse(true, "Produit supprimé avec succès.", null);
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
         }
     }
 }
