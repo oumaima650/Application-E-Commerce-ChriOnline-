@@ -197,4 +197,29 @@ public class PanierService {
             return new shared.Reponse(false, "Erreur : " + e.getMessage(), null);
         }
     }
+
+    /**
+     * Retourne les lignes brutes du panier pour le service commande.
+     */
+    public java.util.List<LignePanier> getLignesPanier(int idClient) {
+        Panier panier = recupererPanier(idClient);
+        return panier.getLignes();
+    }
+
+    public java.util.List<LignePanier> getLignesPanier(int idClient, java.util.List<String> skus) {
+        Panier panier = recupererPanier(idClient);
+        return panierDAO.getLignesParSkus(panier.getIdPanier(), skus);
+    }
+
+    public void supprimerLignes(int idClient, java.util.List<String> skus) {
+        Panier panier = recupererPanier(idClient);
+        panierDAO.supprimerLignesParSkus(panier.getIdPanier(), skus);
+    }
+
+    public void viderPanier(int idClient) {
+        Panier panier = recupererPanier(idClient);
+        panierDAO.viderPanier(panier.getIdPanier());
+    }
 }
+
+

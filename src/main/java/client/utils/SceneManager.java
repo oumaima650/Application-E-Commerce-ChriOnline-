@@ -23,9 +23,14 @@ public class SceneManager {
         SceneManager.primaryStage = stage;
     }
 
-    /** Permet de mettre en cache un Parent d\u00e9j\u00e0 charg\u00e9 par l'appelant */
+    /** Permet de mettre en cache un Parent déjà chargé par l'appelant */
     public static void cacheScene(String key, Parent root) {
         sceneCache.put(key, root);
+    }
+
+    /** Vérifie si une scène est en cache */
+    public static boolean isCached(String key) {
+        return sceneCache.containsKey(key);
     }
 
     /** Bascule vers une scène en cache (sans recharger le FXML) */
@@ -71,9 +76,16 @@ public class SceneManager {
     }
 
     public static void switchTo(String fxmlFile, String title) {
+        // Check if cached first
+        if (sceneCache.containsKey(fxmlFile)) {
+            switchToCached(fxmlFile, title);
+            return;
+        }
+
         try {
             FXMLLoader loader = new FXMLLoader(ClientApp.class.getResource("/com/chrionline/fxml/" + fxmlFile));
             Parent root = loader.load();
+            sceneCache.put(fxmlFile, root); // Cache for next time
 
             Scene scene = new Scene(root);
             String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
@@ -92,4 +104,32 @@ public class SceneManager {
             e.printStackTrace();
         }
     }
+
+    /** Charge un FXML en arrière-plan et le met en cache */
+    public static void loadAsync(String fxmlFile) {
+        if (sceneCache.containsKey(fxmlFile)) return;
+
+        Thread thread = new Thread(() -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(ClientApp.class.getResource("/com/chrionline/fxml/" + fxmlFile));
+                Parent root = loader.load();
+                
+                // PRÉ-CRÉER LA SCÈNE AVEC LES CSS POUR ÉVITER LE RECHARGEMENT
+                javafx.application.Platform.runLater(() -> {
+                    Scene scene = new Scene(root);
+                    String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
+                    scene.getStylesheets().add(cssPath);
+                    
+                    sceneCache.put(fxmlFile, root);
+                    System.out.println("Scène préchargée : " + fxmlFile);
+                });
+            } catch (IOException e) {
+                System.err.println("Échec du pré-chargement : " + fxmlFile);
+                e.printStackTrace();
+            }
+        });
+        thread.setDaemon(true);
+        thread.start();
+    }
 }
+

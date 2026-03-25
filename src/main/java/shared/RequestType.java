@@ -28,6 +28,11 @@ public enum RequestType {
     PROCESS_PAYMENT,
     GET_ORDERS,
     GET_ORDER,
+    GET_ORDERS_FILTERED,
+    UPDATE_ORDER_STATUS,
+
+    CANCEL_ORDER,
+    GET_ALL_ORDERS,
     GET_CARDS,
     ADD_CARD,
     REMOVE_CARD,
@@ -37,3 +42,4 @@ public enum RequestType {
    
    
 }
+

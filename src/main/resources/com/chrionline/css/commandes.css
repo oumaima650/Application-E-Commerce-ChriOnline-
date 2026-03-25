@@ -1,0 +1,187 @@
+/* ORDERS HISTORY PAGE STYLES */
+
+.root {
+    -fx-background-color: #F8F9FA;
+}
+
+.page-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2A2C41;
+}
+
+.btn-back, .btn-refresh {
+    -fx-background-color: transparent;
+    -fx-text-fill: #666;
+    -fx-border-color: #e8e8ee;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-font-size: 14px;
+    -fx-pref-height: 40px;
+    -fx-cursor: hand;
+    -fx-padding: 0 16px;
+}
+
+.btn-back:hover, .btn-refresh:hover {
+    -fx-background-color: #f8f9fa;
+    -fx-text-fill: #2A2C41;
+}
+
+/* Search and Filters */
+.search-field, .status-filter, .date-filter {
+    -fx-background-color: white;
+    -fx-border-color: #e8e8ee;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 12px 16px;
+    -fx-font-size: 14px;
+    -fx-pref-height: 44px;
+}
+
+.search-field:focused, .status-filter:focused, .date-filter:focused {
+    -fx-border-color: #FF724C;
+    -fx-border-width: 2px;
+}
+
+/* TableView Styles */
+.orders-table {
+    -fx-background-color: white;
+    -fx-background-radius: 16px;
+    -fx-border-color: #e8e8ee;
+    -fx-border-width: 1px;
+    -fx-border-radius: 16px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);
+}
+
+.orders-table .column-header {
+    -fx-background-color: #F4F4F8;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: #2A2C41;
+    -fx-padding: 16px;
+    -fx-border-width: 0;
+}
+
+.orders-table .column-header-background {
+    -fx-background-color: #F4F4F8;
+    -fx-border-width: 0;
+}
+
+.orders-table .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-width: 0;
+    -fx-padding: 12px 16px;
+}
+
+.orders-table .table-row-cell:hover {
+    -fx-background-color: #FFF8E7;
+}
+
+.orders-table .table-row-cell:selected {
+    -fx-background-color: #FFF0EB;
+}
+
+.orders-table .table-cell {
+    -fx-border-width: 0;
+    -fx-padding: 8px 0;
+    -fx-font-size: 13px;
+    -fx-text-fill: #2A2C41;
+}
+
+/* Status Badges */
+.status-badge {
+    -fx-background-radius: 20px;
+    -fx-padding: 6px 12px;
+    -fx-alignment: center;
+}
+
+.status-text {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.status-waiting {
+    -fx-background-color: #FFF8E7;
+}
+
+.status-waiting .status-text {
+    -fx-text-fill: #b45309;
+}
+
+.status-validated {
+    -fx-background-color: #FFF0EB;
+}
+
+.status-validated .status-text {
+    -fx-text-fill: #c2440a;
+}
+
+.status-shipped {
+    -fx-background-color: #EFF6FF;
+}
+
+.status-shipped .status-text {
+    -fx-text-fill: #1d4ed8;
+}
+
+.status-delivered {
+    -fx-background-color: #F0FDF4;
+}
+
+.status-delivered .status-text {
+    -fx-text-fill: #15803d;
+}
+
+.status-cancelled {
+    -fx-background-color: #FEF2F2;
+}
+
+.status-cancelled .status-text {
+    -fx-text-fill: #b91c1c;
+}
+
+/* Action Buttons */
+.btn-action {
+    -fx-background-color: transparent;
+    -fx-text-fill: #24316B;
+    -fx-border-color: #e8e8ee;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-font-size: 12px;
+    -fx-pref-height: 32px;
+    -fx-cursor: hand;
+    -fx-padding: 0 12px;
+}
+
+.btn-action:hover {
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #24316B;
+}
+
+/* Pagination */
+.pagination-btn {
+    -fx-background-color: white;
+    -fx-text-fill: #666;
+    -fx-border-color: #e8e8ee;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-font-size: 14px;
+    -fx-pref-height: 36px;
+    -fx-pref-width: 36px;
+    -fx-cursor: hand;
+}
+
+.pagination-btn:hover {
+    -fx-background-color: #f8f9fa;
+    -fx-text-fill: #2A2C41;
+}
+
+.pagination-info {
+    -fx-text-fill: #666;
+    -fx-font-size: 14px;
+    -fx-padding: 0 16px;
+}
