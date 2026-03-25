@@ -312,10 +312,16 @@
                                     <Region styleClass="strength-seg" HBox.hgrow="ALWAYS"/>
                                     <Region styleClass="strength-seg" HBox.hgrow="ALWAYS"/>
                                 </HBox>
-                                <Label
-                                    fx:id="strengthLabel"
-                                    text=""
-                                    styleClass="strength-text"/>
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <Label
+                                        fx:id="strengthLabel"
+                                        text=""
+                                        styleClass="strength-text"/>
+                                    <Region HBox.hgrow="ALWAYS" />
+                                    <Label
+                                        text="8-32 characters (A-Z , a-z, 0-9, !@#$%)"
+                                        styleClass="pw-hint-label"/>
+                                </HBox>
                             </VBox>
                         </VBox>
 
