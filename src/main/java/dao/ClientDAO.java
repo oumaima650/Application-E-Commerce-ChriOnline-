@@ -96,4 +96,48 @@ public class ClientDAO {
         return null;
     }
 
+    // Bannir un client (on utilise deletedAt dans la table Client)
+    public static boolean banUser(int userId) throws SQLException {
+        String query = "UPDATE Client SET deletedAt = NOW() WHERE IdUtilisateur = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, userId);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    // Débannir un client
+    public static boolean unbanUser(int userId) throws SQLException {
+        String query = "UPDATE Client SET deletedAt = NULL WHERE IdUtilisateur = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, userId);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+    public static List<Client> getAllClients() throws SQLException {
+        List<Client> clients = new java.util.ArrayList<>();
+        String sql = "SELECT u.IdUtilisateur, u.email, u.createdAt, u.updatedAt, c.nom, c.prenom, c.telephone, c.deletedAt " +
+                     "FROM Utilisateur u JOIN Client c ON u.IdUtilisateur = c.IdUtilisateur " +
+                     "ORDER BY u.createdAt DESC";
+        try (Connection conn = ConnexionBDD.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                LocalDateTime ca = rs.getTimestamp("createdAt") != null ? rs.getTimestamp("createdAt").toLocalDateTime() : null;
+                LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
+                LocalDateTime da = rs.getTimestamp("deletedAt") != null ? rs.getTimestamp("deletedAt").toLocalDateTime() : null;
+                
+                Client c = new Client(rs.getInt("IdUtilisateur"), rs.getString("email"), null, ca, ua,
+                                      rs.getString("nom"), rs.getString("prenom"), rs.getString("telephone"), da);
+                
+                // On peuple aussi les champs de la classe parente pour l'affichage Admin
+                c.setNom(rs.getString("nom"));
+                c.setPrenom(rs.getString("prenom"));
+                c.setRole(da == null ? "CLIENT" : "BANNI");
+                clients.add(c);
+            }
+        }
+        return clients;
+    }
 }

@@ -79,7 +79,7 @@
                     <HBox spacing="15" alignment="CENTER_LEFT">
                         <TextField promptText="Rechercher un utilisateur..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
                     </HBox>
-                    <TableView fx:id="tableUtilisateurs" VBox.vgrow="ALWAYS" styleClass="table-view">
+                    <TableView fx:id="tableClients" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
                             <TableColumn text="ID" prefWidth="50">
                                 <cellValueFactory><PropertyValueFactory property="id" /></cellValueFactory>
@@ -93,7 +93,7 @@
                             <TableColumn text="Rôle" prefWidth="120">
                                 <cellValueFactory><PropertyValueFactory property="role" /></cellValueFactory>
                             </TableColumn>
-                            <TableColumn fx:id="colActionsUtilisateur" text="Actions" prefWidth="150"/>
+                            <TableColumn fx:id="colActionsClient" text="Actions" prefWidth="150"/>
                         </columns>
                     </TableView>
                 </VBox>

@@ -205,13 +205,13 @@ public class ClientHandler implements Runnable {
                     // Admin operations
                     //case ADMIN_GET_ALL_PRODUCTS -> adminService.getAllProducts(requete);
                     case ADMIN_GET_ALL_ORDERS -> adminService.getAllOrders(requete);
-                    //case ADMIN_GET_ALL_USERS -> adminService.getAllUsers(requete);
+                    case ADMIN_GET_ALL_USERS -> adminService.getAllUsers(requete);
                     //case ADMIN_UPDATE_PRODUCT -> adminService.updateProduct(requete);
                     //case ADMIN_DELETE_PRODUCT -> adminService.deleteProduct(requete);
                     case ADMIN_UPDATE_ORDER_STATUS -> adminService.updateOrderStatus(requete);
                     case ADMIN_SEARCH_ORDERS -> adminService.searchOrders(requete);
-                    //case ADMIN_BAN_USER -> adminService.banUser(requete);
-                    //case ADMIN_UNBAN_USER -> adminService.unbanUser(requete);
+                    case ADMIN_BAN_USER -> adminService.banUser(requete);
+                    case ADMIN_UNBAN_USER -> adminService.unbanUser(requete);
                     
 
                     // ───────────────────────────────

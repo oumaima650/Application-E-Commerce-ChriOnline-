@@ -33,7 +33,7 @@ public class AdminService {
     public Reponse getAllProducts(Requete requete) {
         try {
             List<model.Produit> produits = dao.ProduitDAO.getAll();
-            return new Reponse(true, "Produits récupérés avec succès", produits);
+            return new Reponse(true, "Produits récupérés avec succès", java.util.Map.of("produits", produits));
         } catch (SQLException e) {
             return new Reponse(false, "Erreur lors de la récupération des produits: " + e.getMessage(), null);
         }
@@ -172,16 +172,16 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la recherche des commandes: " + e.getMessage(), null);
         }
     }
-/*
     public Reponse getAllUsers(Requete requete) {
         try {
             List<model.Utilisateur> utilisateurs = dao.UtilisateurDAO.getAllUsers();
-            return new Reponse(true, "Utilisateurs récupérés avec succès", utilisateurs);
+            return new Reponse(true, "Utilisateurs récupérés avec succès", java.util.Map.of("utilisateurs", utilisateurs));
         } catch (SQLException e) {
             return new Reponse(false, "Erreur lors de la récupération des utilisateurs: " + e.getMessage(), null);
         }
     }
 
+/*
     public Reponse updateProduct(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -280,12 +280,12 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la mise à jour du statut: " + e.getMessage(), null);
         }
     }
-/*
+
     public Reponse banUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
             int userId = (Integer) params.get("userId");
-            boolean success = dao.UtilisateurDAO.banUser(userId);
+            boolean success = dao.ClientDAO.banUser(userId);
             if (success) {
                 return new Reponse(true, "Utilisateur banni avec succès", null);
             } else {
@@ -300,7 +300,7 @@ public class AdminService {
         Map<String, Object> params = requete.getParametres();
         try {
             int userId = (Integer) params.get("userId");
-            boolean success = dao.UtilisateurDAO.unbanUser(userId);
+            boolean success = dao.ClientDAO.unbanUser(userId);
             if (success) {
                 return new Reponse(true, "Utilisateur débanni avec succès", null);
             } else {
@@ -310,5 +310,5 @@ public class AdminService {
             return new Reponse(false, "Erreur lors du débannissement: " + e.getMessage(), null);
         }
     }
-    */
+    
 }

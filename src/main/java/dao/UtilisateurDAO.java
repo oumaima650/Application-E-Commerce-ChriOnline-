@@ -75,55 +75,15 @@ public class UtilisateurDAO {
             }
         }
     }
-/*
-    // Récupère tous les utilisateurs
+
+    // Récupère uniquement les clients pour l'admin
     public static List<model.Utilisateur> getAllUsers() throws SQLException {
-        List<model.Utilisateur> utilisateurs = new ArrayList<>();
-        String query = "SELECT * FROM Utilisateur ORDER BY created_At DESC";
-        
-        try (Connection conn = getConn();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            
-            while (rs.next()) {
-                model.Utilisateur user = new model.Utilisateur();
-                user.setId(rs.getInt("IdUtilisateur"));
-                user.setNom(rs.getString("nom"));
-                user.setPrenom(rs.getString("prenom"));
-                user.setEmail(rs.getString("email"));
-                user.setType(rs.getString("type"));
-                utilisateurs.add(user);
-            }
-        }
-        return utilisateurs;
+        List<model.Utilisateur> list = new ArrayList<>();
+        list.addAll(ClientDAO.getAllClients());
+        return list;
     }
 
-    // Bannir un utilisateur
-    public static boolean banUser(int userId) throws SQLException {
-        String query = "UPDATE Utilisateur SET type = 'BANNI' WHERE IdUtilisateur = ?";
-        
-        try (Connection conn = getConn();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
-            
-            pstmt.setInt(1, userId);
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
-        }
-    }
-
-    // Débannir un utilisateur
-    public static boolean unbanUser(int userId) throws SQLException {
-        String query = "UPDATE Utilisateur SET type = 'CLIENT' WHERE IdUtilisateur = ?";
-        
-        try (Connection conn = getConn();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
-            
-            pstmt.setInt(1, userId);
-            int rowsAffected = pstmt.executeUpdate();
-            return rowsAffected > 0;
-        }
-    }
- */
+    // L'implémentation de banUser/unbanUser a été migrée vers ClientDAO.java
 
     public static Utilisateur findById(int id) throws SQLException {
         if (userType(id) == TypeEtulisateur.CLIENT) {
