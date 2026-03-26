@@ -4,6 +4,7 @@ public enum RequestType {
     LOGIN,
     REGISTER,
     LOGOUT,
+    REGISTER_UDP_PORT,
 
     
     //produits
@@ -66,6 +67,17 @@ public enum RequestType {
     DELETE_SKU,
     ADD_VALUE_TO_SKU,
     REMOVE_VALUE_FROM_SKU,
+    MARK_NOTIFICATION_READ,
+    
+    // Admin operations
+    ADMIN_GET_ALL_PRODUCTS,
+    ADMIN_GET_ALL_ORDERS,
+    ADMIN_GET_ALL_USERS,
+    ADMIN_UPDATE_PRODUCT,
+    ADMIN_DELETE_PRODUCT,
+    ADMIN_UPDATE_ORDER_STATUS,
+    ADMIN_BAN_USER,
+    ADMIN_UNBAN_USER,
 
     // Profil client
     GET_PROFILE,
