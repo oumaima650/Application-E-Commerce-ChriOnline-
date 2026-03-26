@@ -33,6 +33,16 @@ public class SceneManager {
         return sceneCache.containsKey(key);
     }
 
+    /** Supprime une scène du cache pour forcer un rechargement */
+    public static void clearCache(String key) {
+        sceneCache.remove(key);
+    }
+
+    /** Vide l'historique de navigation */
+    public static void clearHistory() {
+        history.clear();
+    }
+
     /** Bascule vers une scène en cache (sans recharger le FXML) */
     public static void switchToCached(String key, String title) {
         Parent root = sceneCache.get(key);

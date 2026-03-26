@@ -8,16 +8,18 @@ public class Adresse implements Serializable {
     private int idClient;
     private String addresseComplete;
     private String ville;
+    private String codePostal;
     private LocalDateTime createdAt;
     private LocalDateTime deletedAt;
 
     public Adresse() {}
 
-    public Adresse(int idAdresse, int idClient, String addresseComplete, String ville, LocalDateTime createdAt, LocalDateTime deletedAt) {
+    public Adresse(int idAdresse, int idClient, String addresseComplete, String ville, String codePostal, LocalDateTime createdAt, LocalDateTime deletedAt) {
         this.idAdresse = idAdresse;
         this.idClient = idClient;
         this.addresseComplete = addresseComplete;
         this.ville = ville;
+        this.codePostal = codePostal;
         this.createdAt = createdAt;
         this.deletedAt = deletedAt;
     }
@@ -33,6 +35,9 @@ public class Adresse implements Serializable {
 
     public String getVille() { return ville; }
     public void setVille(String ville) { this.ville = ville; }
+
+    public String getCodePostal() { return codePostal; }
+    public void setCodePostal(String codePostal) { this.codePostal = codePostal; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

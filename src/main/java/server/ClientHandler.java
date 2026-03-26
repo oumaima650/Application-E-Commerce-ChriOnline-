@@ -1,6 +1,8 @@
 package server;
 
 import service.AuthService;
+import server.ServiceUDP;
+import service.AdminService;
 import service.CarteBancaireService;
 import service.CategorieService;
 import service.NotificationService;
@@ -13,6 +15,8 @@ import service.VarianteService;
 import shared.Reponse;
 import shared.Requete;
 
+import java.util.Map;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -23,6 +27,8 @@ public class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final AuthService authService;
+    private final AdminService adminService;
+    private final ServiceUDP serviceUDP;
     private final CarteBancaireService carteBancaireService;
     private final CategorieService categorieService;
     private final NotificationService notificationService;
@@ -33,6 +39,7 @@ public class ClientHandler implements Runnable {
     private final VarianteService varianteService;
     private final ProduitVarValeurService pvvService;
     private final SKUService skuService;
+    private final service.ClientService clientService;
 
     private ObjectOutputStream out;
     private ObjectInputStream  in;
@@ -40,6 +47,8 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket) {
         this.socket      = socket;
         this.authService = new AuthService();
+        this.adminService = new AdminService();
+        this.serviceUDP = ServiceUDP.getInstance();
         this.carteBancaireService = new CarteBancaireService();
         this.categorieService = new CategorieService();
         this.notificationService = new NotificationService();
@@ -50,6 +59,7 @@ public class ClientHandler implements Runnable {
         this.varianteService = new VarianteService();
         this.pvvService = new ProduitVarValeurService();
         this.skuService = new SKUService();
+        this.clientService = new service.ClientService();
     }
 
 
@@ -79,8 +89,14 @@ public class ClientHandler implements Runnable {
 
                 System.out.println("[ClientHandler] Requête reçue : " + requete.getType() + " de " + clientAddr);
 
-                Reponse reponse = dispatch(requete);
-                envoyer(reponse);
+                try {
+                    Reponse reponse = dispatch(requete);
+                    envoyer(reponse);
+                } catch (Exception e) {
+                    System.err.println("[ClientHandler] Erreur lors du dispatch : " + e.getMessage());
+                    e.printStackTrace();
+                    envoyer(new Reponse(false, "Erreur interne du serveur lors du traitement de la requête.", null));
+                }
 
                 if (requete.getType() == shared.RequestType.LOGOUT) {
                     break;
@@ -136,6 +152,20 @@ public class ClientHandler implements Runnable {
             case GET_SKU_BY_CODE -> skuService.getBySku(requete);
             case GET_SKU_BY_VARIANTS -> skuService.getByVariants(requete);
             case GET_PRODUCT_VARIANTS -> pvvService.getByProduit(requete);
+            case REGISTER_UDP_PORT -> {
+                // Enregistrer le port UDP du client pour les notifications
+                Map<String, Object> params = requete.getParametres();
+                if (params != null && params.containsKey("udpPort")) {
+                    int udpPort = (Integer) params.get("udpPort");
+                    int userId = AuthService.getUserIdFromToken(requete.getTokenSession());
+                    String clientIp = socket.getInetAddress().getHostAddress();
+                    
+                    serviceUDP.registerClient(userId, clientIp, udpPort);
+                    yield new Reponse(true, "Port UDP enregistré avec succès", null);
+                } else {
+                    yield new Reponse(false, "Port UDP manquant dans la requête", null);
+                }
+            }
  
             // Cart Operations
             case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART, UPDATE_QUANTITY_CART -> {
@@ -146,7 +176,11 @@ public class ClientHandler implements Runnable {
                     yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
                 }
 
-                if (requete.getParametres() == null) requete.setParametres(new java.util.HashMap<>());
+                if (requete.getParametres() == null) {
+                    requete.setParametres(new java.util.HashMap<>());
+                } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
+                    requete.setParametres(new java.util.HashMap<>(requete.getParametres()));
+                }
                 requete.getParametres().put("idClient", userId);
 
                 service.PanierService panierService = new service.PanierService();
@@ -169,7 +203,11 @@ public class ClientHandler implements Runnable {
                     yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
                 }
 
-                if (requete.getParametres() == null) requete.setParametres(new java.util.HashMap<>());
+                if (requete.getParametres() == null) {
+                    requete.setParametres(new java.util.HashMap<>());
+                } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
+                    requete.setParametres(new java.util.HashMap<>(requete.getParametres()));
+                }
                 requete.getParametres().put("idClient", userId);
                 requete.getParametres().put("idUtilisateur", userId);
 
@@ -182,6 +220,17 @@ public class ClientHandler implements Runnable {
                     case MARK_NOTIFICATION_READ -> notificationService.markAsRead(requete);
 
                     case PROCESS_PAYMENT -> paiementService.processPayment(requete);
+                    
+                    // Admin operations
+                    //case ADMIN_GET_ALL_PRODUCTS -> adminService.getAllProducts(requete);
+                    case ADMIN_GET_ALL_ORDERS -> adminService.getAllOrders(requete);
+                    //case ADMIN_GET_ALL_USERS -> adminService.getAllUsers(requete);
+                    //case ADMIN_UPDATE_PRODUCT -> adminService.updateProduct(requete);
+                    //case ADMIN_DELETE_PRODUCT -> adminService.deleteProduct(requete);
+                    case ADMIN_UPDATE_ORDER_STATUS -> adminService.updateOrderStatus(requete);
+                    //case ADMIN_BAN_USER -> adminService.banUser(requete);
+                    //case ADMIN_UNBAN_USER -> adminService.unbanUser(requete);
+                    
 
                     // ───────────────────────────────
                     // Commande
@@ -192,6 +241,13 @@ public class ClientHandler implements Runnable {
                     case GET_ORDER -> commandeService.getCommandeByReference(requete);
                     case GET_ORDERS_FILTERED -> commandeService.getCommandesFiltrees(requete);
                     case UPDATE_ORDER_STATUS -> commandeService.updateStatutCommande(requete);
+
+                    // ───────────────────────────────
+                    // Profil client & Adresses
+                    // ───────────────────────────────
+                    case GET_PROFILE  -> clientService.getProfile(requete);
+                    case GET_ADDRESSES -> clientService.getAdresses(requete);
+                    case ADD_ADDRESS   -> clientService.addAdresse(requete);
 
 
                     

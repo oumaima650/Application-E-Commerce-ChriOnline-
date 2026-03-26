@@ -12,6 +12,7 @@ public class ClientApp extends Application {
     // Contrôleur de la page Notifications, accessible globalement
     private static NotificationsController notificationsController;
     private static ClientUDP udpListener;
+    private static final int UDP_PORT = 9090;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -67,6 +68,43 @@ public class ClientApp extends Application {
             primaryStage.setScene(errorScene);
             primaryStage.show();
         }
+        
+        // Démarrer le listener UDP
+        udpListener = new ClientUDP(UDP_PORT);
+        udpListener.start();
+        System.out.println("[ClientApp] Client UDP démarré sur le port " + UDP_PORT);
+        
+        // Enregistrer le port UDP auprès du serveur (simulation pour admin)
+        // Dans un vrai cas, ce serait fait après un login réussi
+        registerUdpPort();
+        
+        // Démarrer sur la page Admin pour visualiser l'interface demandée
+        SceneManager.switchTo("login.fxml", "ChriOnline Admin");
+        
+        primaryStage.show();
+    }
+    
+    /**
+     * Enregistre le port UDP auprès du serveur pour recevoir les notifications
+     */
+    private void registerUdpPort() {
+        try {
+            // Simuler l'enregistrement pour l'admin
+            // Dans un vrai cas, ce serait fait après authentification
+            java.util.Map<String, Object> params = new java.util.HashMap<>();
+            params.put("udpPort", UDP_PORT);
+            
+            shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER_UDP_PORT, params, "ADMIN_TOKEN");
+            shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
+            
+            if (reponse.isSucces()) {
+                System.out.println("[ClientApp] Port UDP " + UDP_PORT + " enregistré avec succès");
+            } else {
+                System.err.println("[ClientApp] Erreur enregistrement port UDP: " + reponse.getMessage());
+            }
+        } catch (Exception e) {
+            System.err.println("[ClientApp] Exception lors de l'enregistrement UDP: " + e.getMessage());
+        }
     }
 
     /**
@@ -75,6 +113,17 @@ public class ClientApp extends Application {
      */
     public static NotificationsController getNotificationsController() {
         return notificationsController;
+    }
+    
+    /**
+     * Définit le contrôleur Notifications et le connecte au ClientUDP
+     */
+    public static void setNotificationsController(NotificationsController controller) {
+        notificationsController = controller;
+        if (udpListener != null) {
+            udpListener.setNotificationsController(controller);
+            System.out.println("[ClientApp] NotificationsController connecté au ClientUDP");
+        }
     }
 
     public static void main(String[] args) {

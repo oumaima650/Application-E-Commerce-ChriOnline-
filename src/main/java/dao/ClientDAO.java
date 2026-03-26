@@ -77,4 +77,23 @@ public class ClientDAO {
         }
     }
 
+    public Client findById(int id) throws SQLException {
+        String sql = "SELECT u.email, u.motDePasse, u.createdAt, u.updatedAt, c.nom, c.prenom, c.telephone " +
+                     "FROM Utilisateur u JOIN Client c ON u.IdUtilisateur = c.IdUtilisateur " +
+                     "WHERE u.IdUtilisateur = ?";
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    LocalDateTime ca = rs.getTimestamp("createdAt") != null ? rs.getTimestamp("createdAt").toLocalDateTime() : null;
+                    LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
+                    return new Client(id, rs.getString("email"), rs.getString("motDePasse"), ca, ua,
+                                      rs.getString("nom"), rs.getString("prenom"), rs.getString("telephone"), null);
+                }
+            }
+        }
+        return null;
+    }
+
 }

@@ -275,6 +275,7 @@ public class CommandeService {
         Integer idClient = (Integer) params.get("idClient");
         @SuppressWarnings("unchecked")
         List<String> selectedSkus = (List<String>) params.get("skus");
+        String statutParam = (String) params.get("statut");
 
         if (idClient == null) {
             return new shared.Reponse(false, "Paramètres manquants : idClient.", null);
@@ -302,7 +303,15 @@ public class CommandeService {
             Commande commande = new Commande();
             commande.setIdClient(idClient);
             commande.setReference(reference);
-            commande.setStatut(StatutCommande.EN_ATTENTE);
+            StatutCommande statut = StatutCommande.VALIDEE;
+            if (statutParam != null) {
+                try {
+                    statut = StatutCommande.valueOf(statutParam);
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Statut invalide : " + statutParam);
+                }
+            }
+            commande.setStatut(statut);
             commande.setDateLivraisonPrevue(java.time.LocalDateTime.now().plusDays(3));
             
             Commande nouvelleCommande = commandeDAO.create(commande);
@@ -310,10 +319,16 @@ public class CommandeService {
 
             // Ajouter les lignes et calculer le montant total
             double total = 0;
+            dao.SKUDAO skuDAO = new dao.SKUDAO();
             for (model.LignePanier lp : lignesPanier) {
                 double prixAchat = lp.getSousTotal().doubleValue() / lp.getQuantite();
                 commandeDAO.addLigneCommande(idCommande, lp.getSku(), lp.getQuantite(), prixAchat);
                 total += lp.getSousTotal().doubleValue();
+                
+                // Réduire le stock uniquement si la commande est validée (pas pour les brouillons)
+                if (statut == StatutCommande.VALIDEE) {
+                    skuDAO.reduireStock(lp.getSku(), lp.getQuantite());
+                }
             }
 
             // Supprimer SEULEMENT les lignes commandées du panier

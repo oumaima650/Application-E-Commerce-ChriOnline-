@@ -78,19 +78,24 @@
                             </columnConstraints>
 
                             <!-- Prénom + Nom -->
-                            <TextField promptText="Prénom" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
-                            <TextField promptText="Nom" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                            <TextField fx:id="txtPrenom" promptText="Prénom" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="0" editable="false"/>
+                            <TextField fx:id="txtNom" promptText="Nom" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="0" editable="false"/>
 
-                            <!-- Adresse (span 2) -->
-                            <TextField promptText="Adresse de livraison" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2"/>
+                            <!-- Adresse : ComboBox des adresses sauvegardées + nouvelle -->
+                            <ComboBox fx:id="cmbAdresse" promptText="Choisissez une adresse..." styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2" maxWidth="Infinity"/>
+
+                            <!-- Nouvelle adresse (visible uniquement si "Nouvelle adresse" sélectionné) -->
+                            <TextField fx:id="txtNouvelleAdresse" promptText="Nouvelle adresse de livraison" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2" visible="false" managed="false"/>
 
                             <!-- Ville + Code postal -->
-                            <TextField promptText="Ville" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
-                            <TextField promptText="Code postal" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                            <TextField fx:id="txtVille" promptText="Ville" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                            <TextField fx:id="txtCodePostal" promptText="Code postal" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
 
-                            <!-- Téléphone (span 2) -->
-                            <TextField promptText="Numéro de téléphone" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="2"/>
+                            <!-- Téléphone -->
+                            <TextField fx:id="txtTelephone" promptText="Numéro de téléphone" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.columnSpan="2" editable="false"/>
                         </GridPane>
+
+                        <Label text="Pour modifier vos informations personnelles (Nom, Prénom, Téléphone), veuillez le faire depuis votre profil." wrapText="true" style="-fx-text-fill: #666666; -fx-font-size: 12px; -fx-font-style: italic;"/>
 
                         <Button text="Continuer →" styleClass="btn-primary" maxWidth="Infinity" prefHeight="48" onAction="#goToStep2"/>
                     </VBox>
