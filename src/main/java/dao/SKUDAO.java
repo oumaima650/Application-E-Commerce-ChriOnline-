@@ -144,6 +144,40 @@ public List<SKU> getByProduit(int idProduit) {
         }
     }
 
+    public SKU getByVariants(int idProduit, List<Integer> pvvIds) {
+        if (pvvIds == null || pvvIds.isEmpty()) return null;
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT s.* FROM SKU s WHERE s.SKU IN ( ");
+        sb.append("  SELECT svv.SKU FROM SKUVarValeur svv ");
+        sb.append("  JOIN ProduitVarValeur pvv ON svv.idPVV = pvv.idPVV ");
+        sb.append("  WHERE pvv.idProduit = ? AND svv.idPVV IN (");
+        for (int i = 0; i < pvvIds.size(); i++) {
+            sb.append("?");
+            if (i < pvvIds.size() - 1) sb.append(",");
+        }
+        sb.append(") GROUP BY svv.SKU HAVING COUNT(DISTINCT svv.idPVV) = ? )");
+
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sb.toString())) {
+            
+            pstmt.setInt(1, idProduit);
+            for (int i = 0; i < pvvIds.size(); i++) {
+                pstmt.setInt(i + 2, pvvIds.get(i));
+            }
+            pstmt.setInt(pvvIds.size() + 2, pvvIds.size());
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToSKU(rs);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur résolution SKU par variantes", e);
+        }
+        return null;
+    }
+
     // Convertit un résultat SQL en objet SKU
     private SKU mapResultSetToSKU(ResultSet rs) throws SQLException {
         SKU sku = new SKU();

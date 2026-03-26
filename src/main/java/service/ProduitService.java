@@ -93,6 +93,23 @@ public class ProduitService {
         }
     }
 
+    /**
+     * Récupère un produit complet avec toutes ses variantes et SKU
+     * @param idProduit ID du produit
+     * @return Map contenant les informations complètes du produit
+     */
+    public Map<String, Object> getProduitCompletAvecVariantes(int idProduit) {
+        try {
+            Map<String, Object> produit = produitDAO.getProduitCompletAvecVariantes(idProduit);
+            if (produit == null) {
+                throw new IllegalArgumentException("Produit introuvable ou sans SKU id=" + idProduit);
+            }
+            return produit;
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la récupération du produit complet id=" + idProduit, e);
+        }
+    }
+
     // ───────────────────────────────
     // WRAPPERS REQUETE / REPONSE
     // ───────────────────────────────
@@ -129,6 +146,22 @@ public class ProduitService {
         try {
             return new Reponse(true, "Nombre de produits.", Map.of("count", compter()));
         } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse getProduitCompletAvecVariantes(Requete requete) {
+        try {
+            Integer id = (Integer) requete.getParametres().get("idProduit");
+            System.out.println("[ProduitService] getProduitCompletAvecVariantes received idProduit: " + id);
+            if (id == null) {
+                System.out.println("[ProduitService] ERROR: idProduit is null in request parameters");
+                return new Reponse(false, "ID Produit manquant.", null);
+            }
+            return new Reponse(true, "Produit complet récupéré.", Map.of("produit", getProduitCompletAvecVariantes(id)));
+        } catch (Exception e) {
+            System.err.println("[ProduitService] Exception: " + e.getMessage());
+            e.printStackTrace();
             return new Reponse(false, e.getMessage(), null);
         }
     }
