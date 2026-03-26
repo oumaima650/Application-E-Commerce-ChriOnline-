@@ -63,7 +63,7 @@ public class UtilisateurDAO {
                     return TypeEtulisateur.CLIENT;
                 } else {
                     // hadi password ghalet
-                    //return TypeEtulisateur.ADMIN;
+                    return TypeEtulisateur.ADMIN;
                 }
             }
         }

@@ -32,7 +32,7 @@ public class ClientApp extends Application {
         registerUdpPort();
         
         // Démarrer sur la page Admin pour visualiser l'interface demandée
-        SceneManager.switchTo("admin.fxml", "ChriOnline Admin");
+        SceneManager.switchTo("login.fxml", "ChriOnline Admin");
         
         primaryStage.show();
     }
