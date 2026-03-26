@@ -1,15 +1,19 @@
 package service;
 
 import dao.CommandeDAO;
-import dao.ProduitDAO;
-import dao.UtilisateurDAO;
+//import dao.ProduitDAO;
+//import dao.UtilisateurDAO;
 import server.ServiceUDP;
 import shared.Reponse;
 import shared.Requete;
 
-import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
+
+import java.sql.SQLException;
+
 
 public class AdminService {
     
@@ -18,16 +22,16 @@ public class AdminService {
     public AdminService() {
         this.serviceUDP = ServiceUDP.getInstance();
     }
-
+/*
     public Reponse getAllProducts(Requete requete) {
         try {
-            List<model.Produit> produits = dao.ProduitDAO.getAllProducts();
+            List<model.Produit> produits = dao.ProduitDAO.getAll();
             return new Reponse(true, "Produits récupérés avec succès", produits);
         } catch (SQLException e) {
             return new Reponse(false, "Erreur lors de la récupération des produits: " + e.getMessage(), null);
         }
     }
-
+*/
     public Reponse getAllOrders(Requete requete) {
         try {
             dao.CommandeDAO commandeDAO = new dao.CommandeDAO();
@@ -64,7 +68,7 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la récupération des commandes: " + e.getMessage(), null);
         }
     }
-
+/*
     public Reponse getAllUsers(Requete requete) {
         try {
             List<model.Utilisateur> utilisateurs = dao.UtilisateurDAO.getAllUsers();
@@ -108,7 +112,7 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la suppression du produit: " + e.getMessage(), null);
         }
     }
-
+*/
     public Reponse updateOrderStatus(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -142,7 +146,7 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la mise à jour du statut: " + e.getMessage(), null);
         }
     }
-
+/*
     public Reponse banUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -172,4 +176,5 @@ public class AdminService {
             return new Reponse(false, "Erreur lors du débannissement: " + e.getMessage(), null);
         }
     }
+    */
 }

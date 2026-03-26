@@ -2,31 +2,33 @@ package ui;
 
 import client.ClientSocket;
 import model.Commande;
-import model.Produit;
-import model.Utilisateur;
+//import model.Produit;
+//import model.Utilisateur;
 import model.enums.StatutCommande;
 import client.utils.SceneManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
-import javafx.scene.shape.SVGPath;
+//import javafx.scene.layout.HBox;
+//import javafx.scene.shape.SVGPath;
 import javafx.util.Callback;
-import ui.utils.IconLibrary;
+//import ui.utils.IconLibrary;
 import shared.Reponse;
 import shared.Requete;
 import shared.RequestType;
 
+import java.util.List;
+
 public class AdminController {
 
-    @FXML private TableView<Produit> tableProduits;
+    //@FXML private TableView<Produit> tableProduits;
     @FXML private TableView<Commande> tableCommandes;
-    @FXML private TableView<Utilisateur> tableUtilisateurs;
+    //@FXML private TableView<Utilisateur> tableUtilisateurs;
 
-    @FXML private TableColumn<Produit, Void> colActionsProduit;
+    //@FXML private TableColumn<Produit, Void> colActionsProduit;
     @FXML private TableColumn<Commande, Void> colActionsCommande;
-    @FXML private TableColumn<Utilisateur, Void> colActionsUtilisateur;
+    //@FXML private TableColumn<Utilisateur, Void> colActionsUtilisateur;
 
     @FXML
     private void ouvrirNotifications() {
@@ -48,15 +50,16 @@ public class AdminController {
         loadRealData();
         
         // Configurer les colonnes interactives
-        setupProduitActions();
+        //setupProduitActions();
         setupCommandeActions();
-        setupUtilisateurActions();
+        //setupUtilisateurActions();
     }
 
     /**
      * Charge les vraies données depuis le serveur via ClientSocket
      */
     private void loadRealData() {
+/*
         // Charger les produits
         new Thread(() -> {
             try {
@@ -83,16 +86,37 @@ public class AdminController {
                 });
             }
         }).start();
-
+*/
         // Charger les commandes
         new Thread(() -> {
             try {
                 Requete requete = new Requete(RequestType.ADMIN_GET_ALL_ORDERS, null, "ADMIN_TOKEN");
-                Reponse reponse = ClientSocket.getInstance().envoyer(requete);
-                if (reponse.isSuccess() && reponse.getData() != null) {
+                shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
+                if (reponse.isSucces() && reponse.getDonnees() != null) {
+                    // Les commandes sont dans une Map avec clé "commandes"
                     @SuppressWarnings("unchecked")
-                    List<Commande> commandes = (List<Commande>) reponse.getData();
-                    ObservableList<Commande> commandesList = FXCollections.observableArrayList(commandes);
+                    java.util.Map<String, Object> dataMap = (java.util.Map<String, Object>) reponse.getDonnees();
+                    @SuppressWarnings("unchecked")
+                    java.util.List<java.util.Map<String, Object>> commandesData = (java.util.List<java.util.Map<String, Object>>) dataMap.get("commandes");
+
+                    // Créer des commandes virtuelles pour l'affichage
+                    ObservableList<Commande> commandesList = FXCollections.observableArrayList();
+                    for (java.util.Map<String, Object> map : commandesData) {
+                        Commande cmd = new Commande();
+                        cmd.setIdCommande(((Number) map.get("rawId")).intValue());
+                        cmd.setReference((String) map.get("id"));
+
+                        // Parser le statut
+                        String statutStr = (String) map.get("statut");
+                        StatutCommande statut = StatutCommande.VALIDEE;
+                        if ("Expédiée".equals(statutStr)) statut = StatutCommande.EXPEDIEE;
+                        else if ("Livrée".equals(statutStr)) statut = StatutCommande.LIVREE;
+                        else if ("Validée".equals(statutStr)) statut = StatutCommande.VALIDEE;
+                        cmd.setStatut(statut);
+
+                        commandesList.add(cmd);
+                    }
+
                     javafx.application.Platform.runLater(() -> {
                         tableCommandes.setItems(commandesList);
                         System.out.println("[AdminController] " + commandesList.size() + " commandes chargées depuis la BDD");
@@ -110,7 +134,8 @@ public class AdminController {
                 });
             }
         }).start();
-
+    }
+/*
         // Charger les utilisateurs
         new Thread(() -> {
             try {
@@ -173,7 +198,7 @@ public class AdminController {
             }
         });
     }
-
+*/
     private void setupCommandeActions() {
         colActionsCommande.setCellFactory(new Callback<>() {
             @Override
@@ -199,9 +224,9 @@ public class AdminController {
                                         params.put("status", newVal);
                                         
                                         Requete requete = new Requete(RequestType.ADMIN_UPDATE_ORDER_STATUS, params, "ADMIN_TOKEN");
-                                        Reponse reponse = client.ClientSocket.getInstance().envoyer(requete);
+                                        shared.Reponse reponse = client.ClientSocket.getInstance().envoyer(requete);
                                         
-                                        if (reponse.isSuccess()) {
+                                        if (reponse.isSucces()) {
                                             System.out.println("-> MAJ serveur réussie.");
                                             // Mettre à jour l'objet Commande
                                             StatutCommande newStatut = StatutCommande.VALIDEE;
@@ -248,7 +273,7 @@ public class AdminController {
             }
         });
     }
-
+/*
     private void setupUtilisateurActions() {
         colActionsUtilisateur.setCellFactory(new Callback<>() {
             @Override
@@ -309,7 +334,7 @@ public class AdminController {
             System.err.println("Impossible de charger la modale produit_form.fxml");
         }
     }
-    
+ */   
     /**
      * Formate le statut pour l'affichage dans l'interface
      */
@@ -320,19 +345,19 @@ public class AdminController {
             case VALIDEE: return "Validée";
             case EXPEDIEE: return "Expédiée";
             case LIVREE: return "Livrée";
-            case EN_ATTENTE: return "En attente";
             default: return statut.name();
         }
     }
-    
+  /*  
     /**
      * Crée un bouton avec icône SVG
-     */
+     
     private Button createIconButton(String iconConstant, double size, String color) {
         SVGPath icon = IconLibrary.getIcon(iconConstant, size, color);
         Button button = new Button();
         button.setGraphic(icon);
         return button;
     }
+*/
 }
 

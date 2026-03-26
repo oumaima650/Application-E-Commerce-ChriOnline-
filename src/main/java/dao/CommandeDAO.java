@@ -257,6 +257,8 @@ public class CommandeDAO {
             }
         }
         return lignes;
+    }
+    
     /**
      * Récupérer toutes les commandes pour l'administrateur (exclut celles 'en attente')
      */

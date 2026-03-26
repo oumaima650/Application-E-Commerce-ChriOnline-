@@ -1,5 +1,5 @@
 package ui;
-
+/*
 import client.models.MockDataService.ProduitMock;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
@@ -54,3 +54,4 @@ public class ProduitFormController {
         stage.close();
     }
 }
+*/
