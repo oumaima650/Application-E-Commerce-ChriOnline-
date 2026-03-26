@@ -11,6 +11,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 import ui.utils.IconLibrary;
+import client.utils.SessionManager;
+
 
 import client.ClientSocket;
 import shared.RequestType;
@@ -35,8 +37,7 @@ public class CommandesController {
     @FXML private DatePicker dateFilter;
 
     private ObservableList<OrderRow> ordersData = FXCollections.observableArrayList();
-    private final int ID_CLIENT = 7;
-    private final String DEBUG_TOKEN = "DEBUG";
+
 
     @FXML
     public void initialize() {
@@ -68,8 +69,11 @@ public class CommandesController {
 
     private void loadCommandes() {
         try {
-            // Envoyer la requête au serveur
-            Requete req = new Requete(RequestType.GET_ORDERS, Map.of("idClient", ID_CLIENT), DEBUG_TOKEN);
+            // Envoyer la requête au serveur avec l'ID de session réel
+            Requete req = new Requete(RequestType.GET_ORDERS, 
+                Map.of("idClient", SessionManager.getInstance().getUserId()), 
+                SessionManager.getInstance().getToken());
+
             Reponse rep = ClientSocket.getInstance().envoyer(req);
             
             if (rep != null && rep.isSucces() && rep.getDonnees() != null) {

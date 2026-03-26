@@ -21,7 +21,9 @@ import client.ClientSocket;
 import shared.RequestType;
 import shared.Requete;
 import shared.Reponse;
+import client.utils.SessionManager;
 import ui.utils.IconLibrary;
+
 
 import java.net.URL;
 import java.util.List;
@@ -46,9 +48,6 @@ public class PanierController implements Initializable {
     private final Map<String, Boolean> selectedItems = new HashMap<>();
     private final Map<String, CheckBox> checkBoxes = new HashMap<>();
 
-
-    private final int ID_CLIENT = 7;
-    private final String DEBUG_TOKEN = "DEBUG";
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -82,9 +81,10 @@ public class PanierController implements Initializable {
         Task<Reponse> fetchTask = new Task<>() {
             @Override
             protected Reponse call() throws Exception {
-                Requete req = new Requete(RequestType.GET_CART, null, DEBUG_TOKEN);
+                Requete req = new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getUserId()), SessionManager.getInstance().getToken());
                 return ClientSocket.getInstance().envoyer(req);
             }
+
         };
 
         fetchTask.setOnSucceeded(e -> updateUIWithCartData(fetchTask.getValue()));
@@ -161,10 +161,12 @@ public class PanierController implements Initializable {
         // --- BACKGROUND SYNC (to Server) ---
         dbExecutor.submit(() -> {
             Map<String, Object> p = new HashMap<>();
+            p.put("idClient", SessionManager.getInstance().getUserId());
             p.put("sku", sku);
             p.put("quantite", nextQty);
             
-            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p, DEBUG_TOKEN);
+            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p, SessionManager.getInstance().getToken());
+
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {
                 Platform.runLater(this::chargerPanier); // Revert on failure
@@ -208,8 +210,10 @@ public class PanierController implements Initializable {
         // --- BACKGROUND SYNC (to Server) ---
         dbExecutor.submit(() -> {
             Map<String, Object> p = new HashMap<>();
+            p.put("idClient", SessionManager.getInstance().getUserId());
             p.put("sku", sku);
-            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p, DEBUG_TOKEN);
+            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p, SessionManager.getInstance().getToken());
+
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {
                 Platform.runLater(this::chargerPanier); // Revert on failure

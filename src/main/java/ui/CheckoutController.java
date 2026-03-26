@@ -7,6 +7,8 @@ import javafx.scene.shape.Circle;
 import client.utils.SceneManager;
 import ui.utils.IconLibrary;
 import javafx.scene.shape.SVGPath;
+import client.utils.SessionManager;
+
 
 public class CheckoutController {
     private static java.util.List<String> selectedSkus;
@@ -115,10 +117,12 @@ public class CheckoutController {
         step2Circle.getStyleClass().setAll("step-circle-done");
         step3Circle.getStyleClass().setAll("step-circle-done");
         
-        // Envoyer la requête de validation au serveur avec les SKUs sélectionnés
+        // Envoyer la requête de validation au serveur avec les SKUs sélectionnés et l'ID de session réel
         shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, 
-            java.util.Map.of("idClient", 7, "skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList()), 
-            "DEBUG");
+            java.util.Map.of("idClient", SessionManager.getInstance().getUserId(), 
+                        "skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList()), 
+            SessionManager.getInstance().getToken());
+
         
         client.ClientSocket.getInstance().envoyer(req);
         
