@@ -3,7 +3,7 @@ package ui;
 import client.ClientSocket;
 import model.Commande;
 //import model.Produit;
-//import model.Utilisateur;
+import model.Client;
 import model.enums.StatutCommande;
 import client.utils.SceneManager;
 import client.utils.SessionManager;
@@ -30,7 +30,7 @@ public class AdminController {
 
     //@FXML private TableView<Produit> tableProduits;
     @FXML private TableView<Commande> tableCommandes;
-    //@FXML private TableView<Utilisateur> tableUtilisateurs;
+    @FXML private TableView<Client> tableClients;
     
     @FXML private TextField searchCommandeField;
 
@@ -45,7 +45,8 @@ public class AdminController {
     @FXML private TableColumn<Commande, Void> colActionsCommande;
     
     //@FXML private TableColumn<Produit, Void> colActionsProduit;
-    //@FXML private TableColumn<Utilisateur, Void> colActionsUtilisateur;
+    @FXML private TableColumn<Client, String> colStatutClient;
+    @FXML private TableColumn<Client, Void> colActionsClient;
 
     @FXML
     private void ouvrirNotifications() {
@@ -68,6 +69,7 @@ public class AdminController {
         
         // Charger les données depuis le backend via TCP
         loadCommandes("");
+        loadClients();
         
         // Configurer recherche
         if (searchCommandeField != null) {
@@ -79,7 +81,7 @@ public class AdminController {
         // Configurer les colonnes interactives
         //setupProduitActions();
         setupCommandeActions();
-        //setupUtilisateurActions();
+        setupClientActions();
     }
 
     private void setupColumns() {
@@ -176,11 +178,14 @@ public class AdminController {
             return new javafx.beans.property.SimpleStringProperty("—");
         });
  
-        // -- Colonne "Statut" avec badge coloré ------------------------------
-        TableColumn<Commande, Void> colStatutBadge = null;
-        // Note: la colonne statut est gérée dans le FXML via PropertyValueFactory
-        // mais on peut aussi lui attacher une cellFactory pour colorier le badge
-        // → voir la méthode setupStatutBadge() appelée après le chargement
+        // -- Colonnes Client ------------------------------------------------
+        if (colStatutClient != null) {
+            colStatutClient.setCellValueFactory(cellData -> {
+                Client c = cellData.getValue();
+                String status = c.getStatut() != null ? c.getStatut() : "CLIENT";
+                return new javafx.beans.property.SimpleStringProperty(status);
+            });
+        }
     }
 
     /**
@@ -286,35 +291,41 @@ public class AdminController {
             }
         }).start();
     }
-/*
-        // Charger les utilisateurs
+
+    private void loadClients() {
+        // Charger les clients
         new Thread(() -> {
             try {
-                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_USERS, null, "ADMIN_TOKEN");
-                Reponse reponse = ClientSocket.getInstance().envoyer(requete);
-                if (reponse.isSuccess() && reponse.getData() != null) {
+                String adminToken = SessionManager.getInstance().getSession().getToken();
+                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_USERS, null, adminToken);
+                shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
+                
+                if (reponse.isSucces() && reponse.getDonnees() != null) {
                     @SuppressWarnings("unchecked")
-                    List<Utilisateur> utilisateurs = (List<Utilisateur>) reponse.getData();
-                    ObservableList<Utilisateur> utilisateursList = FXCollections.observableArrayList(utilisateurs);
+                    Map<String, Object> dataMap = (Map<String, Object>) reponse.getDonnees();
+                    @SuppressWarnings("unchecked")
+                    List<Client> utilisateurs = (List<Client>) dataMap.get("utilisateurs");
+                    
+                    ObservableList<Client> utilisateursList = FXCollections.observableArrayList(utilisateurs);
                     javafx.application.Platform.runLater(() -> {
-                        tableUtilisateurs.setItems(utilisateursList);
-                        System.out.println("[AdminController] " + utilisateursList.size() + " utilisateurs chargés depuis la BDD");
+                        tableClients.setItems(utilisateursList);
+                        System.out.println("[AdminController] " + utilisateursList.size() + " utilisateurs chargés.");
                     });
                 } else {
                     System.err.println("Erreur chargement utilisateurs: " + reponse.getMessage());
                     javafx.application.Platform.runLater(() -> {
-                        tableUtilisateurs.setItems(FXCollections.observableArrayList());
+                        tableClients.setItems(FXCollections.observableArrayList());
                     });
                 }
             } catch (Exception e) {
                 System.err.println("Exception lors du chargement des utilisateurs: " + e.getMessage());
                 javafx.application.Platform.runLater(() -> {
-                    tableUtilisateurs.setItems(FXCollections.observableArrayList());
+                    tableClients.setItems(FXCollections.observableArrayList());
                 });
             }
         }).start();
     }
-
+/* 
     private void setupProduitActions() {
         colActionsProduit.setCellFactory(new Callback<>() {
             @Override
@@ -354,7 +365,6 @@ public class AdminController {
     // ═══════════════════════════════════════════════════════════════════════
     // BADGE COLORÉ POUR LA COLONNE STATUT
     // ═══════════════════════════════════════════════════════════════════════
-    // (L'ancienne méthode applyStatutBadgeCellFactory a été retirée car les colonnes ont été combinées)
 
     private void setupCommandeActions() {
         colActionsCommande.setCellFactory(new Callback<TableColumn<Commande, Void>, TableCell<Commande, Void>>() {
@@ -446,26 +456,39 @@ public class AdminController {
             }
         });
     }
-/*
-    private void setupUtilisateurActions() {
-        colActionsUtilisateur.setCellFactory(new Callback<>() {
+    private void setupClientActions() {
+        colActionsClient.setCellFactory(new Callback<>() {
             @Override
-            public TableCell<Utilisateur, Void> call(final TableColumn<Utilisateur, Void> param) {
+            public TableCell<Client, Void> call(final TableColumn<Client, Void> param) {
                 return new TableCell<>() {
                     private final Button btnToggle = new Button("Bannir");
 
                     {
                         btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
                         btnToggle.setOnAction(event -> {
-                            Utilisateur item = getTableView().getItems().get(getIndex());
-                            if(btnToggle.getText().equals("Bannir")) {
-                                btnToggle.setText("Débannir");
-                                btnToggle.setStyle("-fx-background-color: gray; -fx-text-fill: white; -fx-background-radius: 10;");
-                                System.out.println("Utilisateur " + item.getId() + " banni.");
-                            } else {
-                                btnToggle.setText("Bannir");
-                                btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
-                                System.out.println("Utilisateur " + item.getId() + " ré-autorisé.");
+                            Client item = getTableView().getItems().get(getIndex());
+                            boolean isBanned = "BANNI".equals(item.getStatut());
+                            
+                            try {
+                                RequestType type = isBanned ? RequestType.ADMIN_UNBAN_USER : RequestType.ADMIN_BAN_USER;
+                                java.util.Map<String, Object> params = new java.util.HashMap<>();
+                                params.put("userId", item.getId());
+                                
+                                String adminToken = SessionManager.getInstance().getSession().getToken();
+                                Requete req = new Requete(type, params, adminToken);
+                                shared.Reponse rep = ClientSocket.getInstance().envoyer(req);
+                                
+                                if (rep.isSucces()) {
+                                    System.out.println("Client " + item.getId() + (isBanned ? " débanni." : " banni."));
+                                    // Mettre à jour l'objet localement pour rafraîchir la vue
+                                    item.setStatut(isBanned ? "ACTIF" : "BANNI");
+                                    item.setDeletedAt(isBanned ? null : java.time.LocalDateTime.now());
+                                    tableClients.refresh();
+                                } else {
+                                    System.err.println("Erreur action utilisateur: " + rep.getMessage());
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
                         });
                     }
@@ -473,46 +496,26 @@ public class AdminController {
                     @Override
                     protected void updateItem(Void item, boolean empty) {
                         super.updateItem(item, empty);
-                        setGraphic(empty ? null : btnToggle);
-                    }
-                };
-            }
-        });
-    }
-/*
-    private void setupUtilisateurActions() {
-        colActionsUtilisateur.setCellFactory(new Callback<>() {
-            @Override
-            public TableCell<Utilisateur, Void> call(final TableColumn<Utilisateur, Void> param) {
-                return new TableCell<>() {
-                    private final Button btnToggle = new Button("Bannir");
-
-                    {
-                        btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
-                        btnToggle.setOnAction(event -> {
-                            Utilisateur item = getTableView().getItems().get(getIndex());
-                            if(btnToggle.getText().equals("Bannir")) {
+                        if (empty) {
+                            setGraphic(null);
+                        } else {
+                            Client user = getTableView().getItems().get(getIndex());
+                            if ("BANNI".equals(user.getStatut())) {
                                 btnToggle.setText("Débannir");
-                                btnToggle.setStyle("-fx-background-color: gray; -fx-text-fill: white; -fx-background-radius: 10;");
-                                System.out.println("Utilisateur " + item.getId() + " banni.");
+                                btnToggle.setStyle("-fx-background-color: #E74C3C; -fx-text-fill: white; -fx-background-radius: 10;");
                             } else {
                                 btnToggle.setText("Bannir");
                                 btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
-                                System.out.println("Utilisateur " + item.getId() + " ré-autorisé.");
                             }
-                        });
-                    }
-
-                    @Override
-                    protected void updateItem(Void item, boolean empty) {
-                        super.updateItem(item, empty);
-                        setGraphic(empty ? null : btnToggle);
+                            setGraphic(btnToggle);
+                        }
                     }
                 };
             }
         });
     }
 
+/*
     private void openEditModal(Produit item) {
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/chrionline/fxml/produit_form.fxml"));
@@ -540,7 +543,8 @@ public class AdminController {
             System.err.println("Impossible de charger la modale produit_form.fxml");
         }
     }
- */   
+*/
+   
     /**
      * Formate le statut pour l'affichage dans l'interface
      */

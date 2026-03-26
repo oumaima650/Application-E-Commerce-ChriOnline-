@@ -24,6 +24,9 @@ public abstract class Utilisateur implements Serializable {
     public int getIdUtilisateur() { return idUtilisateur; }
     public void setIdUtilisateur(int idUtilisateur) { this.idUtilisateur = idUtilisateur; }
 
+    // Alias pour compatibilité UI
+    public int getId() { return idUtilisateur; }
+
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
