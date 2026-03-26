@@ -2,7 +2,10 @@ package service;
 
 import dao.VarianteDAO;
 import model.Variante;
+import shared.Reponse;
+import shared.Requete;
 import java.util.List;
+import java.util.Map;
 
 public class VarianteService {
 
@@ -32,6 +35,15 @@ public class VarianteService {
             return varianteDAO.getByCategorie(idCategorie);
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la récupération des variantes pour la catégorie id=" + idCategorie, e);
+        }
+    }
+ 
+    // Récupère les variantes par produit (via ses PVVs)
+    public List<Variante> getByProduit(int idProduit) {
+        try {
+            return varianteDAO.getByProduit(idProduit);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la récupération des variantes pour le produit id=" + idProduit, e);
         }
     }
 
@@ -67,6 +79,95 @@ public class VarianteService {
             varianteDAO.delete(id);
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors de la suppression de la variante", e);
+        }
+    }
+ 
+    // ───────────────────────────────
+    // WRAPPERS REQUETE / REPONSE
+    // ───────────────────────────────
+ 
+    public Reponse getAll(Requete requete) {
+        try {
+            return new Reponse(true, "Liste des variantes récupérée.", Map.of("variantes", getAll()));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+ 
+    public Reponse getById(Requete requete) {
+        try {
+            Object idParam = requete.getParametres().get("idVariante");
+            if (!(idParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idVariante doit être Integer).", null);
+            }
+            return new Reponse(true, "Variante trouvée.", Map.of("variante", getById((Integer) idParam)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+ 
+    public Reponse getByCategorie(Requete requete) {
+        try {
+            Object idParam = requete.getParametres().get("idCategorie");
+            if (!(idParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idCategorie doit être Integer).", null);
+            }
+            return new Reponse(true, "Variantes de la catégorie récupérées.", Map.of("variantes", getByCategorie((Integer) idParam)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+ 
+    public Reponse getByProduit(Requete requete) {
+        try {
+            Object idParam = requete.getParametres().get("idProduit");
+            if (!(idParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idProduit doit être Integer).", null);
+            }
+            return new Reponse(true, "Variantes du produit récupérées.", Map.of("variantes", getByProduit((Integer) idParam)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+ 
+    public Reponse creer(Requete requete) {
+        try {
+            Object varParam = requete.getParametres().get("variante");
+            if (!(varParam instanceof Variante)) {
+                return new Reponse(false, "Type de données invalide (variante doit être Variante).", null);
+            }
+            Variante var = (Variante) varParam;
+            creer(var);
+            return new Reponse(true, "Variante créée avec succès.", Map.of("variante", var));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+ 
+    public Reponse modifier(Requete requete) {
+        try {
+            Object varParam = requete.getParametres().get("variante");
+            if (!(varParam instanceof Variante)) {
+                return new Reponse(false, "Type de données invalide (variante doit être Variante).", null);
+            }
+            Variante var = (Variante) varParam;
+            modifier(var);
+            return new Reponse(true, "Variante modifiée avec succès.", Map.of("variante", var));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+ 
+    public Reponse supprimer(Requete requete) {
+        try {
+            Object idParam = requete.getParametres().get("idVariante");
+            if (!(idParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idVariante doit être Integer).", null);
+            }
+            supprimer((Integer) idParam);
+            return new Reponse(true, "Variante supprimée avec succès.", null);
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
         }
     }
 }

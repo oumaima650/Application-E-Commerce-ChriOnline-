@@ -2,6 +2,8 @@ package service;
 
 import dao.SKUDAO;
 import model.SKU;
+import shared.Reponse;
+import shared.Requete;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -100,6 +102,108 @@ public class SKUService {
             skuDAO.removeValeur(sku, idPVV);
         } catch (Exception e) {
             throw new RuntimeException("Erreur lors du retrait de la valeur du SKU", e);
+        }
+    }
+
+
+    public Reponse getAll(Requete requete) {
+        try {
+            return new Reponse(true, "Liste des SKUs récupérée.", java.util.Map.of("skus", getAll()));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse getBySku(Requete requete) {
+        try {
+            Object skuParam = requete.getParametres().get("sku");
+            if (!(skuParam instanceof String)) {
+                return new Reponse(false, "Type de données invalide (sku doit être String).", null);
+            }
+            return new Reponse(true, "SKU trouvé.", java.util.Map.of("sku", getBySku((String) skuParam)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse getByProduit(Requete requete) {
+        try {
+            Object idParam = requete.getParametres().get("idProduit");
+            if (!(idParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idProduit doit être Integer).", null);
+            }
+            return new Reponse(true, "Liste des SKUs pour le produit.", java.util.Map.of("skus", getByProduit((Integer) idParam)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse creer(Requete requete) {
+        try {
+            Object skuObj = requete.getParametres().get("sku");
+            if (!(skuObj instanceof SKU)) {
+                return new Reponse(false, "Type de données invalide (sku doit être SKU).", null);
+            }
+            SKU s = (SKU) skuObj;
+            creer(s);
+            return new Reponse(true, "SKU créé avec succès.", java.util.Map.of("sku", s));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse modifier(Requete requete) {
+        try {
+            Object skuObj = requete.getParametres().get("sku");
+            if (!(skuObj instanceof SKU)) {
+                return new Reponse(false, "Type de données invalide (sku doit être SKU).", null);
+            }
+            SKU s = (SKU) skuObj;
+            modifier(s);
+            return new Reponse(true, "SKU modifié avec succès.", java.util.Map.of("sku", s));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse supprimer(Requete requete) {
+        try {
+            Object skuParam = requete.getParametres().get("sku");
+            if (!(skuParam instanceof String)) {
+                return new Reponse(false, "Type de données invalide (sku doit être String).", null);
+            }
+            supprimer((String) skuParam);
+            return new Reponse(true, "SKU supprimé avec succès.", null);
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse ajouterValeur(Requete requete) {
+        try {
+            Object skuParam = requete.getParametres().get("sku");
+            Object pvvParam = requete.getParametres().get("idPVV");
+            if (!(skuParam instanceof String) || !(pvvParam instanceof Integer)) {
+                return new Reponse(false, "Types de données invalides (sku: String, idPVV: Integer).", null);
+            }
+            ajouterValeur((String) skuParam, (Integer) pvvParam);
+            return new Reponse(true, "Valeur ajoutée au SKU.", null);
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
+    public Reponse retirerValeur(Requete requete) {
+        try {
+            Object skuParam = requete.getParametres().get("sku");
+            Object pvvParam = requete.getParametres().get("idPVV");
+            if (!(skuParam instanceof String) || !(pvvParam instanceof Integer)) {
+                return new Reponse(false, "Types de données invalides (sku: String, idPVV: Integer).", null);
+            }
+            retirerValeur((String) skuParam, (Integer) pvvParam);
+            return new Reponse(true, "Valeur retirée du SKU.", null);
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
         }
     }
 }

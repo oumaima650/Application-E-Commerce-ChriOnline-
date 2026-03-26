@@ -16,7 +16,11 @@ public class NotificationsController {
 
     @FXML
     public void initialize() {
+        // Connecter ce contrôleur au ClientUDP global
+        client.ClientApp.setNotificationsController(this);
+        
         // Ajouter quelques fausses notifications udp pour illustrer l'UI 
+        addNotification("Système", "Service de notifications UDP actif sur le port 9090");
         addNotification("Nouvelle connexion TCP", "Un nouvel appareil vient de se connecter à votre compte.");
         addNotification("Commande expédiée", "Votre commande #CMD-002 vient de partir de notre entrepôt !");
         addNotification("Paiement refusé", "Attention, le paiement de 120 MAD a échoué (Fonds insuffisants).");

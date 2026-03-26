@@ -1,9 +1,16 @@
 package server;
 
 import service.AuthService;
+import server.ServiceUDP;
+import service.AdminService;
 import service.CarteBancaireService;
+import service.CategorieService;
 import service.NotificationService;
 import service.PaiementService;
+import service.ProduitService;
+import service.ProduitVarValeurService;
+import service.SKUService;
+import service.VarianteService;
 import shared.Reponse;
 import shared.Requete;
 
@@ -16,9 +23,17 @@ public class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final AuthService authService;
+    private final AdminService adminService;
+    private final ServiceUDP serviceUDP;
     private final CarteBancaireService carteBancaireService;
+    private final CategorieService categorieService;
     private final NotificationService notificationService;
     private final PaiementService paiementService;
+    private final ProduitService produitService;
+    private final service.CommandeService commandeService;
+    private final VarianteService varianteService;
+    private final ProduitVarValeurService pvvService;
+    private final SKUService skuService;
 
     private ObjectOutputStream out;
     private ObjectInputStream  in;
@@ -26,10 +41,19 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket) {
         this.socket      = socket;
         this.authService = new AuthService();
+        this.adminService = new AdminService();
+        this.serviceUDP = ServiceUDP.getInstance();
         this.carteBancaireService = new CarteBancaireService();
+        this.categorieService = new CategorieService();
         this.notificationService = new NotificationService();
         this.paiementService = new PaiementService();
+        this.produitService = new ProduitService();
+        this.commandeService = new service.CommandeService();
+        this.varianteService = new VarianteService();
+        this.pvvService = new ProduitVarValeurService();
+        this.skuService = new SKUService();
     }
+
 
     @Override
     public void run() {
@@ -77,28 +101,56 @@ public class ClientHandler implements Runnable {
         return switch (requete.getType()) {
             case LOGIN  -> authService.login(requete);
             case LOGOUT -> authService.logout(requete);
-            case REGISTER  -> authService.signup(requete);
-            
+            case REGISTER -> authService.signup(requete);
+
+            // ───────────────────────────────
+            // PUBLIC OPERATIONS (No Auth)
+            // ───────────────────────────────
+            case GET_ALL_PRODUITS -> produitService.getAll(requete);
+            case GET_PRODUIT_BY_ID -> produitService.getById(requete);
+            case SEARCH_PRODUITS_BY_NOM -> produitService.rechercherParNom(requete);
+            case COUNT_PRODUITS -> produitService.compter(requete);
+
+            case GET_ALL_CATEGORIES -> categorieService.getAll(requete);
+            case GET_CATEGORIE_BY_ID -> categorieService.getById(requete);
+ 
+            // Variantes (Public)
+            case GET_ALL_VARIANTES -> varianteService.getAll(requete);
+            case GET_VARIANTES_BY_PRODUIT -> varianteService.getByProduit(requete);
+            case GET_PVV_BY_PRODUIT -> pvvService.getByProduit(requete);
+ 
+            // SKU Public
+            case GET_ALL_SKUS -> skuService.getAll(requete);
+            case GET_SKU_BY_PRODUIT -> skuService.getByProduit(requete);
+            case GET_SKU_BY_CODE -> skuService.getBySku(requete);
+            case REGISTER_UDP_PORT -> {
+                // Enregistrer le port UDP du client pour les notifications
+                Map<String, Object> params = requete.getParametres();
+                if (params != null && params.containsKey("udpPort")) {
+                    int udpPort = (Integer) params.get("udpPort");
+                    int userId = AuthService.getUserIdFromToken(requete.getTokenSession());
+                    String clientIp = socket.getInetAddress().getHostAddress();
+                    
+                    serviceUDP.registerClient(userId, clientIp, udpPort);
+                    yield new Reponse(true, "Port UDP enregistré avec succès", null);
+                } else {
+                    yield new Reponse(false, "Port UDP manquant dans la requête", null);
+                }
+            }
+ 
             // Cart Operations
             case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART, UPDATE_QUANTITY_CART -> {
                 String token = requete.getTokenSession();
                 int userId = AuthService.getUserIdFromToken(token);
-                
-                // --- DEBUG HACK for testing the Cart UI ---
                 if ("DEBUG".equals(token)) userId = 7;
-                
                 if (userId <= 0) {
                     yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
                 }
-                
-                // Inject the authenticated userId into the request parameters
-                if (requete.getParametres() == null) {
-                    requete.setParametres(new java.util.HashMap<>());
-                }
+
+                if (requete.getParametres() == null) requete.setParametres(new java.util.HashMap<>());
                 requete.getParametres().put("idClient", userId);
-                
+
                 service.PanierService panierService = new service.PanierService();
-                
                 yield switch (requete.getType()) {
                     case ADD_TO_CART -> panierService.ajouter(requete);
                     case REMOVE_FROM_CART -> panierService.supprimer(requete);
@@ -108,39 +160,86 @@ public class ClientHandler implements Runnable {
                     default -> new Reponse(false, "Opération panier non supportée.", null);
                 };
             }
-            
+
             default -> {
                 String token = requete.getTokenSession();
                 int userId = -1;
-                
-                if (token != null) {
-                    userId = AuthService.getUserIdFromToken(token);
-                }
-                
-                if (userId <= 0 && requete.getType() != shared.RequestType.LOGIN && requete.getType() != shared.RequestType.REGISTER) {
+                if (token != null) userId = AuthService.getUserIdFromToken(token);
+
+                if (userId <= 0) {
                     yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
                 }
-                
-                if (requete.getParametres() == null) {
-                    requete.setParametres(new java.util.HashMap<>());
-                }
-                
-                // Injecter l'ID utilisateur sécurisé depuis le token pour les requêtes qui en ont besoin
+
+                if (requete.getParametres() == null) requete.setParametres(new java.util.HashMap<>());
                 requete.getParametres().put("idClient", userId);
                 requete.getParametres().put("idUtilisateur", userId);
-                
+
                 yield switch (requete.getType()) {
                     case ADD_CARD -> carteBancaireService.addCard(requete);
                     case GET_CARDS -> carteBancaireService.getCards(requete);
                     case REMOVE_CARD -> carteBancaireService.removeCard(requete);
-                    
+
                     case GET_NOTIFICATIONS -> notificationService.getNotifications(requete);
                     case MARK_NOTIFICATION_READ -> notificationService.markAsRead(requete);
-                    
+
                     case PROCESS_PAYMENT -> paiementService.processPayment(requete);
                     
+                    // Admin operations
+                    case ADMIN_GET_ALL_PRODUCTS -> adminService.getAllProducts(requete);
+                    case ADMIN_GET_ALL_ORDERS -> adminService.getAllOrders(requete);
+                    case ADMIN_GET_ALL_USERS -> adminService.getAllUsers(requete);
+                    case ADMIN_UPDATE_PRODUCT -> adminService.updateProduct(requete);
+                    case ADMIN_DELETE_PRODUCT -> adminService.deleteProduct(requete);
+                    case ADMIN_UPDATE_ORDER_STATUS -> adminService.updateOrderStatus(requete);
+                    case ADMIN_BAN_USER -> adminService.banUser(requete);
+                    case ADMIN_UNBAN_USER -> adminService.unbanUser(requete);
+                    
+
+                    // ───────────────────────────────
+                    // Commande
+                    // ───────────────────────────────
+                    
+                    case VALIDATE_ORDER -> commandeService.passerCommande(requete);
+                    case GET_ORDERS -> commandeService.getCommandesByClient(requete);
+                    case GET_ORDER -> commandeService.getCommandeByReference(requete);
+                    case GET_ORDERS_FILTERED -> commandeService.getCommandesFiltrees(requete);
+                    case UPDATE_ORDER_STATUS -> commandeService.updateStatutCommande(requete);
+
+
+                    
+                    // ───────────────────────────────
+                    // PRODUIT
+                    // ───────────────────────────────
+                    case ADD_PRODUIT -> produitService.creer(requete);
+                    case UPDATE_PRODUIT -> produitService.modifier(requete);
+                    case DELETE_PRODUIT -> produitService.supprimer(requete);
+
+                    // CATEGORIE (Admin/Write)
+                    case ADD_CATEGORIE -> categorieService.creer(requete);
+                    case UPDATE_CATEGORIE -> categorieService.modifier(requete);
+                    case DELETE_CATEGORIE -> categorieService.supprimer(requete);
+                    case ADD_VARIANTE_TO_CATEGORIE -> categorieService.ajouterVariante(requete);
+                    case REMOVE_VARIANTE_FROM_CATEGORIE -> categorieService.retirerVariante(requete);
+ 
+                    // Variantes CRUD
+                    case ADD_VARIANTE -> varianteService.creer(requete);
+                    case UPDATE_VARIANTE -> varianteService.modifier(requete);
+                    case DELETE_VARIANTE -> varianteService.supprimer(requete);
+ 
+                    // PVV (ProduitVarValeur) management
+                    case ADD_PVV -> pvvService.creer(requete);
+                    case DELETE_PVV -> pvvService.supprimer(requete);
+ 
+                    // SKU Admin
+                    case ADD_SKU -> skuService.creer(requete);
+                    case UPDATE_SKU -> skuService.modifier(requete);
+                    case DELETE_SKU -> skuService.supprimer(requete);
+                    case ADD_VALUE_TO_SKU -> skuService.ajouterValeur(requete);
+                    case REMOVE_VALUE_FROM_SKU -> skuService.retirerValeur(requete);
+ 
                     default -> new Reponse(false, "Fonctionnalité '" + requete.getType() + "' non encore implémentée.", null);
                 };
+
             }
         };
     }

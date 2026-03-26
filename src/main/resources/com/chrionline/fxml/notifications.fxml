@@ -9,7 +9,7 @@
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #24316B; -fx-padding: 15px 30px;">
             <Button text="← Retour" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 14px; -fx-padding: 5 12;" onAction="#retourArriere"/>
-            <Label text="Mes Notifications UDP" style="-fx-text-fill: #F8FFA1; -fx-font-weight: bold; -fx-font-size: 24px;"/>
+            <Label text="Mes Notifications" style="-fx-text-fill: #F8FFA1; -fx-font-weight: bold; -fx-font-size: 24px;"/>
             <Region HBox.hgrow="ALWAYS"/>
             <StackPane>
                 <Label text="🔔" style="-fx-font-size: 20px;"/>

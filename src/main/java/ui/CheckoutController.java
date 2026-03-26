@@ -1,20 +1,35 @@
 package ui;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
+import client.utils.SceneManager;
+import ui.utils.IconLibrary;
+import javafx.scene.shape.SVGPath;
+import client.utils.SessionManager;
+
 
 public class CheckoutController {
+    private static java.util.List<String> selectedSkus;
+
+    public static void setSelectedSkus(java.util.List<String> skus) {
+        selectedSkus = skus;
+    }
+
 
     @FXML private VBox step1Form;
     @FXML private VBox step2Form;
     @FXML private VBox step3Form;
 
-    @FXML private Label step1Circle;
-    @FXML private Label step2Circle;
-    @FXML private Label step3Circle;
+    @FXML private Circle step1Circle;
+    @FXML private Circle step2Circle;
+    @FXML private Circle step3Circle;
+
+    @FXML private VBox cardOption;
+    @FXML private VBox cashOption;
+    @FXML private Label lblOrderId;
+    @FXML private Label lblOrderTotal;
 
     @FXML private RadioButton radioCard;
     @FXML private RadioButton radioCash;
@@ -28,28 +43,47 @@ public class CheckoutController {
 
     @FXML
     public void initialize() {
-        // Gérer l'affichage des champs de la carte bancaire selon le radio button
+        // Gérer les options de paiement
+        cardOption.setOnMouseClicked(e -> radioCard.setSelected(true));
+        cashOption.setOnMouseClicked(e -> radioCash.setSelected(true));
+        
         radioCard.selectedProperty().addListener((obs, oldVal, newVal) -> {
             cardFormBox.setVisible(newVal);
             cardFormBox.setManaged(newVal);
+            updatePaymentStyles();
         });
         
         radioCash.selectedProperty().addListener((obs, oldVal, newVal) -> {
             radioCard.setSelected(!newVal);
+            updatePaymentStyles();
         });
-        
-        radioCard.selectedProperty().addListener((obs, oldVal, newVal) -> {
-            radioCash.setSelected(!newVal);
-        });
+    }
+    
+    private void updatePaymentStyles() {
+        if (radioCard.isSelected()) {
+            cardOption.getStyleClass().add("payment-selected");
+            cashOption.getStyleClass().remove("payment-selected");
+        } else {
+            cashOption.getStyleClass().add("payment-selected");
+            cardOption.getStyleClass().remove("payment-selected");
+        }
     }
 
     @FXML
     private void updateCardPreview() {
-        String num = txtCardNumber.getText();
-        lblCardNumberPreview.setText(num.isEmpty() ? "**** **** **** ****" : num);
+        String num = txtCardNumber.getText().replaceAll("\\s", "");
+        if (num.length() >= 4) {
+            String formatted = num.replaceAll("(.{4})", "$1 ").trim();
+            if (formatted.length() > 19) {
+                formatted = formatted.substring(0, 19);
+            }
+            lblCardNumberPreview.setText(formatted);
+        } else {
+            lblCardNumberPreview.setText("•••• •••• •••• 3456");
+        }
         
         String exp = txtExpiry.getText();
-        lblExpiryPreview.setText(exp.isEmpty() ? "MM/YY" : exp);
+        lblExpiryPreview.setText(exp.matches("\\d{2}/\\d{2}") ? exp : "03/28");
     }
 
     @FXML
@@ -78,12 +112,35 @@ public class CheckoutController {
         step1Form.setVisible(false); step1Form.setManaged(false);
         step2Form.setVisible(false); step2Form.setManaged(false);
         step3Form.setVisible(true); step3Form.setManaged(true);
-
-        step2Circle.getStyleClass().setAll("step-circle-done");
-        step3Circle.getStyleClass().setAll("step-circle-active");
         
-        // Simulation de réception d'une notification via UDP
-        // Normalement ceci serait géré par ClientUDP via Platform.runLater
+        step1Circle.getStyleClass().setAll("step-circle-done");
+        step2Circle.getStyleClass().setAll("step-circle-done");
+        step3Circle.getStyleClass().setAll("step-circle-done");
+        
+        // Envoyer la requête de validation au serveur avec les SKUs sélectionnés et l'ID de session réel
+        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, 
+            java.util.Map.of("idClient", SessionManager.getInstance().getUserId(), 
+                        "skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList()), 
+            SessionManager.getInstance().getToken());
+
+        
+        client.ClientSocket.getInstance().envoyer(req);
+        
+        // Simuler un montant basé sur la réponse (simplifié ici pour la démo UI)
+        double baseTotal = (selectedSkus != null) ? selectedSkus.size() * 500.0 : 0.0;
+        lblOrderTotal.setText("Montant : " + String.format("%,.2f MAD", baseTotal));
+
+
+    }
+    
+    @FXML
+    private void goToHome() {
+        SceneManager.switchTo("produits.fxml", "ChriOnline - Catalogue");
+    }
+    
+    @FXML
+    private void goBack() {
+        SceneManager.back();
     }
 }
 
