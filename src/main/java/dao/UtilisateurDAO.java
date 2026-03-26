@@ -1,5 +1,6 @@
 package dao;
 
+import model.Administrateur;
 import model.Client;
 import model.Utilisateur;
 import model.enums.TypeEtulisateur;
@@ -59,10 +60,29 @@ public class UtilisateurDAO {
                 if (rs.next()) {
                     return TypeEtulisateur.CLIENT;
                 } else {
-                    // hadi password ghalet
-                    return TypeEtulisateur.ADMIN ;
+                    return TypeEtulisateur.ADMIN;
                 }
             }
         }
+    }
+
+    public static Utilisateur findById(int id) throws SQLException {
+        if (userType(id) == TypeEtulisateur.CLIENT) {
+            return new ClientDAO().findById(id);
+        } else {
+            String sql = "SELECT email, motDePasse, createdAt, updatedAt FROM Utilisateur WHERE IdUtilisateur = ?";
+            try (Connection conn = getConn();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        LocalDateTime ca = rs.getTimestamp("createdAt") != null ? rs.getTimestamp("createdAt").toLocalDateTime() : null;
+                        LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
+                        return new Administrateur(id, rs.getString("email"), rs.getString("motDePasse"), ca, ua);
+                    }
+                }
+            }
+        }
+        return null;
     }
 }
