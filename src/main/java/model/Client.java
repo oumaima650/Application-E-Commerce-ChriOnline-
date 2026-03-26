@@ -10,6 +10,7 @@ public class Client extends Utilisateur {
     private String telephone;
     private List<Adresse> adresses;
     private LocalDateTime deletedAt;
+    private String statut; 
 
     public Client() {
         super();
@@ -24,6 +25,7 @@ public class Client extends Utilisateur {
         this.telephone = telephone;
         this.adresses = new ArrayList<>();
         this.deletedAt = deletedAt;
+        this.statut = "ACTIF";
     }
 
 
@@ -41,4 +43,7 @@ public class Client extends Utilisateur {
 
     public LocalDateTime getDeletedAt() { return deletedAt; }
     public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+
+    public String getStatut() { return statut; }
+    public void setStatut(String statut) { this.statut = statut; }
 }

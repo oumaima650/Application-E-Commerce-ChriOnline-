@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
@@ -52,6 +53,12 @@ public class CommandeService {
                 } else {
                     commandeMap.put("created_at", null);
                     commandeMap.put("date", "N/A");
+                }
+                
+                if (commande.getDateLivraisonReelle() != null) {
+                    commandeMap.put("date_livraison_reelle", commande.getDateLivraisonReelle().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                } else {
+                    commandeMap.put("date_livraison_reelle", "");
                 }
                 
                 // Calculer le total et résumé des articles
@@ -99,14 +106,13 @@ public class CommandeService {
         Integer idClient = (Integer) params.get("idClient");
         String statutFilter = (String) params.get("statut");
         String dateFilter = (String) params.get("date");
-        String categorieFilter = (String) params.get("categorie");
 
         if (idClient == null) {
             return new shared.Reponse(false, "Paramètres manquants : idClient.", null);
         }
 
         try {
-            List<Commande> commandes = commandeDAO.findWithFilters(idClient, statutFilter, dateFilter, categorieFilter);
+            List<Commande> commandes = commandeDAO.findWithFilters(idClient, statutFilter, dateFilter);
             List<Map<String, Object>> commandesData = new ArrayList<>();
             
             for (Commande commande : commandes) {
@@ -126,6 +132,12 @@ public class CommandeService {
                 } else {
                     commandeMap.put("created_at", null);
                     commandeMap.put("date", "N/A");
+                }
+                
+                if (commande.getDateLivraisonReelle() != null) {
+                    commandeMap.put("date_livraison_reelle", commande.getDateLivraisonReelle().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                } else {
+                    commandeMap.put("date_livraison_reelle", "");
                 }
                 
                 // Calculer le total et résumé des articles
@@ -159,8 +171,7 @@ public class CommandeService {
             donnees.put("total", commandesData.size());
             donnees.put("filtres", Map.of(
                 "statut", statutFilter,
-                "date", dateFilter,
-                "categorie", categorieFilter
+                "date", dateFilter
             ));
             
             return new shared.Reponse(true, commandesData.size() + " commandes trouvées avec filtres.", donnees);
@@ -312,18 +323,26 @@ public class CommandeService {
                 }
             }
             commande.setStatut(statut);
-            commande.setDateLivraisonPrevue(java.time.LocalDateTime.now().plusDays(3));
+            commande.setDateLivraisonPrevue(java.time.LocalDateTime.now().plusDays(5));
             
             Commande nouvelleCommande = commandeDAO.create(commande);
             int idCommande = nouvelleCommande.getIdCommande();
 
             // Ajouter les lignes et calculer le montant total
             double total = 0;
+            List<Map<String, Object>> itemsSummary = new ArrayList<>();
             dao.SKUDAO skuDAO = new dao.SKUDAO();
             for (model.LignePanier lp : lignesPanier) {
                 double prixAchat = lp.getSousTotal().doubleValue() / lp.getQuantite();
                 commandeDAO.addLigneCommande(idCommande, lp.getSku(), lp.getQuantite(), prixAchat);
                 total += lp.getSousTotal().doubleValue();
+                
+                Map<String, Object> item = new HashMap<>();
+                item.put("nom", lp.getSku()); // SKU as name by default
+                item.put("quantite", lp.getQuantite());
+                item.put("prixUnitaire", prixAchat);
+                item.put("image", lp.getImage()); // Assuming LignePanier has getImage()
+                itemsSummary.add(item);
                 
                 // Réduire le stock uniquement si la commande est validée (pas pour les brouillons)
                 if (statut == StatutCommande.VALIDEE) {
@@ -342,6 +361,8 @@ public class CommandeService {
             result.put("idCommande", idCommande);
             result.put("reference", reference);
             result.put("total", total);
+            result.put("dateLivraison", commande.getDateLivraisonPrevue().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            result.put("items", itemsSummary);
 
             return new shared.Reponse(true, "Commande " + reference + " créée avec succès !", result);
         } catch (Exception e) {

@@ -16,6 +16,9 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.shape.Rectangle;
 
 import client.ClientSocket;
 import shared.RequestType;
@@ -51,6 +54,11 @@ public class PanierController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            return;
+        }
+
         // --- PERFORMANCE OPTIMIZATION: PRE-CHARGEMENT DU CHECKOUT ---
         // Démarrer immédiatement avant même de charger le panier
         SceneManager.loadAsync("checkout.fxml");
@@ -65,7 +73,11 @@ public class PanierController implements Initializable {
                     .toList();
                 
                 if (skus.isEmpty()) {
-                    // Optionnel : afficher une alerte
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                    alert.setTitle("Panier Vide");
+                    alert.setHeaderText("Action impossible");
+                    alert.setContentText("Votre panier est vide ou aucun article n'est sélectionné. Veuillez ajouter des produits pour pouvoir passer une commande.");
+                    alert.showAndWait();
                     return;
                 }
                 
@@ -236,16 +248,37 @@ public class PanierController implements Initializable {
         checkBoxes.put(sku, cb);
 
         
-        // Fix for SVGPath warnings: Check if it's a filename or invalid path data
-        if (svgPathStr == null || svgPathStr.isEmpty() || svgPathStr.endsWith(".jpg") || svgPathStr.endsWith(".png")) {
-            svgPathStr = IconLibrary.PHONE;
-        }
-
         StackPane thumb = new StackPane();
         thumb.getStyleClass().addAll("item-thumbnail", catClass);
-        SVGPath icon = IconLibrary.getIcon(svgPathStr, 24, "#FFFFFF");
-        icon.getStyleClass().add("item-icon");
-        thumb.getChildren().add(icon);
+        thumb.setPrefSize(80, 80);
+        
+        if (svgPathStr != null && (svgPathStr.startsWith("http") || svgPathStr.startsWith("https"))) {
+            ImageView imgView = new ImageView();
+            try {
+                Image img = new Image(svgPathStr, true); // true for background loading
+                imgView.setImage(img);
+                imgView.setFitWidth(70);
+                imgView.setFitHeight(70);
+                imgView.setPreserveRatio(true);
+                
+                // Rounded corners for image
+                Rectangle clip = new Rectangle(70, 70);
+                clip.setArcWidth(12);
+                clip.setArcHeight(12);
+                imgView.setClip(clip);
+                
+                thumb.getChildren().add(imgView);
+            } catch (Exception e) {
+                SVGPath icon = IconLibrary.getIcon(IconLibrary.PHONE, 24, "#FFFFFF");
+                thumb.getChildren().add(icon);
+            }
+        } else {
+            // Fallback to SVG if it's not a URL
+            String fallbackIcon = (svgPathStr == null || svgPathStr.isEmpty()) ? IconLibrary.PHONE : svgPathStr;
+            SVGPath icon = IconLibrary.getIcon(fallbackIcon, 24, "#FFFFFF");
+            icon.getStyleClass().add("item-icon");
+            thumb.getChildren().add(icon);
+        }
         
         VBox info = new VBox(2);
         info.setAlignment(Pos.CENTER_LEFT);
@@ -280,17 +313,12 @@ public class PanierController implements Initializable {
     }
     
     @FXML
-    private void goToCommandes() {
-        SceneManager.switchTo("commandes.fxml", "ChriOnline - Mes Commandes");
-    }
-    
-    @FXML
     private void goToProfile() {
         SceneManager.switchTo("profile.fxml", "ChriOnline - Mon Profil");
     }
 
     @FXML
     private void goToHome() {
-        SceneManager.switchTo("produits.fxml", "ChriOnline - Catalogue");
+        SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
     }
 }

@@ -4,6 +4,8 @@ import model.Client;
 
 import java.sql.*;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.ArrayList;
 
 public class ClientDAO {
     private Connection getConn() {
@@ -78,7 +80,7 @@ public class ClientDAO {
     }
 
     public Client findById(int id) throws SQLException {
-        String sql = "SELECT u.email, u.motDePasse, u.createdAt, u.updatedAt, c.nom, c.prenom, c.telephone " +
+        String sql = "SELECT u.email, u.motDePasse, u.createdAt, u.updatedAt, c.nom, c.prenom, c.telephone, c.statut " +
                      "FROM Utilisateur u JOIN Client c ON u.IdUtilisateur = c.IdUtilisateur " +
                      "WHERE u.IdUtilisateur = ?";
         try (Connection conn = getConn();
@@ -88,12 +90,58 @@ public class ClientDAO {
                 if (rs.next()) {
                     LocalDateTime ca = rs.getTimestamp("createdAt") != null ? rs.getTimestamp("createdAt").toLocalDateTime() : null;
                     LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
-                    return new Client(id, rs.getString("email"), rs.getString("motDePasse"), ca, ua,
+                    Client c = new Client(id, rs.getString("email"), rs.getString("motDePasse"), ca, ua,
                                       rs.getString("nom"), rs.getString("prenom"), rs.getString("telephone"), null);
+                    c.setStatut(rs.getString("statut"));
+                    return c;
                 }
             }
         }
         return null;
     }
 
+    // Bannir un client (on utilise la nouvelle colonne statut)
+    public static boolean banUser(int userId) throws SQLException {
+        String query = "UPDATE Client SET statut = 'BANNI', deletedAt = NOW() WHERE IdUtilisateur = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, userId);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    // Débannir un client
+    public static boolean unbanUser(int userId) throws SQLException {
+        String query = "UPDATE Client SET statut = 'ACTIF', deletedAt = NULL WHERE IdUtilisateur = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, userId);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+    public static List<Client> getAllClients() throws SQLException {
+        List<Client> clients = new java.util.ArrayList<>();
+        String sql = "SELECT u.IdUtilisateur, u.email, u.createdAt, u.updatedAt, c.nom, c.prenom, c.telephone, c.deletedAt, c.statut " +
+                     "FROM Utilisateur u JOIN Client c ON u.IdUtilisateur = c.IdUtilisateur " +
+                     "ORDER BY u.createdAt DESC";
+        try (Connection conn = ConnexionBDD.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                LocalDateTime ca = rs.getTimestamp("createdAt") != null ? rs.getTimestamp("createdAt").toLocalDateTime() : null;
+                LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
+                LocalDateTime da = rs.getTimestamp("deletedAt") != null ? rs.getTimestamp("deletedAt").toLocalDateTime() : null;
+                
+                Client c = new Client(rs.getInt("IdUtilisateur"), rs.getString("email"), null, ca, ua,
+                                      rs.getString("nom"), rs.getString("prenom"), rs.getString("telephone"), da);
+                c.setStatut(rs.getString("statut"));
+                
+                // On peuple aussi les champs de la classe parente pour l'affichage Admin
+                c.setNom(rs.getString("nom"));
+                c.setPrenom(rs.getString("prenom"));
+                clients.add(c);
+            }
+        }
+        return clients;
+    }
 }

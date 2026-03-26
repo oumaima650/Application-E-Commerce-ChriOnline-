@@ -42,6 +42,12 @@ public class AuthService {
 
             int userId = loginData.id();
             Utilisateur user = UtilisateurDAO.findById(userId);
+
+            // Bloquer si le client est banni
+            if (user instanceof Client && "BANNI".equals(((Client) user).getStatut())) {
+                return new Reponse(false, "Ce compte a été banni par l'administrateur.", null);
+            }
+
             String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
             String sessionId = UUID.randomUUID().toString();
 
@@ -211,11 +217,13 @@ public class AuthService {
     }
 
     public static int getUserIdFromToken(String token) {
-        if (!SessionManager.getInstance().validerToken(token)) {
+        try {
+            if (token == null || token.isBlank()) return -1;
+            JWTService.TokenClaims claims = JWTService.verifyAccessToken(token);
+            return Integer.parseInt(claims.userId());
+        } catch (Exception e) {
             return -1;
         }
-        Utilisateur user = SessionManager.getInstance().getUtilisateur(token);
-        return (user != null) ? user.getIdUtilisateur() : -1;
     }
     // Legacy helpers removed - Use ClientHandler/JWTService for validation
 }

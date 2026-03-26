@@ -82,6 +82,11 @@ public class LoginController implements Initializable {
     }
 
     @FXML
+    private void handleBackToHome() {
+        SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
+    }
+
+    @FXML
     private void handleLogin() {
         String email    = trim(loginEmailField);
         String password = loginPasswordField.getText();
@@ -113,26 +118,49 @@ public class LoginController implements Initializable {
         setLoginLoading(true);
         runAsync(requete, reponse -> {
             setLoginLoading(false);
-            if (reponse == null) {
-                showError(loginErrorLabel, "⚠ Impossible de joindre le serveur.");
-                return;
-            }
-            if (reponse.isSucces()) {
-                // Save tokens + user info in session
-                String accessToken  = (String) reponse.getDonnees().get("accessToken");
-                String refreshToken = (String) reponse.getDonnees().get("refreshToken");
-                Utilisateur user    = (Utilisateur) reponse.getDonnees().get("utilisateur");
-                String type         = (String) reponse.getDonnees().get("typeUtilisateur");
+            try {
+                if (reponse == null) {
+                    showError(loginErrorLabel, "⚠ Impossible de joindre le serveur.");
+                    return;
+                }
+                if (reponse.isSucces()) {
+                    Map<String, Object> donnees = reponse.getDonnees();
+                    if (donnees == null) {
+                        System.err.println("[Login] Erreur : donnees est null dans la réponse.");
+                        showError(loginErrorLabel, "⚠ Erreur de données serveur.");
+                        return;
+                    }
 
-                client.utils.SessionManager.getInstance().ouvrir(accessToken, refreshToken, user);
+                    String accessToken  = (String) donnees.get("accessToken");
+                    String refreshToken = (String) donnees.get("refreshToken");
+                    Object userObj      = donnees.get("utilisateur");
+                    String type         = (String) donnees.get("typeUtilisateur");
 
-                System.out.println("[Login] Connecté — user=" + user.getEmail() + " type=" + type);
-                navigateToMain(type);
-            } else {
-                showError(loginErrorLabel, "⚠ " + reponse.getMessage());
-                shake(loginEmailWrapper);
-                shake(loginPasswordWrapper);
-                loginPasswordField.clear();
+                    System.out.println("[Login] Données reçues : userObj type=" + (userObj != null ? userObj.getClass().getName() : "null"));
+
+                    if (!(userObj instanceof Utilisateur user)) {
+                        System.err.println("[Login] Erreur de cast : l'objet utilisateur n'est pas une instance de model.Utilisateur");
+                        showError(loginErrorLabel, "⚠ Erreur de session client.");
+                        return;
+                    }
+
+                    client.utils.SessionManager.getInstance().ouvrir(accessToken, refreshToken, user);
+                    
+                    // Enregistrer le port UDP pour les notifications
+                    client.ClientApp.getInstance().registerUdpPort(accessToken);
+
+                    System.out.println("[Login] Connecté — email=" + user.getEmail() + " role=" + type);
+                    navigateToMain(type);
+                } else {
+                    showError(loginErrorLabel, "⚠ " + reponse.getMessage());
+                    shake(loginEmailWrapper);
+                    shake(loginPasswordWrapper);
+                    loginPasswordField.clear();
+                }
+            } catch (Exception e) {
+                System.err.println("[Login] Exception critique lors du traitement du login : " + e.getMessage());
+                e.printStackTrace();
+                showError(loginErrorLabel, "⚠ Erreur interne : " + e.getClass().getSimpleName());
             }
         });
     }
@@ -332,9 +360,8 @@ public class LoginController implements Initializable {
             System.out.println("[LoginController] Navigation vers le tableau de bord Admin...");
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
-            System.out.println("[LoginController] Navigation vers la boutique...");
-            SceneManager.switchTo("produits.fxml", "ChriOnline - Produits");
-            //SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
+            System.out.println("[LoginController] Navigation vers la boutique (main-home)...");
+            SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
         }
     }
 

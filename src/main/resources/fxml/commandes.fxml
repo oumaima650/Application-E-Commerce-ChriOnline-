@@ -24,7 +24,7 @@
         <VBox spacing="16" style="-fx-padding: 0 32px 24px 32px;">
             <!-- Filtres et recherche -->
             <HBox spacing="15" alignment="CENTER_LEFT">
-                <TextField fx:id="searchField" promptText="Rechercher une commande..." styleClass="search-field" HBox.hgrow="ALWAYS"/>
+                <TextField fx:id="searchField" promptText="Rechercher par référence de votre commande..." styleClass="search-field" HBox.hgrow="ALWAYS"/>
                 <ComboBox fx:id="statusFilter" promptText="Statut" styleClass="status-filter" prefWidth="150"/>
                 <DatePicker fx:id="dateFilter" promptText="Date" styleClass="date-filter" prefWidth="150"/>
             </HBox>
@@ -33,8 +33,8 @@
             <TableView fx:id="ordersTable" styleClass="orders-table" VBox.vgrow="ALWAYS">
                 <columns>
                     <TableColumn fx:id="refColumn" text="N° Commande" prefWidth="140" />
-                    <TableColumn fx:id="dateColumn" text="Date" prefWidth="100" />
-                    <TableColumn fx:id="summaryColumn" text="Articles" prefWidth="250" />
+                    <TableColumn fx:id="dateColumn" text="Date de commande" prefWidth="130" />
+                    <TableColumn fx:id="deliveryDateReelleColumn" text="Livraison Réelle" prefWidth="130" />
                     <TableColumn fx:id="totalColumn" text="Total" prefWidth="120" />
                     <TableColumn fx:id="statusColumn" text="Statut" prefWidth="120" />
                     <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="100"/>
@@ -44,10 +44,10 @@
             </TableView>
 
             <!-- Pagination -->
-            <HBox alignment="CENTER" style="-fx-padding: 16px 0;">
-                <Button text="←" styleClass="pagination-btn"/>
-                <Label text="Page 1 sur 3" styleClass="pagination-info"/>
-                <Button text="→" styleClass="pagination-btn"/>
+            <HBox alignment="CENTER" style="-fx-padding: 16px 0;" spacing="10">
+                <Button fx:id="prevBtn" text="←" styleClass="pagination-btn" onAction="#prevPage"/>
+                <Label fx:id="paginationLabel" text="Page 1 sur 1" styleClass="pagination-info"/>
+                <Button fx:id="nextBtn" text="→" styleClass="pagination-btn" onAction="#nextPage"/>
             </HBox>
         </VBox>
     </center>

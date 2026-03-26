@@ -27,20 +27,31 @@ public class CommandesController {
     @FXML private TableView<OrderRow> ordersTable;
     @FXML private TableColumn<OrderRow, String> refColumn;
     @FXML private TableColumn<OrderRow, String> dateColumn;
-    @FXML private TableColumn<OrderRow, String> summaryColumn;
+    @FXML private TableColumn<OrderRow, String> deliveryDateReelleColumn;
     @FXML private TableColumn<OrderRow, String> totalColumn;
     @FXML private TableColumn<OrderRow, Void> statusColumn;
     @FXML private TableColumn<OrderRow, Void> actionsColumn;
+    
+    @FXML private Button prevBtn;
+    @FXML private Button nextBtn;
+    @FXML private Label paginationLabel;
     
     @FXML private TextField searchField;
     @FXML private ComboBox<String> statusFilter;
     @FXML private DatePicker dateFilter;
 
-    private ObservableList<OrderRow> ordersData = FXCollections.observableArrayList();
+    private ObservableList<OrderRow> allOrders = FXCollections.observableArrayList();
+    private ObservableList<OrderRow> filteredOrders = FXCollections.observableArrayList();
+    private final int PAGE_SIZE = 5;
+    private int currentPage = 0;
 
 
     @FXML
     public void initialize() {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            return;
+        }
         setupTableColumns();
         setupFilters();
         loadCommandes();
@@ -50,16 +61,16 @@ public class CommandesController {
         // Liaison des colonnes simples via les propriétés de OrderRow
         refColumn.setCellValueFactory(cellData -> cellData.getValue().orderIdProperty());
         dateColumn.setCellValueFactory(cellData -> cellData.getValue().dateProperty());
-        summaryColumn.setCellValueFactory(cellData -> cellData.getValue().articlesSummaryProperty());
+        deliveryDateReelleColumn.setCellValueFactory(cellData -> cellData.getValue().dateLivraisonReelleProperty());
         totalColumn.setCellValueFactory(cellData -> cellData.getValue().totalProperty());
         
         setupStatusColumn();
         setupActionsColumn();
-        ordersTable.setItems(ordersData);
+        ordersTable.setItems(FXCollections.observableArrayList()); // Initial empty list
     }
 
     private void setupFilters() {
-        statusFilter.getItems().addAll("Tous", "En attente", "Validée", "Expédiée", "Livrée", "Annulée");
+        statusFilter.getItems().addAll("Tous", "En attente", "Validée", "Expédiée", "Livrée");
         statusFilter.setValue("Tous");
         
         searchField.textProperty().addListener((obs, oldVal, newVal) -> filterOrders());
@@ -80,12 +91,13 @@ public class CommandesController {
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> list = (List<Map<String, Object>>) rep.getDonnees().get("commandes");
                 
-                ordersData.clear();
+                allOrders.clear();
                 if (list != null) {
                     for (Map<String, Object> map : list) {
-                        ordersData.add(new OrderRow(map));
+                        allOrders.add(new OrderRow(map));
                     }
                 }
+                updateFilteredOrders();
             } else {
                 System.err.println("Erreur chargement commandes : " + (rep != null ? rep.getMessage() : "Pas de réponse"));
                 loadTestData();
@@ -97,28 +109,68 @@ public class CommandesController {
     }
 
     private void loadTestData() {
-        ordersData.clear();
-        ordersData.add(new OrderRow("#CHR-20260327-0042", "27/03/2026", "iPhone 15 Pro, AirPods Pro", "12 500 MAD", "Livrée"));
-        ordersData.add(new OrderRow("#CHR-20260325-0038", "25/03/2026", "MacBook Air M2, Coque", "18 750 MAD", "Expédiée"));
+        allOrders.clear();
+        allOrders.add(new OrderRow("#CHR-20260327-0042", "27/03/2026", "", "12 500 MAD", "Livrée"));
+        allOrders.add(new OrderRow("#CHR-20260325-0038", "25/03/2026", "", "18 750 MAD", "Expédiée"));
+        updateFilteredOrders();
     }
 
-    private void filterOrders() {
+    @FXML private void filterOrders() {
+        currentPage = 0;
+        updateFilteredOrders();
+    }
+
+    private void updateFilteredOrders() {
         String searchText = searchField.getText().toLowerCase();
         String statusValue = statusFilter.getValue();
         String dateValue = dateFilter.getValue() != null ? dateFilter.getValue().toString() : null;
 
-        ObservableList<OrderRow> filteredData = FXCollections.observableArrayList();
-        for (OrderRow row : ordersData) {
+        filteredOrders.clear();
+        for (OrderRow row : allOrders) {
             boolean matchesSearch = searchText.isEmpty() || 
-                                    row.getOrderId().toLowerCase().contains(searchText) ||
-                                    row.getArticlesSummary().toLowerCase().contains(searchText);
+                                    row.getOrderId().toLowerCase().contains(searchText);
             boolean matchesStatus = statusValue.equals("Tous") || row.getStatus().equalsIgnoreCase(statusValue);
-            boolean matchesDate = dateValue == null || row.getDate().contains(dateValue);
+            
+            String rowDate = row.getDate();
+            boolean matchesDate = dateValue == null;
+            if (dateValue != null && rowDate != null) {
+                String[] parts = dateValue.split("-");
+                if (parts.length == 3) {
+                    String formattedPickerDate = parts[2] + "/" + parts[1] + "/" + parts[0];
+                    matchesDate = rowDate.equals(formattedPickerDate);
+                }
+            }
 
-            if (matchesSearch && matchesStatus && matchesDate) filteredData.add(row);
+            if (matchesSearch && matchesStatus && matchesDate) filteredOrders.add(row);
         }
-        ordersTable.setItems(filteredData);
+        updatePagination();
     }
+
+    private void updatePagination() {
+        int totalItems = filteredOrders.size();
+        int totalPages = (int) Math.ceil((double) totalItems / PAGE_SIZE);
+        if (totalPages == 0) totalPages = 1;
+        
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+        if (currentPage < 0) currentPage = 0;
+
+        int fromIndex = currentPage * PAGE_SIZE;
+        int toIndex = Math.min(fromIndex + PAGE_SIZE, totalItems);
+
+        ObservableList<OrderRow> pageData = FXCollections.observableArrayList();
+        if (fromIndex < totalItems) {
+            pageData.addAll(filteredOrders.subList(fromIndex, toIndex));
+        }
+        
+        ordersTable.setItems(pageData);
+        paginationLabel.setText(String.format("Page %d sur %d", currentPage + 1, totalPages));
+        
+        prevBtn.setDisable(currentPage == 0);
+        nextBtn.setDisable(currentPage >= totalPages - 1);
+    }
+
+    @FXML private void nextPage() { currentPage++; updatePagination(); }
+    @FXML private void prevPage() { currentPage--; updatePagination(); }
 
     private void setupStatusColumn() {
         statusColumn.setCellFactory(param -> new TableCell<>() {
@@ -137,7 +189,7 @@ public class CommandesController {
 
     private void setupActionsColumn() {
         actionsColumn.setCellFactory(param -> new TableCell<>() {
-            private final Button viewButton = createIconButton(IconLibrary.ARROW_R, "Voir détail");
+            private final Button viewButton = createIconButton(IconLibrary.ARROW_R, "Détail");
             private final HBox pane = new HBox(8, viewButton);
             {
                 viewButton.setOnAction(event -> {
@@ -159,12 +211,19 @@ public class CommandesController {
         Label label = new Label(status);
         label.getStyleClass().add("status-text");
         
-        String s = status != null ? status.toLowerCase() : "";
-        if (s.contains("attente")) badge.getStyleClass().add("status-waiting");
-        else if (s.contains("valid")) badge.getStyleClass().add("status-validated");
-        else if (s.contains("exp")) badge.getStyleClass().add("status-shipped");
-        else if (s.contains("livr")) badge.getStyleClass().add("status-delivered");
-        else if (s.contains("annul")) badge.getStyleClass().add("status-cancelled");
+        String s = status != null ? status.toUpperCase().trim() : "";
+        
+        if (s.contains("ATTENTE")) {
+            badge.getStyleClass().add("status-waiting");
+        } else if (s.contains("VALID")) {
+            badge.getStyleClass().add("status-validated");
+        } else if (s.contains("EXP")) {
+            badge.getStyleClass().add("status-shipped");
+        } else if (s.contains("LIVR")) {
+            badge.getStyleClass().add("status-delivered");
+        } else if (s.contains("ANNUL")) {
+            badge.getStyleClass().add("status-cancelled");
+        }
         
         badge.getChildren().add(label);
         return badge;
@@ -182,8 +241,8 @@ public class CommandesController {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Détails de la commande");
         alert.setHeaderText(order.getOrderId());
-        alert.setContentText(String.format("Date: %s\nArticles: %s\nTotal: %s\nStatut: %s", 
-                            order.getDate(), order.getArticlesSummary(), order.getTotal(), order.getStatus()));
+        alert.setContentText(String.format("Date: %s\nLivraison Réelle: %s\nTotal: %s\nStatut: %s", 
+                            order.getDate(), order.getDateLivraisonReelle(), order.getTotal(), order.getStatus()));
         alert.showAndWait();
     }
 
@@ -198,22 +257,22 @@ public class CommandesController {
     public static class OrderRow {
         private final StringProperty orderId;
         private final StringProperty date;
-        private final StringProperty articlesSummary;
+        private final StringProperty dateLivraisonReelle;
         private final StringProperty total;
         private final StringProperty status;
 
         public OrderRow(Map<String, Object> map) {
             this.orderId = new SimpleStringProperty((String) map.get("reference"));
             this.date = new SimpleStringProperty((String) map.getOrDefault("date", "N/A"));
-            this.articlesSummary = new SimpleStringProperty((String) map.getOrDefault("articles_summary", "Articles..."));
+            this.dateLivraisonReelle = new SimpleStringProperty((String) map.getOrDefault("date_livraison_reelle", ""));
             this.total = new SimpleStringProperty((String) map.getOrDefault("total_formatted", "0.00 MAD"));
             this.status = new SimpleStringProperty((String) map.getOrDefault("status_display", "Inconnu"));
         }
 
-        public OrderRow(String id, String date, String summary, String total, String status) {
+        public OrderRow(String id, String date, String deliveryDate, String total, String status) {
             this.orderId = new SimpleStringProperty(id);
             this.date = new SimpleStringProperty(date);
-            this.articlesSummary = new SimpleStringProperty(summary);
+            this.dateLivraisonReelle = new SimpleStringProperty(deliveryDate);
             this.total = new SimpleStringProperty(total);
             this.status = new SimpleStringProperty(status);
         }
@@ -222,8 +281,8 @@ public class CommandesController {
         public StringProperty orderIdProperty() { return orderId; }
         public String getDate() { return date.get(); }
         public StringProperty dateProperty() { return date; }
-        public String getArticlesSummary() { return articlesSummary.get(); }
-        public StringProperty articlesSummaryProperty() { return articlesSummary; }
+        public String getDateLivraisonReelle() { return dateLivraisonReelle.get(); }
+        public StringProperty dateLivraisonReelleProperty() { return dateLivraisonReelle; }
         public String getTotal() { return total.get(); }
         public StringProperty totalProperty() { return total; }
         public String getStatus() { return status.get(); }

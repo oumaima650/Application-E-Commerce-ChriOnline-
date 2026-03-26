@@ -193,6 +193,21 @@ public class SKUService {
         }
     }
 
+    public Reponse getByVariants(Requete requete) {
+        try {
+            Object idParam = requete.getParametres().get("idProduit");
+            Object pvvParams = requete.getParametres().get("pvvIds");
+            if (!(idParam instanceof Integer) || !(pvvParams instanceof List)) {
+                return new Reponse(false, "Types de données invalides (idProduit: Integer, pvvIds: List).", null);
+            }
+            SKU res = skuDAO.getByVariants((Integer) idParam, (List<Integer>) pvvParams);
+            if (res == null) return new Reponse(false, "Aucun SKU ne correspond à cette combinaison.", null);
+            return new Reponse(true, "SKU résolu.", java.util.Map.of("sku", res));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
     public Reponse retirerValeur(Requete requete) {
         try {
             Object skuParam = requete.getParametres().get("sku");

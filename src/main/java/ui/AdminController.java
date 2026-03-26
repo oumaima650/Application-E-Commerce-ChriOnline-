@@ -3,9 +3,10 @@ package ui;
 import client.ClientSocket;
 import model.Commande;
 //import model.Produit;
-//import model.Utilisateur;
+import model.Client;
 import model.enums.StatutCommande;
 import client.utils.SceneManager;
+import client.utils.SessionManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -19,16 +20,33 @@ import shared.Requete;
 import shared.RequestType;
 
 import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 
 public class AdminController {
+    
+    // Stockage temporaire des données brutes pour les cellValueFactory
+    private List<Map<String, Object>> rawCommandesData = new ArrayList<>();
 
     //@FXML private TableView<Produit> tableProduits;
     @FXML private TableView<Commande> tableCommandes;
-    //@FXML private TableView<Utilisateur> tableUtilisateurs;
+    @FXML private TableView<Client> tableClients;
+    
+    @FXML private TextField searchCommandeField;
 
-    //@FXML private TableColumn<Produit, Void> colActionsProduit;
+    // Colonnes pour les commandes
+    @FXML private TableColumn<Commande, String> colId;
+    @FXML private TableColumn<Commande, String> colClient;
+    @FXML private TableColumn<Commande, String> colDate;
+    @FXML private TableColumn<Commande, String> colAdresse;
+    @FXML private TableColumn<Commande, String> colTotal;
+    @FXML private TableColumn<Commande, String> colDateLivraisonPrevue;
+    @FXML private TableColumn<Commande, String> colDateLivraisonReelle;
     @FXML private TableColumn<Commande, Void> colActionsCommande;
-    //@FXML private TableColumn<Utilisateur, Void> colActionsUtilisateur;
+    
+    //@FXML private TableColumn<Produit, Void> colActionsProduit;
+    @FXML private TableColumn<Client, String> colStatutClient;
+    @FXML private TableColumn<Client, Void> colActionsClient;
 
     @FXML
     private void ouvrirNotifications() {
@@ -46,19 +64,134 @@ public class AdminController {
             System.err.println("Erreur lors du chargement en cache de notifications.fxml: " + e.getMessage());
         }
         
+        // Configurer les colonnes
+        setupColumns();
+        
         // Charger les données depuis le backend via TCP
-        loadRealData();
+        loadCommandes("");
+        loadClients();
+        
+        // Configurer recherche
+        if (searchCommandeField != null) {
+            searchCommandeField.textProperty().addListener((observable, oldValue, newValue) -> {
+                loadCommandes(newValue);
+            });
+        }
         
         // Configurer les colonnes interactives
         //setupProduitActions();
         setupCommandeActions();
-        //setupUtilisateurActions();
+        setupClientActions();
+    }
+
+    private void setupColumns() {
+ 
+        // -- Colonne "#ID / Référence" ---------------------------------------
+        colId.setCellValueFactory(cellData -> {
+            Commande c = cellData.getValue();
+            return new javafx.beans.property.SimpleStringProperty(
+                c.getReference() != null ? c.getReference() : "—"
+            );
+        });
+
+        // -- Colonne "Client" ------------------------------------------------
+        colClient.setCellValueFactory(cellData -> {
+            Commande c = cellData.getValue();
+            return new javafx.beans.property.SimpleStringProperty(
+                c.getIdClient() > 0 ? String.valueOf(c.getIdClient()) : "—"
+            );
+        });
+
+        // -- Colonne "Adresse de livraison" ----------------------------------
+        // La valeur n'est pas dans Commande.java → on passe par userData de la ligne
+        colAdresse.setCellValueFactory(cellData -> {
+            Commande c = cellData.getValue();
+            if (rawCommandesData == null) return new javafx.beans.property.SimpleStringProperty("—");
+            for (Map<String, Object> m : rawCommandesData) {
+                if (m.get("rawId") instanceof Number &&
+                        ((Number) m.get("rawId")).intValue() == c.getIdCommande()) {
+                    Object adr = m.get("adresseLivraison");
+                    return new javafx.beans.property.SimpleStringProperty(
+                            adr != null ? adr.toString() : "—");
+                }
+            }
+            return new javafx.beans.property.SimpleStringProperty("—");
+        });
+ 
+        // -- Colonne "Total" -------------------------------------------------
+        colTotal.setCellValueFactory(cellData -> {
+            Commande c = cellData.getValue();
+            if (rawCommandesData == null) return new javafx.beans.property.SimpleStringProperty("—");
+            for (Map<String, Object> m : rawCommandesData) {
+                if (m.get("rawId") instanceof Number &&
+                        ((Number) m.get("rawId")).intValue() == c.getIdCommande()) {
+                    Object total = m.get("total");
+                    return new javafx.beans.property.SimpleStringProperty(
+                            total != null ? total.toString() : "—");
+                }
+            }
+            return new javafx.beans.property.SimpleStringProperty("—");
+        });
+ 
+        // -- Colonne "Date création" formatée --------------------------------
+        colDate.setCellValueFactory(cellData -> {
+            Commande c = cellData.getValue();
+            if (rawCommandesData == null) return new javafx.beans.property.SimpleStringProperty("—");
+            for (Map<String, Object> m : rawCommandesData) {
+                if (m.get("rawId") instanceof Number &&
+                        ((Number) m.get("rawId")).intValue() == c.getIdCommande()) {
+                    Object date = m.get("date");
+                    return new javafx.beans.property.SimpleStringProperty(
+                            date != null ? date.toString() : "—");
+                }
+            }
+            return new javafx.beans.property.SimpleStringProperty("—");
+        });
+ 
+        // -- Colonne "Date livraison prévue" ---------------------------------
+        colDateLivraisonPrevue.setCellValueFactory(cellData -> {
+            Commande c = cellData.getValue();
+            if (rawCommandesData == null) return new javafx.beans.property.SimpleStringProperty("—");
+            for (Map<String, Object> m : rawCommandesData) {
+                if (m.get("rawId") instanceof Number &&
+                        ((Number) m.get("rawId")).intValue() == c.getIdCommande()) {
+                    Object d = m.get("dateLivraisonPrevue");
+                    return new javafx.beans.property.SimpleStringProperty(
+                            d != null ? d.toString() : "—");
+                }
+            }
+            return new javafx.beans.property.SimpleStringProperty("—");
+        });
+ 
+        // -- Colonne "Date livraison réelle" ---------------------------------
+        colDateLivraisonReelle.setCellValueFactory(cellData -> {
+            Commande c = cellData.getValue();
+            if (rawCommandesData == null) return new javafx.beans.property.SimpleStringProperty("—");
+            for (Map<String, Object> m : rawCommandesData) {
+                if (m.get("rawId") instanceof Number &&
+                        ((Number) m.get("rawId")).intValue() == c.getIdCommande()) {
+                    Object d = m.get("dateLivraisonReelle");
+                    return new javafx.beans.property.SimpleStringProperty(
+                            d != null ? d.toString() : "—");
+                }
+            }
+            return new javafx.beans.property.SimpleStringProperty("—");
+        });
+ 
+        // -- Colonnes Client ------------------------------------------------
+        if (colStatutClient != null) {
+            colStatutClient.setCellValueFactory(cellData -> {
+                Client c = cellData.getValue();
+                String status = c.getStatut() != null ? c.getStatut() : "CLIENT";
+                return new javafx.beans.property.SimpleStringProperty(status);
+            });
+        }
     }
 
     /**
-     * Charge les vraies données depuis le serveur via ClientSocket
+     * Charge les commandes depuis le serveur selon le texte de recherche
      */
-    private void loadRealData() {
+    private void loadCommandes(String searchText) {
 /*
         // Charger les produits
         new Thread(() -> {
@@ -90,80 +223,109 @@ public class AdminController {
         // Charger les commandes
         new Thread(() -> {
             try {
-                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_ORDERS, null, "ADMIN_TOKEN");
+                String adminToken = SessionManager.getInstance().getSession().getAccessToken();
+                
+                Requete requete;
+                if (searchText == null || searchText.trim().isEmpty()) {
+                    requete = new Requete(RequestType.ADMIN_GET_ALL_ORDERS, null, adminToken);
+                } else {
+                    java.util.Map<String, Object> params = new java.util.HashMap<>();
+                    params.put("query", searchText.trim());
+                    // Use ADMIN_GET_ALL_ORDERS to avoid class version mismatch on the server
+                    requete = new Requete(RequestType.ADMIN_GET_ALL_ORDERS, params, adminToken);
+                }
+                
                 shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
+ 
                 if (reponse.isSucces() && reponse.getDonnees() != null) {
-                    // Les commandes sont dans une Map avec clé "commandes"
+ 
                     @SuppressWarnings("unchecked")
-                    java.util.Map<String, Object> dataMap = (java.util.Map<String, Object>) reponse.getDonnees();
+                    Map<String, Object> dataMap = (Map<String, Object>) reponse.getDonnees();
                     @SuppressWarnings("unchecked")
-                    java.util.List<java.util.Map<String, Object>> commandesData = (java.util.List<java.util.Map<String, Object>>) dataMap.get("commandes");
-
-                    // Créer des commandes virtuelles pour l'affichage
+                    List<Map<String, Object>> commandesData =
+                            (List<Map<String, Object>>) dataMap.get("commandes");
+ 
+                    // Garder les maps brutes pour les cellValueFactory
+                    rawCommandesData = commandesData;
+ 
                     ObservableList<Commande> commandesList = FXCollections.observableArrayList();
-                    for (java.util.Map<String, Object> map : commandesData) {
+                    for (Map<String, Object> map : commandesData) {
+ 
                         Commande cmd = new Commande();
+ 
+                        // ── IDs ─────────────────────────────────────────
                         cmd.setIdCommande(((Number) map.get("rawId")).intValue());
+                        cmd.setIdClient(((Number) map.get("idClient")).intValue());  // ← AJOUT
                         cmd.setReference((String) map.get("id"));
-
-                        // Parser le statut
+ 
+                        // ── idAdresse (peut être null) ───────────────────
+                        if (map.get("idAdresse") != null) {
+                            cmd.setIdAdresse(((Number) map.get("idAdresse")).intValue());
+                        }
+ 
+                        // ── Statut ───────────────────────────────────────
                         String statutStr = (String) map.get("statut");
                         StatutCommande statut = StatutCommande.VALIDEE;
-                        if ("Expédiée".equals(statutStr)) statut = StatutCommande.EXPEDIEE;
-                        else if ("Livrée".equals(statutStr)) statut = StatutCommande.LIVREE;
-                        else if ("Validée".equals(statutStr)) statut = StatutCommande.VALIDEE;
+                        try {
+                            if (statutStr != null) statut = StatutCommande.valueOf(statutStr);
+                        } catch (Exception e) {}
                         cmd.setStatut(statut);
-
+ 
                         commandesList.add(cmd);
                     }
-
+ 
                     javafx.application.Platform.runLater(() -> {
                         tableCommandes.setItems(commandesList);
-                        System.out.println("[AdminController] " + commandesList.size() + " commandes chargées depuis la BDD");
+                        System.out.println("[AdminController] " + commandesList.size() + " commandes chargées.");
                     });
+ 
                 } else {
                     System.err.println("Erreur chargement commandes: " + reponse.getMessage());
-                    javafx.application.Platform.runLater(() -> {
-                        tableCommandes.setItems(FXCollections.observableArrayList());
-                    });
+                    javafx.application.Platform.runLater(() ->
+                            tableCommandes.setItems(FXCollections.observableArrayList()));
                 }
             } catch (Exception e) {
-                System.err.println("Exception lors du chargement des commandes: " + e.getMessage());
-                javafx.application.Platform.runLater(() -> {
-                    tableCommandes.setItems(FXCollections.observableArrayList());
-                });
+                System.err.println("Exception chargement commandes: " + e.getMessage());
+                javafx.application.Platform.runLater(() ->
+                        tableCommandes.setItems(FXCollections.observableArrayList()));
             }
         }).start();
     }
-/*
-        // Charger les utilisateurs
+
+    private void loadClients() {
+        // Charger les clients
         new Thread(() -> {
             try {
-                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_USERS, null, "ADMIN_TOKEN");
-                Reponse reponse = ClientSocket.getInstance().envoyer(requete);
-                if (reponse.isSuccess() && reponse.getData() != null) {
+                String adminToken = SessionManager.getInstance().getSession().getAccessToken();
+                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_USERS, null, adminToken);
+                shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
+                
+                if (reponse.isSucces() && reponse.getDonnees() != null) {
                     @SuppressWarnings("unchecked")
-                    List<Utilisateur> utilisateurs = (List<Utilisateur>) reponse.getData();
-                    ObservableList<Utilisateur> utilisateursList = FXCollections.observableArrayList(utilisateurs);
+                    Map<String, Object> dataMap = (Map<String, Object>) reponse.getDonnees();
+                    @SuppressWarnings("unchecked")
+                    List<Client> utilisateurs = (List<Client>) dataMap.get("utilisateurs");
+                    
+                    ObservableList<Client> utilisateursList = FXCollections.observableArrayList(utilisateurs);
                     javafx.application.Platform.runLater(() -> {
-                        tableUtilisateurs.setItems(utilisateursList);
-                        System.out.println("[AdminController] " + utilisateursList.size() + " utilisateurs chargés depuis la BDD");
+                        tableClients.setItems(utilisateursList);
+                        System.out.println("[AdminController] " + utilisateursList.size() + " utilisateurs chargés.");
                     });
                 } else {
                     System.err.println("Erreur chargement utilisateurs: " + reponse.getMessage());
                     javafx.application.Platform.runLater(() -> {
-                        tableUtilisateurs.setItems(FXCollections.observableArrayList());
+                        tableClients.setItems(FXCollections.observableArrayList());
                     });
                 }
             } catch (Exception e) {
                 System.err.println("Exception lors du chargement des utilisateurs: " + e.getMessage());
                 javafx.application.Platform.runLater(() -> {
-                    tableUtilisateurs.setItems(FXCollections.observableArrayList());
+                    tableClients.setItems(FXCollections.observableArrayList());
                 });
             }
         }).start();
     }
-
+/* 
     private void setupProduitActions() {
         colActionsProduit.setCellFactory(new Callback<>() {
             @Override
@@ -199,11 +361,16 @@ public class AdminController {
         });
     }
 */
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // BADGE COLORÉ POUR LA COLONNE STATUT
+    // ═══════════════════════════════════════════════════════════════════════
+
     private void setupCommandeActions() {
-        colActionsCommande.setCellFactory(new Callback<>() {
+        colActionsCommande.setCellFactory(new Callback<TableColumn<Commande, Void>, TableCell<Commande, Void>>() {
             @Override
             public TableCell<Commande, Void> call(final TableColumn<Commande, Void> param) {
-                return new TableCell<>() {
+                return new TableCell<Commande, Void>() {
                     private final ComboBox<String> statusCombo = new ComboBox<>(FXCollections.observableArrayList("Validée", "Expédiée", "Livrée"));
                     
                     {
@@ -223,7 +390,8 @@ public class AdminController {
                                         params.put("orderId", item.getIdCommande());
                                         params.put("status", newVal);
                                         
-                                        Requete requete = new Requete(RequestType.ADMIN_UPDATE_ORDER_STATUS, params, "ADMIN_TOKEN");
+                                        String adminToken = SessionManager.getInstance().getSession().getAccessToken();
+                                        Requete requete = new Requete(RequestType.ADMIN_UPDATE_ORDER_STATUS, params, adminToken);
                                         shared.Reponse reponse = client.ClientSocket.getInstance().envoyer(requete);
                                         
                                         if (reponse.isSucces()) {
@@ -233,6 +401,21 @@ public class AdminController {
                                             if ("Expédiée".equals(newVal)) newStatut = StatutCommande.EXPEDIEE;
                                             else if ("Livrée".equals(newVal)) newStatut = StatutCommande.LIVREE;
                                             item.setStatut(newStatut);
+                                            
+                                            // Mettre à jour le dictionnaire pour rafraîchir l'affichage instantanément
+                                            if (rawCommandesData != null) {
+                                                for (java.util.Map<String, Object> m : rawCommandesData) {
+                                                    if (m.get("rawId") instanceof Number && ((Number) m.get("rawId")).intValue() == item.getIdCommande()) {
+                                                        m.put("statut", newStatut.name());
+                                                        if (newStatut == StatutCommande.LIVREE) {
+                                                            java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                                                            m.put("dateLivraisonReelle", java.time.LocalDateTime.now().format(dtf));
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            
                                             tableCommandes.refresh();
                                         } else {
                                             System.err.println("-> Erreur Serveur: " + reponse.getMessage());
@@ -273,26 +456,39 @@ public class AdminController {
             }
         });
     }
-/*
-    private void setupUtilisateurActions() {
-        colActionsUtilisateur.setCellFactory(new Callback<>() {
+    private void setupClientActions() {
+        colActionsClient.setCellFactory(new Callback<>() {
             @Override
-            public TableCell<Utilisateur, Void> call(final TableColumn<Utilisateur, Void> param) {
+            public TableCell<Client, Void> call(final TableColumn<Client, Void> param) {
                 return new TableCell<>() {
                     private final Button btnToggle = new Button("Bannir");
 
                     {
                         btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
                         btnToggle.setOnAction(event -> {
-                            Utilisateur item = getTableView().getItems().get(getIndex());
-                            if(btnToggle.getText().equals("Bannir")) {
-                                btnToggle.setText("Débannir");
-                                btnToggle.setStyle("-fx-background-color: gray; -fx-text-fill: white; -fx-background-radius: 10;");
-                                System.out.println("Utilisateur " + item.getId() + " banni.");
-                            } else {
-                                btnToggle.setText("Bannir");
-                                btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
-                                System.out.println("Utilisateur " + item.getId() + " ré-autorisé.");
+                            Client item = getTableView().getItems().get(getIndex());
+                            boolean isBanned = "BANNI".equals(item.getStatut());
+                            
+                            try {
+                                RequestType type = isBanned ? RequestType.ADMIN_UNBAN_USER : RequestType.ADMIN_BAN_USER;
+                                java.util.Map<String, Object> params = new java.util.HashMap<>();
+                                params.put("userId", item.getId());
+                                
+                                String adminToken = SessionManager.getInstance().getSession().getAccessToken();
+                                Requete req = new Requete(type, params, adminToken);
+                                shared.Reponse rep = ClientSocket.getInstance().envoyer(req);
+                                
+                                if (rep.isSucces()) {
+                                    System.out.println("Client " + item.getId() + (isBanned ? " débanni." : " banni."));
+                                    // Mettre à jour l'objet localement pour rafraîchir la vue
+                                    item.setStatut(isBanned ? "ACTIF" : "BANNI");
+                                    item.setDeletedAt(isBanned ? null : java.time.LocalDateTime.now());
+                                    tableClients.refresh();
+                                } else {
+                                    System.err.println("Erreur action utilisateur: " + rep.getMessage());
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
                         });
                     }
@@ -300,13 +496,26 @@ public class AdminController {
                     @Override
                     protected void updateItem(Void item, boolean empty) {
                         super.updateItem(item, empty);
-                        setGraphic(empty ? null : btnToggle);
+                        if (empty) {
+                            setGraphic(null);
+                        } else {
+                            Client user = getTableView().getItems().get(getIndex());
+                            if ("BANNI".equals(user.getStatut())) {
+                                btnToggle.setText("Débannir");
+                                btnToggle.setStyle("-fx-background-color: #E74C3C; -fx-text-fill: white; -fx-background-radius: 10;");
+                            } else {
+                                btnToggle.setText("Bannir");
+                                btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
+                            }
+                            setGraphic(btnToggle);
+                        }
                     }
                 };
             }
         });
     }
 
+/*
     private void openEditModal(Produit item) {
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/chrionline/fxml/produit_form.fxml"));
@@ -334,7 +543,8 @@ public class AdminController {
             System.err.println("Impossible de charger la modale produit_form.fxml");
         }
     }
- */   
+*/
+   
     /**
      * Formate le statut pour l'affichage dans l'interface
      */
@@ -348,16 +558,5 @@ public class AdminController {
             default: return statut.name();
         }
     }
-  /*  
-    /**
-     * Crée un bouton avec icône SVG
-     
-    private Button createIconButton(String iconConstant, double size, String color) {
-        SVGPath icon = IconLibrary.getIcon(iconConstant, size, color);
-        Button button = new Button();
-        button.setGraphic(icon);
-        return button;
-    }
-*/
 }
 

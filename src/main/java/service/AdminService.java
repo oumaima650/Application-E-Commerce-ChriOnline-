@@ -1,18 +1,25 @@
 package service;
 
 import dao.CommandeDAO;
-//import dao.ProduitDAO;
-//import dao.UtilisateurDAO;
+import dao.ProduitDAO;
+import dao.UtilisateurDAO;
+import model.Commande;
+import model.LigneCommande;
+import model.Produit;
+import model.Utilisateur;
+import model.enums.StatutCommande;
 import server.ServiceUDP;
 import shared.Reponse;
 import shared.Requete;
 
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 
 public class AdminService {
@@ -26,27 +33,62 @@ public class AdminService {
     public Reponse getAllProducts(Requete requete) {
         try {
             List<model.Produit> produits = dao.ProduitDAO.getAll();
-            return new Reponse(true, "Produits récupérés avec succès", produits);
+            return new Reponse(true, "Produits récupérés avec succès", java.util.Map.of("produits", produits));
         } catch (SQLException e) {
             return new Reponse(false, "Erreur lors de la récupération des produits: " + e.getMessage(), null);
         }
     }
 */
     public Reponse getAllOrders(Requete requete) {
+        Map<String, Object> params = requete.getParametres();
         try {
+            String queryArg = params != null ? (String) params.get("query") : null;
             dao.CommandeDAO commandeDAO = new dao.CommandeDAO();
-            List<model.Commande> commandes = commandeDAO.getAdminOrders();
+            List<model.Commande> commandes = new java.util.ArrayList<>();
+            
+            if (queryArg == null || queryArg.trim().isEmpty()) {
+                commandes = commandeDAO.getAdminOrders();
+            } else {
+                queryArg = queryArg.trim();
+                model.Commande c = commandeDAO.findByReference(queryArg);
+                if (c != null) {
+                    commandes.add(c);
+                } else {
+                    try {
+                        int idClient = Integer.parseInt(queryArg);
+                        commandes = commandeDAO.findWithFilters(idClient, null, null);
+                    } catch (NumberFormatException e) {
+                    }
+                }
+            }
             
             List<Map<String, Object>> commandesData = new java.util.ArrayList<>();
             for (model.Commande c : commandes) {
                 Map<String, Object> map = new java.util.HashMap<>();
-                map.put("rawId", c.getIdCommande());
-                map.put("id", c.getReference());
-                map.put("client", "Client #" + c.getIdClient());
+
+                // ── Identifiants ──────────────────────────────────────────
+                map.put("rawId",    c.getIdCommande());
+                map.put("id",       c.getReference());          // référence
+                map.put("idClient", c.getIdClient());           // ← AJOUT
+                map.put("idAdresse", c.getIdAdresse());         // ← AJOUT (peut être null)
                 
-                String date = c.getCreatedAt() != null ? c.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "N/A";
-                map.put("date", date);
+                // ── Dates ─────────────────────────────────────────────────
+                String fmt = "dd/MM/yyyy HH:mm";
+                java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern(fmt);
+ 
+                map.put("date",     c.getCreatedAt()             != null ? c.getCreatedAt().format(dtf)             : "N/A");
+                map.put("updatedAt",c.getUpdatedAt()             != null ? c.getUpdatedAt().format(dtf)             : "N/A");
+                map.put("dateLivraisonPrevue",  c.getDateLivraisonPrevue()  != null ? c.getDateLivraisonPrevue().format(dtf)  : "N/A");
+                map.put("dateLivraisonReelle",  c.getDateLivraisonReelle()  != null ? c.getDateLivraisonReelle().format(dtf)  : "—");
                 
+                 // ── Adresse complète (jointure Adresse) ───────────────────
+                if (c.getIdAdresse() != null) {
+                    String adresse = getAdresseComplete(c.getIdAdresse());
+                    map.put("adresseLivraison", adresse != null ? adresse : "Adresse inconnue");
+                } else {
+                    map.put("adresseLivraison", "Aucune adresse");
+                }
+
                 List<model.LigneCommande> lignes = commandeDAO.findLignesByCommandeId(c.getIdCommande());
                 double total = 0;
                 for (model.LigneCommande lc : lignes) {
@@ -54,12 +96,8 @@ public class AdminService {
                 }
                 map.put("total", String.format("%.2f MAD", total).replace(",", " "));
                 
-                String statut = c.getStatut().name();
-                if (c.getStatut() == model.enums.StatutCommande.VALIDEE) statut = "Validée";
-                if (c.getStatut() == model.enums.StatutCommande.EXPEDIEE) statut = "Expédiée";
-                if (c.getStatut() == model.enums.StatutCommande.LIVREE) statut = "Livrée";
-                
-                map.put("statut", statut);
+                map.put("total", String.format("%.2f MAD", total).replace(",", " "));
+                map.put("statut", c.getStatut().name());
                 commandesData.add(map);
             }
             
@@ -68,16 +106,82 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la récupération des commandes: " + e.getMessage(), null);
         }
     }
-/*
+
+    public Reponse searchOrders(Requete requete) {
+        Map<String, Object> params = requete.getParametres();
+        try {
+            String queryArg = (String) params.get("query");
+            dao.CommandeDAO commandeDAO = new dao.CommandeDAO();
+            List<model.Commande> commandes = new java.util.ArrayList<>();
+            
+            if (queryArg == null || queryArg.trim().isEmpty()) {
+                commandes = commandeDAO.getAdminOrders();
+            } else {
+                queryArg = queryArg.trim();
+                model.Commande c = commandeDAO.findByReference(queryArg);
+                if (c != null) {
+                    commandes.add(c);
+                } else {
+                    try {
+                        int idClient = Integer.parseInt(queryArg);
+                        commandes = commandeDAO.findWithFilters(idClient, null, null);
+                    } catch (NumberFormatException e) {
+                        // Pas un ID client valide, la liste restera vide
+                    }
+                }
+            }
+            
+            List<Map<String, Object>> commandesData = new java.util.ArrayList<>();
+            for (model.Commande c : commandes) {
+                Map<String, Object> map = new java.util.HashMap<>();
+
+                map.put("rawId",    c.getIdCommande());
+                map.put("id",       c.getReference());
+                map.put("idClient", c.getIdClient());
+                map.put("idAdresse", c.getIdAdresse());
+                
+                String fmt = "dd/MM/yyyy HH:mm";
+                java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern(fmt);
+ 
+                map.put("date",     c.getCreatedAt()             != null ? c.getCreatedAt().format(dtf)             : "N/A");
+                map.put("updatedAt",c.getUpdatedAt()             != null ? c.getUpdatedAt().format(dtf)             : "N/A");
+                map.put("dateLivraisonPrevue",  c.getDateLivraisonPrevue()  != null ? c.getDateLivraisonPrevue().format(dtf)  : "N/A");
+                map.put("dateLivraisonReelle",  c.getDateLivraisonReelle()  != null ? c.getDateLivraisonReelle().format(dtf)  : "—");
+                
+                if (c.getIdAdresse() != null) {
+                    String adresse = getAdresseComplete(c.getIdAdresse());
+                    map.put("adresseLivraison", adresse != null ? adresse : "Adresse inconnue");
+                } else {
+                    map.put("adresseLivraison", "Aucune adresse");
+                }
+
+                List<model.LigneCommande> lignes = commandeDAO.findLignesByCommandeId(c.getIdCommande());
+                double total = 0;
+                for (model.LigneCommande lc : lignes) {
+                    total += lc.getPrixAchat() * lc.getQuantite();
+                }
+                map.put("total", String.format("%.2f MAD", total).replace(",", " "));
+                
+                map.put("total", String.format("%.2f MAD", total).replace(",", " "));
+                map.put("statut", c.getStatut().name());
+                commandesData.add(map);
+            }
+            
+            return new Reponse(true, "Recherche de commandes réussie", java.util.Map.of("commandes", commandesData));
+        } catch (SQLException e) {
+            return new Reponse(false, "Erreur lors de la recherche des commandes: " + e.getMessage(), null);
+        }
+    }
     public Reponse getAllUsers(Requete requete) {
         try {
             List<model.Utilisateur> utilisateurs = dao.UtilisateurDAO.getAllUsers();
-            return new Reponse(true, "Utilisateurs récupérés avec succès", utilisateurs);
+            return new Reponse(true, "Utilisateurs récupérés avec succès", java.util.Map.of("utilisateurs", utilisateurs));
         } catch (SQLException e) {
             return new Reponse(false, "Erreur lors de la récupération des utilisateurs: " + e.getMessage(), null);
         }
     }
 
+/*
     public Reponse updateProduct(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -113,6 +217,31 @@ public class AdminService {
         }
     }
 */
+
+     /**
+     * Récupère l'adresse complète (rue + ville + code postal) depuis la table Adresse
+     */
+    private String getAdresseComplete(int idAdresse) {
+        String sql = "SELECT addresseComplete, ville, codePostal FROM Adresse WHERE idAdresse = ?";
+        try (Connection conn = dao.ConnexionBDD.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idAdresse);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                String rue      = rs.getString("addresseComplete");
+                String ville    = rs.getString("ville");
+                String cp       = rs.getString("codePostal");
+                StringBuilder sb = new StringBuilder(rue);
+                if (cp   != null && !cp.isBlank())    sb.append(", ").append(cp);
+                if (ville != null && !ville.isBlank()) sb.append(" ").append(ville);
+                return sb.toString();
+            }
+        } catch (SQLException e) {
+            System.err.println("[AdminService] Erreur récupération adresse #" + idAdresse + ": " + e.getMessage());
+        }
+        return null;
+    }
+
     public Reponse updateOrderStatus(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -128,6 +257,11 @@ public class AdminService {
             boolean success = commandeDAO.updateStatus(orderId, st);
             
             if (success) {
+                // Si la commande est marquée comme "Livrée", on met à jour la date de livraison réelle
+                if (st == model.enums.StatutCommande.LIVREE) {
+                    commandeDAO.setDateLivraisonReelle(orderId, java.time.LocalDateTime.now());
+                }
+
                 // Envoyer notification UDP au client concerné
                 int clientId = commandeDAO.getClientIdFromOrder(orderId);
                 if (clientId > 0) {
@@ -146,12 +280,12 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la mise à jour du statut: " + e.getMessage(), null);
         }
     }
-/*
+
     public Reponse banUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
             int userId = (Integer) params.get("userId");
-            boolean success = dao.UtilisateurDAO.banUser(userId);
+            boolean success = dao.ClientDAO.banUser(userId);
             if (success) {
                 return new Reponse(true, "Utilisateur banni avec succès", null);
             } else {
@@ -166,7 +300,7 @@ public class AdminService {
         Map<String, Object> params = requete.getParametres();
         try {
             int userId = (Integer) params.get("userId");
-            boolean success = dao.UtilisateurDAO.unbanUser(userId);
+            boolean success = dao.ClientDAO.unbanUser(userId);
             if (success) {
                 return new Reponse(true, "Utilisateur débanni avec succès", null);
             } else {
@@ -176,5 +310,5 @@ public class AdminService {
             return new Reponse(false, "Erreur lors du débannissement: " + e.getMessage(), null);
         }
     }
-    */
+    
 }

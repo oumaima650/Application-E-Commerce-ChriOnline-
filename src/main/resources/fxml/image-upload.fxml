@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="ui.ImageUploadController" 
+      spacing="20" alignment="CENTER" 
+      style="-fx-padding: 30; -fx-background-color: #f8f9fa;">
+    
+    <children>
+        <!-- Header -->
+        <Label text="Upload d'Images de Produits" 
+               style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+        
+        <!-- Connection Status -->
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <children>
+                <Button fx:id="testConnectionButton" text="Tester Connexion Cloudinary" 
+                        onAction="#handleTestConnection"
+                        style="-fx-background-color: #10B981; -fx-text-fill: white; -fx-background-radius: 8px; -fx-padding: 8 16;"/>
+                <Label fx:id="uploadStatusLabel" text="Test de connexion..." 
+                       style="-fx-text-fill: #666; -fx-font-size: 14px;"/>
+            </children>
+        </HBox>
+        
+        <!-- Product ID Input -->
+        <VBox spacing="8" alignment="CENTER_LEFT">
+            <children>
+                <Label text="ID du Produit:" style="-fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+                <TextField fx:id="productIdField" promptText="Entrez l'ID du produit" 
+                           prefWidth="200" style="-fx-padding: 8; -fx-border-radius: 6px;"/>
+            </children>
+        </VBox>
+        
+        <!-- File Selection -->
+        <HBox spacing="15" alignment="CENTER">
+            <children>
+                <Button fx:id="browseButton" text="Parcourir..." 
+                        onAction="#handleBrowseButton"
+                        style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-background-radius: 8px; -fx-padding: 10 20; -fx-font-weight: bold;"/>
+                <Button fx:id="uploadButton" text="Uploader sur Cloudinary" 
+                        onAction="#handleUploadButton"
+                        style="-fx-background-color: #2A2C41; -fx-text-fill: white; -fx-background-radius: 8px; -fx-padding: 10 20; -fx-font-weight: bold;"/>
+            </children>
+        </HBox>
+        
+        <!-- Progress Bar -->
+        <ProgressBar fx:id="uploadProgressBar" prefWidth="300" progress="0" 
+                      style="-fx-accent: #FF724C;"/>
+        
+        <!-- Image Preview -->
+        <StackPane style="-fx-background-color: white; -fx-border-color: #ddd; -fx-border-radius: 8px; -fx-padding: 10;">
+            <children>
+                <ImageView fx:id="previewImage" 
+                           fitWidth="300" fitHeight="300" 
+                           preserveRatio="true"
+                           style="-fx-border-radius: 6px;"/>
+                <Label text="Aucune image sélectionnée" 
+                       style="-fx-text-fill: #999; -fx-font-size: 16px;" 
+                       StackPane.alignment="CENTER"/>
+            </children>
+        </StackPane>
+        
+        <!-- URL Result -->
+        <VBox spacing="10" alignment="CENTER_LEFT" prefWidth="500">
+            <children>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <children>
+                        <Label text="URL Cloudinary:" style="-fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+                        <Button text="📋 Copier" onAction="#handleCopyUrl" 
+                                style="-fx-background-color: #FDBF50; -fx-text-fill: #2A2C41; -fx-background-radius: 6px; -fx-padding: 4 12; -fx-font-size: 12px;"/>
+                    </children>
+                </HBox>
+                <TextArea fx:id="urlResultField" prefHeight="80" prefWidth="500" 
+                          wrapText="true" editable="false"
+                          style="-fx-border-color: #ddd; -fx-border-radius: 6px; -fx-padding: 8;"/>
+            </children>
+        </VBox>
+        
+        <!-- Action Buttons -->
+        <HBox spacing="15" alignment="CENTER">
+            <children>
+                <Button text="Fermer" onAction="#handleClose" 
+                        style="-fx-background-color: #6c757d; -fx-text-fill: white; -fx-background-radius: 8px; -fx-padding: 8 20;"/>
+            </children>
+        </HBox>
+        
+    </children>
+    
+</VBox>

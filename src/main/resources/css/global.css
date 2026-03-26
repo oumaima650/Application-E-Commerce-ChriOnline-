@@ -1,0 +1,406 @@
+/*
+ * ═══════════════════════════════════════════════════════════════
+ *   ChriOnline — Global Stylesheet
+ *   JavaFX CSS (subset of CSS 2 with -fx- vendor extensions)
+ *
+ *   Brand Palette
+ *   ─────────────────────────────────────────────────────────────
+ *   Lemon  : #FDBF50   Accent / highlights / lemon glow
+ *   Pink   : #F4F4F8   Background panels, cards
+ *   Lilac  : #FF724C   Primary buttons, active states, sidebar
+ *   Navy   : #2A2C41   Text, headers, navbar background
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+/* ── Root defaults ────────────────────────────────────────────── */
+.root {
+    /* JavaFX doesn't support CSS custom properties natively,
+       but we define named colors via -fx- color constants      */
+    -fx-font-family: "Poppins", "Nunito", "Segoe UI", "Helvetica Neue", sans-serif;
+    -fx-background-color: #F4F4F8;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TYPOGRAPHY UTILITIES
+════════════════════════════════════════════════════════════════ */
+
+.text-navy   { -fx-text-fill: #2A2C41; }
+.text-lilac  { -fx-text-fill: #FF724C; }
+.text-lemon  { -fx-text-fill: #FDBF50; }
+.text-pink   { -fx-text-fill: #F4F4F8; }
+.text-gray   { -fx-text-fill: #8892A4; }
+.text-white  { -fx-text-fill: white; }
+.text-red    { -fx-text-fill: #E74C3C; }
+.text-green  { -fx-text-fill: #2ECC71; }
+
+.bold        { -fx-font-weight: bold; }
+.semibold    { -fx-font-weight: 600; }
+.italic      { -fx-font-style: italic; }
+
+.h1 { -fx-font-size: 32px; -fx-font-weight: bold;  -fx-text-fill: #2A2C41; }
+.h2 { -fx-font-size: 26px; -fx-font-weight: bold;  -fx-text-fill: #2A2C41; }
+.h3 { -fx-font-size: 20px; -fx-font-weight: bold;  -fx-text-fill: #2A2C41; }
+.h4 { -fx-font-size: 16px; -fx-font-weight: bold;  -fx-text-fill: #2A2C41; }
+.body { -fx-font-size: 13px; -fx-text-fill: #2A2C41; }
+.caption { -fx-font-size: 11px; -fx-text-fill: #8892A4; }
+
+/* ════════════════════════════════════════════════════════════════
+   PRIMARY BUTTON — Lilac fill, white text, rounded
+════════════════════════════════════════════════════════════════ */
+.primary-btn {
+    -fx-background-color: #FF724C;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12;
+    -fx-cursor: hand;
+    -fx-padding: 12 24 12 24;
+    -fx-effect: dropshadow(gaussian, rgba(255, 114, 76, 0.40), 12, 0, 0, 4);
+}
+
+.primary-btn:hover {
+    -fx-background-color: #e8612e;
+    -fx-effect: dropshadow(gaussian, rgba(255, 114, 76, 0.55), 18, 0, 0, 6);
+    -fx-scale-x: 1.012;
+    -fx-scale-y: 1.012;
+}
+
+.primary-btn:pressed {
+    -fx-background-color: #d45520;
+    -fx-effect: dropshadow(gaussian, rgba(255, 114, 76, 0.30), 8, 0, 0, 2);
+    -fx-scale-x: 0.982;
+    -fx-scale-y: 0.982;
+}
+
+.primary-btn:disabled {
+    -fx-background-color: #ffb099;
+    -fx-opacity: 0.75;
+    -fx-cursor: default;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SECONDARY BUTTON — outlined, lilac border
+════════════════════════════════════════════════════════════════ */
+.secondary-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #FF724C;
+    -fx-border-color: #FF724C;
+    -fx-border-width: 2;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 10 22 10 22;
+}
+
+.secondary-btn:hover {
+    -fx-background-color: rgba(255,114,76,0.10);
+    -fx-border-color: #e8612e;
+    -fx-text-fill: #e8612e;
+}
+
+.secondary-btn:pressed {
+    -fx-background-color: rgba(255,114,76,0.20);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DANGER BUTTON
+════════════════════════════════════════════════════════════════ */
+.danger-btn {
+    -fx-background-color: #E74C3C;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.danger-btn:hover { -fx-background-color: #c0392b; }
+
+/* ════════════════════════════════════════════════════════════════
+   INPUT WRAPPER — bordered container holding icon + field
+════════════════════════════════════════════════════════════════ */
+.input-wrapper {
+    -fx-background-color: white;
+    -fx-background-radius: 11;
+    -fx-border-color: #e4e4ec;
+    -fx-border-width: 1.8;
+    -fx-border-radius: 11;
+    -fx-padding: 0 14 0 14;
+}
+
+/* Focus state applied programmatically by controller */
+.input-wrapper-focused {
+    -fx-border-color: #FF724C;
+    -fx-effect: dropshadow(gaussian, rgba(255,114,76,0.28), 10, 0, 0, 2);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TEXT FIELD / PASSWORD FIELD (bare — inside input-wrapper)
+════════════════════════════════════════════════════════════════ */
+.auth-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2A2C41;
+    -fx-prompt-text-fill: #b8bdd4;
+    -fx-font-size: 13px;
+    -fx-font-family: "Poppins", "Nunito", "Segoe UI", sans-serif;
+    -fx-padding: 0 4 0 0;
+    -fx-border-width: 0;
+    -fx-background-insets: 0;
+}
+
+.auth-field:focused {
+    -fx-background-color: transparent;
+    -fx-highlight-fill: rgba(255,114,76,0.35);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LABELS
+════════════════════════════════════════════════════════════════ */
+
+.field-label {
+    -fx-text-fill: #2A2C41;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.input-icon {
+    -fx-font-size: 13px;
+    -fx-min-width: 20;
+    -fx-text-fill: #FF724C;
+}
+
+/* Error message label */
+.error-label {
+    -fx-text-fill: #E74C3C;
+    -fx-font-size: 11.5px;
+    -fx-wrap-text: true;
+    -fx-min-height: 14;
+}
+
+/* Success message label */
+.error-label-success {
+    -fx-text-fill: #27AE60;
+    -fx-font-size: 11.5px;
+    -fx-wrap-text: true;
+    -fx-font-weight: bold;
+    -fx-min-height: 14;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HYPERLINKS
+════════════════════════════════════════════════════════════════ */
+.hyperlink, Hyperlink {
+    -fx-text-fill: #FF724C;
+    -fx-font-size: 12px;
+    -fx-underline: false;
+    -fx-border-color: transparent;
+    -fx-padding: 0 2 0 2;
+    -fx-cursor: hand;
+}
+
+.hyperlink:hover, Hyperlink:hover {
+    -fx-text-fill: #e8612e;
+    -fx-underline: true;
+}
+
+.hyperlink:visited, Hyperlink:visited {
+    -fx-text-fill: #FF724C;
+}
+
+.forgot-link {
+    -fx-text-fill: #FF724C;
+    -fx-font-size: 11px;
+    -fx-underline: false;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.forgot-link:hover { -fx-underline: true; }
+
+/* ════════════════════════════════════════════════════════════════
+   DIVIDER ROW
+════════════════════════════════════════════════════════════════ */
+.divider-row {
+    -fx-alignment: CENTER;
+    -fx-padding: 2 0 2 0;
+}
+
+.divider-line {
+    -fx-background-color: #e8e8ef;
+    -fx-pref-height: 1.5;
+    -fx-max-height: 1.5;
+}
+
+.divider-text {
+    -fx-text-fill: #c0bcd4;
+    -fx-font-size: 11px;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HINT / SWITCH LINKS
+════════════════════════════════════════════════════════════════ */
+.hint-label {
+    -fx-text-fill: #8892A4;
+    -fx-font-size: 12px;
+}
+
+.switch-link {
+    -fx-text-fill: #FF724C;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-underline: false;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+}
+
+.switch-link:hover {
+    -fx-text-fill: #e8612e;
+    -fx-underline: true;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TERMS LABEL (small print)
+════════════════════════════════════════════════════════════════ */
+.terms-label {
+    -fx-text-fill: #b0b8cc;
+    -fx-font-size: 10px;
+    -fx-wrap-text: true;
+    -fx-text-alignment: CENTER;
+    -fx-alignment: CENTER;
+    -fx-padding: 4 8 0 8;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SCROLLPANE — transparent / no border
+════════════════════════════════════════════════════════════════ */
+.form-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.form-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SCROLLBAR styling
+════════════════════════════════════════════════════════════════ */
+.scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 6;
+}
+
+.scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(255,114,76,0.40);
+    -fx-background-radius: 4;
+}
+
+.scroll-bar:vertical .thumb:hover {
+    -fx-background-color: rgba(255,114,76,0.65);
+}
+
+.scroll-bar:vertical .increment-button,
+.scroll-bar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-opacity: 0;
+}
+
+.scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PASSWORD STRENGTH BAR
+════════════════════════════════════════════════════════════════ */
+.strength-seg {
+    -fx-background-color: #e8e8ef;
+    -fx-background-radius: 4;
+    -fx-pref-height: 5;
+    -fx-max-height: 5;
+}
+
+.strength-text {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: transparent;
+}
+
+.pw-hint-label {
+    -fx-text-fill: #8892A4;
+    -fx-font-size: 9.5px;
+    -fx-font-style: italic;
+    -fx-opacity: 0.8;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CARD base style (shared across screens)
+════════════════════════════════════════════════════════════════ */
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-effect: dropshadow(gaussian, rgba(42,44,65,0.10), 20, 0, 0, 6);
+}
+
+.card-pink {
+    -fx-background-color: #F4F4F8;
+    -fx-background-radius: 16;
+    -fx-effect: dropshadow(gaussian, rgba(42,44,65,0.08), 16, 0, 0, 4);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BADGE / CHIP
+════════════════════════════════════════════════════════════════ */
+.badge-lilac {
+    -fx-background-color: rgba(255,114,76,0.18);
+    -fx-text-fill: #FF724C;
+    -fx-background-radius: 20;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 10 3 10;
+}
+
+.badge-navy {
+    -fx-background-color: #2A2C41;
+    -fx-text-fill: white;
+    -fx-background-radius: 20;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 10 3 10;
+}
+
+.badge-lemon {
+    -fx-background-color: #FDBF50;
+    -fx-text-fill: #2A2C41;
+    -fx-background-radius: 20;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 10 3 10;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PRICE LABELS
+════════════════════════════════════════════════════════════════ */
+.price-main {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FF724C;
+}
+
+.price-old {
+    -fx-font-size: 13px;
+    -fx-text-fill: #b0b8cc;
+    -fx-strikethrough: true;
+}
+
+.price-sale {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #E74C3C;
+    -fx-background-color: rgba(231,76,60,0.12);
+    -fx-background-radius: 6;
+    -fx-padding: 2 6 2 6;
+}

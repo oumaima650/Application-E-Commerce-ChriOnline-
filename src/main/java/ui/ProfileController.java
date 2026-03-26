@@ -35,6 +35,10 @@ public class ProfileController {
 
     @FXML
     public void initialize() {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            return;
+        }
         loadProfileData();
         loadAddresses();
         loadCartSummary();
@@ -43,9 +47,17 @@ public class ProfileController {
     private void loadProfileData() {
         Utilisateur user = SessionManager.getInstance().getCurrentUser();
         if (user != null) {
-            lblFullName.setText(user.getPrenom() + " " + user.getNom());
+            String fullName = "";
+            if (user instanceof model.Client client) {
+                fullName = client.getPrenom() + " " + client.getNom();
+                lblPhone.setText(client.getTelephone());
+            } else if (user instanceof model.Administrateur) {
+                fullName = "Administrateur";
+                lblPhone.setText("N/A");
+            }
+            lblFullName.setText(fullName.isBlank() ? user.getEmail() : fullName);
             lblEmail.setText(user.getEmail());
-            // More info could be fetched via GET_PROFILE if needed, but we have basic info in the user object
+            // Basic since we already have these in the Session object
         }
     }
 

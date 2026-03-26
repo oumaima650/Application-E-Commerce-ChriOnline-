@@ -7,6 +7,7 @@ import service.CarteBancaireService;
 import service.CategorieService;
 import service.NotificationService;
 import service.PaiementService;
+import service.ProduitAffichableService;
 import service.ProduitService;
 import service.ProduitVarValeurService;
 import service.SKUService;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 
 public class ClientHandler implements Runnable {
 
@@ -35,6 +37,7 @@ public class ClientHandler implements Runnable {
     private final NotificationService notificationService;
     private final PaiementService paiementService;
     private final ProduitService produitService;
+    private final ProduitAffichableService produitAffichableService;
     private final service.CommandeService commandeService;
     private final VarianteService varianteService;
     private final ProduitVarValeurService pvvService;
@@ -54,6 +57,7 @@ public class ClientHandler implements Runnable {
         this.notificationService = new NotificationService();
         this.paiementService = new PaiementService();
         this.produitService = new ProduitService();
+        this.produitAffichableService = new ProduitAffichableService();
         this.commandeService = new service.CommandeService();
         this.varianteService = new VarianteService();
         this.pvvService = new ProduitVarValeurService();
@@ -112,6 +116,9 @@ public class ClientHandler implements Runnable {
 
     private Reponse dispatch(Requete requete) {
         RequestType type = requete.getType();
+        int userId = -1;
+        String userRole = "GUEST";
+        String sessionId = null;
 
         // 1. PUBLIC ENDPOINTS (No Auth)
         if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH) {
@@ -123,29 +130,44 @@ public class ClientHandler implements Runnable {
             };
         }
 
-        // 2. JWT VALIDATION for all other endpoints
-        JWTService.TokenClaims claims;
-        try {
-            String token = requete.getTokenSession();
-            if (token == null || token.isBlank()) {
+        // 2. JWT VALIDATION for secure endpoints
+        JWTService.TokenClaims claims = null;
+        boolean isPublic = isPublicEndpoint(type);
+
+        if (!isPublic) {
+            try {
+                String token = requete.getTokenSession();
+                if (token == null || token.isBlank()) {
+                    return new Reponse(false, "INVALID_TOKEN", null);
+                }
+                claims = JWTService.verifyAccessToken(token);
+            } catch (ExpiredJwtException e) {
+                return new Reponse(false, "TOKEN_EXPIRED", null);
+            } catch (Exception e) {
                 return new Reponse(false, "INVALID_TOKEN", null);
             }
-            claims = JWTService.verifyAccessToken(token);
-        } catch (ExpiredJwtException e) {
-            return new Reponse(false, "TOKEN_EXPIRED", null);
-        } catch (Exception e) {
-            return new Reponse(false, "INVALID_TOKEN", null);
         }
 
         // 3. SECURE CONTEXT SETUP
-        // Inject userId and role into parameters for downstream processing
         if (requete.getParametres() == null) {
             requete.setParametres(new java.util.HashMap<>());
+        } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
+            requete.setParametres(new java.util.HashMap<>(requete.getParametres()));
         }
-        int userId = Integer.parseInt(claims.userId());
-        requete.getParametres().put("userId", userId);
-        requete.getParametres().put("userRole", claims.role());
-        requete.getParametres().put("sessionId", claims.sessionId());
+        
+        if (claims != null) {
+            userId = Integer.parseInt(claims.userId());
+            userRole = claims.role();
+            sessionId = claims.sessionId();
+            
+            requete.getParametres().put("userId", userId);
+            requete.getParametres().put("userRole", userRole);
+            requete.getParametres().put("sessionId", sessionId);
+        } else {
+            // Guest mode
+            requete.getParametres().put("userId", -1);
+            requete.getParametres().put("userRole", "GUEST");
+        }
 
         // 4. DISPATCH
         return switch (type) {
@@ -156,7 +178,21 @@ public class ClientHandler implements Runnable {
             // PUBLIC OPERATIONS (No Auth)
             // ───────────────────────────────
             case GET_ALL_PRODUITS -> produitService.getAll(requete);
+            case GET_ALL_PRODUITS_AFFICHABLES -> {
+                System.out.println("[ClientHandler] Traitement GET_ALL_PRODUITS_AFFICHABLES...");
+                Reponse response = produitAffichableService.getAll(requete);
+                System.out.println("[ClientHandler] Réponse GET_ALL_PRODUITS_AFFICHABLES: " + (response.isSucces() ? "SUCCÈS" : "ÉCHEC"));
+                if (response.isSucces() && response.getDonnees() != null) {
+                    Object produitsObj = response.getDonnees().get("produits");
+                    if (produitsObj instanceof List) {
+                        List<?> produits = (List<?>) produitsObj;
+                        System.out.println("[ClientHandler] Nombre de produits retournés: " + produits.size());
+                    }
+                }
+                yield response;
+            }
             case GET_PRODUIT_BY_ID -> produitService.getById(requete);
+            case GET_PRODUIT_COMPLET_AVEC_VARIANTES -> produitService.getProduitCompletAvecVariantes(requete);
             case SEARCH_PRODUITS_BY_NOM -> produitService.rechercherParNom(requete);
             case COUNT_PRODUITS -> produitService.compter(requete);
 
@@ -172,15 +208,16 @@ public class ClientHandler implements Runnable {
             case GET_ALL_SKUS -> skuService.getAll(requete);
             case GET_SKU_BY_PRODUIT -> skuService.getByProduit(requete);
             case GET_SKU_BY_CODE -> skuService.getBySku(requete);
+            case GET_SKU_BY_VARIANTS -> skuService.getByVariants(requete);
+            case GET_PRODUCT_VARIANTS -> pvvService.getByProduit(requete);
             case REGISTER_UDP_PORT -> {
                 // Enregistrer le port UDP du client pour les notifications
                 Map<String, Object> params = requete.getParametres();
                 if (params != null && params.containsKey("udpPort")) {
                     int udpPort = (Integer) params.get("udpPort");
-                    int userId = AuthService.getUserIdFromToken(requete.getTokenSession());
                     String clientIp = socket.getInetAddress().getHostAddress();
                     
-                    serviceUDP.registerClient(userId, clientIp, udpPort);
+                    serviceUDP.registerClient(  userId, clientIp, udpPort);
                     yield new Reponse(true, "Port UDP enregistré avec succès", null);
                 } else {
                     yield new Reponse(false, "Port UDP manquant dans la requête", null);
@@ -230,12 +267,13 @@ public class ClientHandler implements Runnable {
                     // Admin operations
                     //case ADMIN_GET_ALL_PRODUCTS -> adminService.getAllProducts(requete);
                     case ADMIN_GET_ALL_ORDERS -> adminService.getAllOrders(requete);
-                    //case ADMIN_GET_ALL_USERS -> adminService.getAllUsers(requete);
+                    case ADMIN_GET_ALL_USERS -> adminService.getAllUsers(requete);
                     //case ADMIN_UPDATE_PRODUCT -> adminService.updateProduct(requete);
                     //case ADMIN_DELETE_PRODUCT -> adminService.deleteProduct(requete);
                     case ADMIN_UPDATE_ORDER_STATUS -> adminService.updateOrderStatus(requete);
-                    //case ADMIN_BAN_USER -> adminService.banUser(requete);
-                    //case ADMIN_UNBAN_USER -> adminService.unbanUser(requete);
+                    case ADMIN_SEARCH_ORDERS -> adminService.searchOrders(requete);
+                    case ADMIN_BAN_USER -> adminService.banUser(requete);
+                    case ADMIN_UNBAN_USER -> adminService.unbanUser(requete);
                     
 
                     // ───────────────────────────────
@@ -313,5 +351,24 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             System.err.println("[ClientHandler] Erreur lors de la fermeture : " + e.getMessage());
         }
+    }
+
+    private boolean isPublicEndpoint(RequestType type) {
+        return type == RequestType.GET_ALL_PRODUITS ||
+               type == RequestType.GET_ALL_PRODUITS_AFFICHABLES ||
+               type == RequestType.GET_PRODUIT_BY_ID ||
+               type == RequestType.GET_PRODUIT_COMPLET_AVEC_VARIANTES ||
+               type == RequestType.SEARCH_PRODUITS_BY_NOM ||
+               type == RequestType.COUNT_PRODUITS ||
+               type == RequestType.GET_ALL_CATEGORIES ||
+               type == RequestType.GET_CATEGORIE_BY_ID ||
+               type == RequestType.GET_ALL_VARIANTES ||
+               type == RequestType.GET_VARIANTES_BY_PRODUIT ||
+               type == RequestType.GET_PVV_BY_PRODUIT ||
+               type == RequestType.GET_ALL_SKUS ||
+               type == RequestType.GET_SKU_BY_PRODUIT ||
+               type == RequestType.GET_SKU_BY_CODE ||
+               type == RequestType.GET_SKU_BY_VARIANTS ||
+               type == RequestType.GET_PRODUCT_VARIANTS;
     }
 }
