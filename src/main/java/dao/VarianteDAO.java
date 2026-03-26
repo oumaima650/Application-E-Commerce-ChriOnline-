@@ -106,6 +106,25 @@ public List<Variante> getByCategorie(int idCategorie) {
     }
     return variantes;
 }
+ 
+public List<Variante> getByProduit(int idProduit) {
+    List<Variante> variantes = new ArrayList<>();
+    String query = "SELECT DISTINCT v.* FROM Variante v " +
+                   "JOIN ProduitVarValeur pvv ON v.idVariante = pvv.idVariante " +
+                   "WHERE pvv.idProduit = ?";
+    try (Connection conn = ConnexionBDD.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(query)) {
+        pstmt.setInt(1, idProduit);
+        try (ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                variantes.add(mapResultSetToVariante(rs));
+            }
+        }
+    } catch (SQLException e) {
+        throw new RuntimeException("Erreur récupération variantes par produit", e);
+    }
+    return variantes;
+}
 
     // Convertit un résultat SQL en objet Variante
     private Variante mapResultSetToVariante(ResultSet rs) throws SQLException {

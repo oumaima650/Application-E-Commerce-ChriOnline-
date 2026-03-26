@@ -16,7 +16,6 @@ public enum RequestType {
     COUNT_PRODUITS,
    
 
-    GET_CATEGORIES,
     GET_ALL_CATEGORIES,
     GET_CATEGORIE_BY_ID,
     ADD_CATEGORIE,
@@ -24,9 +23,19 @@ public enum RequestType {
     DELETE_CATEGORIE,
     ADD_VARIANTE_TO_CATEGORIE,
     REMOVE_VARIANTE_FROM_CATEGORIE,
-    GET_SKUS_BY_PRODUIT,
     GET_VARIANTES_BY_PRODUIT,
-
+ 
+    // Variantes
+    GET_ALL_VARIANTES,
+    ADD_VARIANTE,
+    UPDATE_VARIANTE,
+    DELETE_VARIANTE,
+    
+    // ProduitVarValeur management
+    ADD_PVV,
+    GET_PVV_BY_PRODUIT,
+    DELETE_PVV,
+    
     ADD_TO_CART,
     REMOVE_FROM_CART,
     GET_CART,
@@ -47,6 +56,16 @@ public enum RequestType {
     REMOVE_CARD,
     GET_NOTIFICATIONS,
     MARK_NOTIFICATION_READ,
+    
+    // SKU
+    GET_ALL_SKUS,
+    GET_SKU_BY_PRODUIT,
+    GET_SKU_BY_CODE,
+    ADD_SKU,
+    UPDATE_SKU,
+    DELETE_SKU,
+    ADD_VALUE_TO_SKU,
+    REMOVE_VALUE_FROM_SKU,
 
     // Profil client
     GET_PROFILE,
