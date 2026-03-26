@@ -3,6 +3,10 @@
 SET FOREIGN_KEY_CHECKS = 0;
 SET NAMES utf8mb4;
 
+
+-- updates :
+ALTER TABLE Adresse ADD COLUMN codePostal VARCHAR(10) NULL AFTER ville;
+
 -- ------------------------------------------------------------
 -- Table : Utilisateur (entité parente de Admin et Client)
 -- ------------------------------------------------------------

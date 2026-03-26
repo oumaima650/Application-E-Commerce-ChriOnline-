@@ -103,6 +103,21 @@ public List<SKU> getByProduit(int idProduit) {
 }
 
 
+    /**
+     * Réduit le stock d'un SKU d'une quantité donnée (sans descendre sous 0).
+     */
+    public boolean reduireStock(String sku, int quantite) {
+        String query = "UPDATE SKU SET quantite = GREATEST(quantite - ?, 0) WHERE SKU = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, quantite);
+            pstmt.setString(2, sku);
+            return pstmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de la réduction du stock du SKU : " + sku, e);
+        }
+    }
+
     // Lie une valeur de variante à un SKU
     public boolean addValeur(String sku, int idPVV) {
         String query = "INSERT INTO SKUVarValeur (SKU, idPVV) VALUES (?, ?)";

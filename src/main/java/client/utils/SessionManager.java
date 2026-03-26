@@ -13,6 +13,9 @@ public class SessionManager {
     private int userId;
     private String email;
     private String userType;
+    private String nom;
+    private String prenom;
+    private String telephone;
 
     private SessionManager() {
         // Constructeur privé pour le singleton
@@ -36,6 +39,13 @@ public class SessionManager {
         System.out.println("[SessionManager] Session ouverte pour ID: " + userId + " (" + userType + ")");
     }
 
+    /** Complète le profil après la connexion. */
+    public void setProfile(String nom, String prenom, String telephone) {
+        this.nom = nom;
+        this.prenom = prenom;
+        this.telephone = telephone;
+    }
+
     /**
      * Ferme la session en cours.
      */
@@ -56,4 +66,7 @@ public class SessionManager {
     public int getUserId() { return userId; }
     public String getEmail() { return email; }
     public String getUserType() { return userType; }
+    public String getNom() { return nom; }
+    public String getPrenom() { return prenom; }
+    public String getTelephone() { return telephone; }
 }

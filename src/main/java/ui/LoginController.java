@@ -352,7 +352,8 @@ public class LoginController implements Initializable {
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
             System.out.println("[LoginController] Navigation vers la boutique...");
-            SceneManager.switchTo("produits.fxml", "ChriOnline - Produits");
+            // SceneManager.switchTo("produits.fxml", "ChriOnline - Produits");
+            SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
         }
     }
 

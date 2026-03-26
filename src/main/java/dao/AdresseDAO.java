@@ -8,14 +8,15 @@ import java.util.List;
 public class AdresseDAO {
 
     public boolean create(Adresse adresse) {
-        String sql = "INSERT INTO Adresse (IdClient, addresseComplete, ville, createdAt) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO Adresse (IdClient, addresseComplete, ville, codePostal, createdAt) VALUES (?, ?, ?, ?, ?)";
         try (Connection con = ConnexionBDD.getConnection();
              PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             ps.setInt(1, adresse.getIdClient());
             ps.setString(2, adresse.getAddresseComplete());
             ps.setString(3, adresse.getVille());
-            ps.setTimestamp(4, adresse.getCreatedAt() != null ? Timestamp.valueOf(adresse.getCreatedAt()) : new Timestamp(System.currentTimeMillis()));
+            ps.setString(4, adresse.getCodePostal());
+            ps.setTimestamp(5, adresse.getCreatedAt() != null ? Timestamp.valueOf(adresse.getCreatedAt()) : new Timestamp(System.currentTimeMillis()));
             
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -66,12 +67,13 @@ public class AdresseDAO {
     }
 
     public boolean update(Adresse adresse) {
-        String sql = "UPDATE Adresse SET addresseComplete = ?, ville = ? WHERE idAdresse = ? AND deletedAt IS NULL";
+        String sql = "UPDATE Adresse SET addresseComplete = ?, ville = ?, codePostal = ? WHERE idAdresse = ? AND deletedAt IS NULL";
         try (Connection con = ConnexionBDD.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, adresse.getAddresseComplete());
             ps.setString(2, adresse.getVille());
-            ps.setInt(3, adresse.getIdAdresse());
+            ps.setString(3, adresse.getCodePostal());
+            ps.setInt(4, adresse.getIdAdresse());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -98,6 +100,7 @@ public class AdresseDAO {
         adresse.setIdClient(rs.getInt("IdClient"));
         adresse.setAddresseComplete(rs.getString("addresseComplete"));
         adresse.setVille(rs.getString("ville"));
+        adresse.setCodePostal(rs.getString("codePostal"));
         if (rs.getTimestamp("createdAt") != null) {
             adresse.setCreatedAt(rs.getTimestamp("createdAt").toLocalDateTime());
         }

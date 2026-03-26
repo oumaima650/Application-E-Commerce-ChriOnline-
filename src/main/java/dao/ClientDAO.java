@@ -77,4 +77,24 @@ public class ClientDAO {
         }
     }
 
+    public java.util.Map<String, String> findProfileById(int idClient) {
+        String sql = "SELECT nom, prenom, telephone FROM Client WHERE IdUtilisateur = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idClient);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    java.util.Map<String, String> profile = new java.util.HashMap<>();
+                    profile.put("nom", rs.getString("nom"));
+                    profile.put("prenom", rs.getString("prenom"));
+                    profile.put("telephone", rs.getString("telephone"));
+                    return profile;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }

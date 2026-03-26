@@ -187,7 +187,7 @@ public class CommandesController {
         alert.showAndWait();
     }
 
-    @FXML private void goBack() { SceneManager.back(); }
+    @FXML private void goBack() { SceneManager.clearCache("panier.fxml"); SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier"); }
     @FXML private void refreshOrders() { loadCommandes(); }
 
     /**

@@ -47,8 +47,9 @@ public enum RequestType {
     REMOVE_CARD,
     GET_NOTIFICATIONS,
     MARK_NOTIFICATION_READ,
-    
-   
-   
-}
 
+    // Profil client
+    GET_PROFILE,
+    GET_ADDRESSES,
+    ADD_ADDRESS,
+}
