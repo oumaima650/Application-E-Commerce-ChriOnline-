@@ -65,7 +65,11 @@ public class PanierController implements Initializable {
                     .toList();
                 
                 if (skus.isEmpty()) {
-                    // Optionnel : afficher une alerte
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                    alert.setTitle("Panier Vide");
+                    alert.setHeaderText("Action impossible");
+                    alert.setContentText("Votre panier est vide ou aucun article n'est sélectionné. Veuillez ajouter des produits pour pouvoir passer une commande.");
+                    alert.showAndWait();
                     return;
                 }
                 

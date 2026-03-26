@@ -158,7 +158,15 @@
                         </VBox>
 
                         <VBox alignment="CENTER" spacing="12" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 14;">
-                            <Label fx:id="lblOrderTotal" text="Montant : 0.00 MAD" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                            <Label text="Récapitulatif des produits :" style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #34495E;"/>
+                            <ScrollPane prefHeight="120" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: #DCDDE1; -fx-border-radius: 8;">
+                                <VBox fx:id="vboxOrderSummary" spacing="8" style="-fx-padding: 10;">
+                                    <Label text="Chargement..." style="-fx-text-fill: #95A5A6;"/>
+                                </VBox>
+                            </ScrollPane>
+                            <Region style="-fx-min-height: 1; -fx-background-color: #DCDDE1; -fx-max-height: 1;"/>
+                            <Label fx:id="lblOrderTotal" text="Montant : 0.00 MAD" style="-fx-font-size: 16; -fx-text-fill: #2C3E50;"/>
+                            <Label fx:id="lblDeliveryDate" text="Livraison prévue : --/--/----" style="-fx-font-size: 14; -fx-text-fill: #7F8C8D; -fx-font-style: italic;"/>
                         </VBox>
 
                         <Button text="Retour à l'accueil" styleClass="btn-navy" prefHeight="48" maxWidth="Infinity" onAction="#goToHome"/>

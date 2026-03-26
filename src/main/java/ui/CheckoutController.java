@@ -2,6 +2,10 @@ package ui;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
 import client.utils.SceneManager;
@@ -25,6 +29,7 @@ public class CheckoutController {
     @FXML private VBox step1Form;
     @FXML private VBox step2Form;
     @FXML private VBox step3Form;
+    @FXML private VBox vboxOrderSummary;
 
     @FXML private Circle step1Circle;
     @FXML private Circle step2Circle;
@@ -44,6 +49,7 @@ public class CheckoutController {
     @FXML private VBox cashOption;
     @FXML private Label lblOrderId;
     @FXML private Label lblOrderTotal;
+    @FXML private Label lblDeliveryDate;
     @FXML private RadioButton radioCard;
     @FXML private RadioButton radioCash;
     @FXML private VBox cardFormBox;
@@ -235,22 +241,43 @@ public class CheckoutController {
 
     @FXML
     private void goToStep2() {
+        if (txtCodePostal == null || txtVille == null || txtNouvelleAdresse == null) {
+            System.err.println("[CheckoutController] Erreur fatale : Les champs FXML ne sont pas injectés !");
+            return;
+        }
+
+        String codePostal = txtCodePostal.getText() != null ? txtCodePostal.getText().trim() : "";
+        String ville = txtVille.getText() != null ? txtVille.getText().trim() : "";
+        String newAddr = txtNouvelleAdresse.getText() != null ? txtNouvelleAdresse.getText().trim() : "";
+        boolean isNewAddress = NEW_ADDRESS_OPTION.equals(cmbAdresse.getValue());
+
+        if (isNewAddress && newAddr.isEmpty()) {
+            showAlertErreur("L'adresse complète est obligatoire.");
+            return;
+        }
+
+        if (ville.isEmpty()) {
+            showAlertErreur("La ville est obligatoire.");
+            return;
+        }
+
+        // Validation basique du code postal (exactement 5 chiffres)
+        if (!codePostal.matches("\\d{5}")) {
+            showAlertErreur("Le code postal doit contenir exactement 5 chiffres (ex: 20000).");
+            return;
+        }
+
         // If "Nouvelle adresse" — save it first
-        if (NEW_ADDRESS_OPTION.equals(cmbAdresse.getValue())) {
-            String newAddr = txtNouvelleAdresse.getText().trim();
-            String ville   = txtVille.getText().trim();
-            String codePostal = txtCodePostal.getText().trim();
-            if (!newAddr.isEmpty() && !ville.isEmpty() && !codePostal.isEmpty()) {
-                executor.submit(() -> {
-                    java.util.Map<String, Object> p = new java.util.HashMap<>();
-                    p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
-                    p.put("addresseComplete", newAddr);
-                    p.put("ville", ville);
-                    p.put("codePostal", codePostal);
-                    shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getToken());
-                    client.ClientSocket.getInstance().envoyer(req);
-                });
-            }
+        if (isNewAddress) {
+            executor.submit(() -> {
+                java.util.Map<String, Object> p = new java.util.HashMap<>();
+                p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
+                p.put("addresseComplete", newAddr);
+                p.put("ville", ville);
+                p.put("codePostal", codePostal);
+                shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getToken());
+                client.ClientSocket.getInstance().envoyer(req);
+            });
         }
 
         step1Form.setVisible(false); step1Form.setManaged(false);
@@ -285,6 +312,63 @@ public class CheckoutController {
             double total = ((Number) data.get("total")).doubleValue();
             lblOrderId.setText("#" + ref);
             lblOrderTotal.setText("Montant : " + String.format("%,.2f MAD", total));
+            
+            String dateLiv = (String) data.get("dateLivraison");
+            if (dateLiv != null) {
+                lblDeliveryDate.setText("Livraison par ChriOnline prévue le : " + dateLiv);
+            }
+
+            // Afficher le récapitulatif des produits
+            vboxOrderSummary.getChildren().clear();
+            List<Map<String, Object>> items = (List<Map<String, Object>>) data.get("items");
+            if (items != null) {
+                for (Map<String, Object> item : items) {
+                    String nom = (String) item.get("nom");
+                    int qty = (Integer) item.get("quantite");
+                    double prix = ((Number) item.get("prixUnitaire")).doubleValue();
+                    String imgPath = (String) item.get("image");
+
+                    HBox row = new HBox(12);
+                    row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                    row.setStyle("-fx-padding: 5; -fx-background-color: white; -fx-background-radius: 8;");
+
+                    // Photo ou Icone
+                    javafx.scene.Node visual;
+                    if (imgPath != null && !imgPath.isEmpty() && (imgPath.endsWith(".jpg") || imgPath.endsWith(".png"))) {
+                        try {
+                            javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(new javafx.scene.image.Image(imgPath, 40, 40, true, true));
+                            iv.setFitWidth(40); iv.setFitHeight(40);
+                            visual = iv;
+                        } catch (Exception ex) {
+                            visual = ui.utils.IconLibrary.getIcon(ui.utils.IconLibrary.PHONE, 24, "#95A5A6");
+                        }
+                    } else {
+                        // Fallback icone si pas de photo
+                        String iconPath = (imgPath != null && !imgPath.isEmpty()) ? imgPath : ui.utils.IconLibrary.PHONE;
+                        visual = ui.utils.IconLibrary.getIcon(iconPath, 24, "#95A5A6");
+                    }
+                    
+                    StackPane imgContainer = new StackPane(visual);
+                    imgContainer.setMinWidth(45); imgContainer.setAlignment(javafx.geometry.Pos.CENTER);
+
+                    VBox details = new VBox(2);
+                    Label lblNom = new Label(nom);
+                    lblNom.setStyle("-fx-font-weight: bold; -fx-text-fill: #2F3640;");
+                    Label lblQtyPrice = new Label(qty + " x " + String.format("%.2f", prix) + " MAD");
+                    lblQtyPrice.setStyle("-fx-font-size: 11; -fx-text-fill: #7F8C8D;");
+                    details.getChildren().addAll(lblNom, lblQtyPrice);
+
+                    Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
+                    Label lblTotal = new Label(String.format("%.2f MAD", qty * prix));
+                    lblTotal.setStyle("-fx-font-weight: bold; -fx-text-fill: #2C3E50;");
+
+                    row.getChildren().addAll(imgContainer, details, spacer, lblTotal);
+                    vboxOrderSummary.getChildren().add(row);
+                }
+            }
+            
+            // Forcer le rafraîchissement du panier lors du prochain accès
+            SceneManager.clearCache("panier.fxml");
         } else {
             lblOrderId.setText("Erreur");
             double baseTotal = (selectedSkus != null) ? selectedSkus.size() * 500.0 : 0.0;
@@ -330,5 +414,13 @@ public class CheckoutController {
             }
         }
         SceneManager.back();
+    }
+
+    private void showAlertErreur(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Erreur de saisie");
+        alert.setHeaderText("Validation requise");
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }
