@@ -79,6 +79,10 @@ public class AuthService {
                 return new Reponse(false, "Email déjà utilisé : " + email, null);
             }
 
+            if (ClientDAO.isTelephoneExist(telephone)) {
+                return new Reponse(false, "Numéro de téléphone déjà utilisé : " + telephone, null);
+            }
+
             ClientDAO clientDAO = new ClientDAO();
             Client client = clientDAO.create(email, motDePasse, nom, prenom, telephone);
 

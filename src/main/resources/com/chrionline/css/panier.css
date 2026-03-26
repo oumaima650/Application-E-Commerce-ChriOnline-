@@ -25,9 +25,8 @@ BLEU_NUIT       : #2A2C41
 }
 
 .nav-icon {
-    -fx-stroke: #FFFFFF;
-    -fx-stroke-width: 2;
-    -fx-fill: transparent;
+    -fx-fill: #FFFFFF;
+    -fx-stroke: none;
     -fx-stroke-linecap: round;
 }
 
@@ -80,9 +79,8 @@ BLEU_NUIT       : #2A2C41
 .cat-headphone { -fx-background-color: #FFEDD5; }
 
 .item-icon {
-    -fx-stroke: #2A2C41;
-    -fx-stroke-width: 2;
-    -fx-fill: transparent;
+    -fx-fill: #2A2C41;
+    -fx-stroke: none;
     -fx-stroke-linecap: round;
 }
 

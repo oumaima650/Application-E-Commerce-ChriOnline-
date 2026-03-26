@@ -13,7 +13,8 @@
             <Label text="ChriOnline" styleClass="nav-title"/>
             <Region HBox.hgrow="ALWAYS"/>
             <HBox spacing="16" alignment="CENTER">
-                <SVGPath content="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M21 21l-4.35-4.35" styleClass="nav-icon"/>
+                <Button text="📋 Mes Commandes" styleClass="nav-button" onAction="#goToCommandes"/>
+                <SVGPath content="M11 4a7 7 0 1 0 14 7 7 0 0 0 0-14z M21 21l-4.35-4.35" styleClass="nav-icon"/>
                 <SVGPath content="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" styleClass="nav-icon"/>
                 <SVGPath content="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" styleClass="nav-icon"/>
             </HBox>
