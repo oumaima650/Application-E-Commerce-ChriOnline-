@@ -16,17 +16,26 @@ public class ClientApp extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         primaryStage.setTitle("ChriOnline - E-Commerce");
-        primaryStage.setMinWidth(900);
-        primaryStage.setMinHeight(600);
+        primaryStage.setMinWidth(1100);
+        primaryStage.setMinHeight(750);
+        
+        // INITIALISER LE SCENE MANAGER
+        SceneManager.init(primaryStage);
 
         try {
-            // Charger directement le FXML de la homepage (version simplifiée)
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-home-simple.fxml"));
+            // Charger la homepage premium
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-home.fxml"));
             Parent root = loader.load();
             
+            // Pré-charger d'autres scènes pour la fluidité
+            SceneManager.cacheScene("main-home.fxml", root);
+            SceneManager.loadAsync("product-detail.fxml");
+            SceneManager.loadAsync("panier.fxml");
+
             // Créer la scène avec les styles
             javafx.scene.Scene scene = new javafx.scene.Scene(root);
-            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
+            scene.getStylesheets().add(cssPath);
             
             primaryStage.setTitle("ChriOnline - Boutique en ligne");
             primaryStage.setScene(scene);

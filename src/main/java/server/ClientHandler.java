@@ -134,6 +134,8 @@ public class ClientHandler implements Runnable {
             case GET_ALL_SKUS -> skuService.getAll(requete);
             case GET_SKU_BY_PRODUIT -> skuService.getByProduit(requete);
             case GET_SKU_BY_CODE -> skuService.getBySku(requete);
+            case GET_SKU_BY_VARIANTS -> skuService.getByVariants(requete);
+            case GET_PRODUCT_VARIANTS -> pvvService.getByProduit(requete);
  
             // Cart Operations
             case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART, UPDATE_QUANTITY_CART -> {

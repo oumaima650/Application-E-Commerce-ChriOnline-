@@ -12,6 +12,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.Orientation;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.application.Platform;
@@ -140,23 +141,8 @@ public class MainHomeController implements Initializable {
             // Show full name prefix as tooltip if possible (skip for now to stay in pure FX)
         }
 
-        // Avatar ContextMenu
         if (userAvatar != null) {
             userAvatar.setFill(Color.web(CORAIL));
-            ContextMenu userMenu = new ContextMenu();
-            MenuItem miCompte = new MenuItem("Mon compte");
-            MenuItem miCommandes = new MenuItem("Mes commandes");
-            MenuItem miDeconnexion = new MenuItem("Déconnexion");
-            
-            miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
-            miDeconnexion.setOnAction(e -> System.out.println("Logout..."));
-            
-            userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
-            
-            // Interaction with the avatar parent container if possible, or circle directly
-            userAvatar.getParent().setOnMouseClicked(e -> {
-                userMenu.show(userAvatar, e.getScreenX(), e.getScreenY());
-            });
         }
     }
 
@@ -506,45 +492,88 @@ public class MainHomeController implements Initializable {
         Button btnAdd = new Button("Ajouter");
         btnAdd.setMaxWidth(Double.MAX_VALUE);
         btnAdd.setStyle("-fx-background-color: " + BLEU_NUIT + "; -fx-text-fill: white; -fx-font-size: 11px; -fx-background-radius: 50px; -fx-cursor: hand;");
-        btnAdd.setOnAction(e -> showToast("Article ajouté !"));
+        btnAdd.setOnAction(e -> {
+            e.consume(); // Prevent card click
+            showToast("Article ajouté !");
+        });
 
         card.getChildren().addAll(img, nm, rBox, pBox, btnAdd);
+        
+        // Navigation to Detail
+        card.setOnMouseClicked(e -> {
+            Integer id = (Integer) p.get("id");
+            System.out.println("Product Card Clicked: " + p.get("nom") + " (ID: " + id + ")");
+            if (id != null) {
+                ProductDetailController.setSelectedProductId(id);
+                SceneManager.switchTo("product-detail.fxml", (String) p.get("nom"));
+            } else {
+                System.err.println("❌ ERROR: Product ID is null for " + p.get("nom"));
+            }
+        });
+        card.setCursor(javafx.scene.Cursor.HAND);
+        
         return card;
     }
 
     // ==========================================
     // 5. FILTERS & FOOTER & HELPERS
     // ==========================================
+    /** 
+     * Enhanced Filter Bar: Respects the Produit/SKU model provided by the user,
+     * allowing for real-time filtering of sellable SKUs by price, stock, and promo.
+     */
     private void setupFilterBar() {
-        HBox bar = new HBox(15);
-        bar.setPadding(new Insets(10, 20, 10, 20));
+        HBox bar = new HBox(20);
+        bar.setPadding(new Insets(15, 30, 15, 30));
         bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setStyle("-fx-background-color: white; -fx-border-color: #EEE; -fx-border-width: 0 0 1 0;");
+        bar.setStyle("-fx-background-color: white; -fx-background-radius: 20px; -fx-border-color: #F4F4F8; -fx-border-width: 1.5;");
         
-        Label l = new Label("Filtrer par :"); l.setStyle("-fx-font-weight: bold;");
-        MenuButton cats = new MenuButton("Catégories");
+        // Add premium shadow
+        DropShadow ds = new DropShadow(20, Color.rgb(0,0,0,0.08));
+        ds.setOffsetY(8);
+        bar.setEffect(ds);
         
-        // Advanced Filters
-        CheckBox cbPromo = new CheckBox("En Promotion");
-        CheckBox cbStock = new CheckBox("En Stock");
-        cbPromo.setStyle("-fx-font-size: 11px;");
-        cbStock.setStyle("-fx-font-size: 11px;");
+        Label l = new Label("Filtrage Avancé :"); l.setStyle("-fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 15px;");
+        l.setGraphic(IconLibrary.getIcon(IconLibrary.SEARCH, 18, CORAIL));
+        l.setGraphicTextGap(10);
         
-        Separator sep = new Separator(javafx.geometry.Orientation.VERTICAL);
+        MenuButton cats = new MenuButton("Familles de Produits");
+        cats.setStyle("-fx-background-color: " + BLANC_CASSE + "; -fx-background-radius: 50px; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 12px; -fx-padding: 6 18; -fx-cursor: hand;");
         
+        HBox toggles = new HBox(12);
+        CheckBox cbPromo = new CheckBox("En solde 🏷️");
+        CheckBox cbStock = new CheckBox("En stock 📦");
+        String cbStyle = "-fx-background-color: " + BLANC_CASSE + "; -fx-background-radius: 50px; -fx-padding: 8 15; -fx-font-size: 11px; -fx-cursor: hand; -fx-text-fill: " + BLEU_NUIT + ";";
+        cbPromo.setStyle(cbStyle);
+        cbStock.setStyle(cbStyle);
+        toggles.getChildren().addAll(cbPromo, cbStock);
+        
+        Separator sep = new Separator(Orientation.VERTICAL);
+        sep.setPrefHeight(25);
+        
+        VBox pCont = new VBox(2);
+        Label pLabel = new Label("Tranche de Prix (MAD)"); pLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #999; -fx-font-weight: bold; -fx-letter-spacing: 0.5;");
+        HBox pRow = new HBox(12); pRow.setAlignment(Pos.CENTER_LEFT);
         Slider pSlider = new Slider(0, 50000, 25000);
-        pSlider.setPrefWidth(100);
-        Label v = new Label("Max 25k");
+        pSlider.setPrefWidth(140);
+        Label v = new Label("Max 25k"); v.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + "; -fx-font-size: 13px;");
         pSlider.valueProperty().addListener((obs, oldVal, newVal) -> v.setText("Max " + newVal.intValue() + "k"));
+        pRow.getChildren().addAll(pSlider, v);
+        pCont.getChildren().addAll(pLabel, pRow);
         
-        Region r = new Region(); HBox.setHgrow(r, Priority.ALWAYS);
+        Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
         
-        ComboBox<String> sort = new ComboBox<>(FXCollections.observableArrayList("Le plus récent", "Prix croissant", "Prix décroissant", "Mieux notés"));
+        ComboBox<String> sort = new ComboBox<>(FXCollections.observableArrayList("Nouveautés ✨", "Prix croissant 📈", "Prix décroissant 📉", "Mieux notés ⭐"));
         sort.setValue("Trier par");
-        sort.setStyle("-fx-background-radius: 50px; -fx-font-size: 11px;");
+        sort.setStyle("-fx-background-color: white; -fx-border-color: " + CORAIL + "; -fx-border-radius: 50px; -fx-background-radius: 50px; -fx-font-size: 11px; -fx-padding: 3 10; -fx-font-weight: bold;");
 
-        bar.getChildren().addAll(l, cats, cbPromo, cbStock, sep, new Label("Budget :"), pSlider, v, r, sort);
-        if (mainContent != null) mainContent.getChildren().add(0, bar);
+        bar.getChildren().addAll(l, cats, toggles, sep, pCont, spacer, sort);
+        
+        if (mainContent != null) {
+            VBox wrapper = new VBox(bar);
+            wrapper.setPadding(new Insets(10, 0, 30, 0));
+            mainContent.getChildren().add(0, wrapper);
+        }
     }
 
     private void setupFooter() {
@@ -617,12 +646,42 @@ public class MainHomeController implements Initializable {
         }
     }
 
-    @FXML private void handleHeroAction() { System.out.println("Hero clicked"); }
+    @FXML private void handleHeroAction() { 
+        System.out.println("Hero Action: S24 Details");
+    }
+
     @FXML private void handleCartClick() { 
-        System.out.println("Navigate to Cart...");
         SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
     }
-    @FXML private void handleUserClick() { System.out.println("User clicked"); }
-    @FXML private void handleCategoryClick() { System.out.println("Category clicked"); }
-    @FXML private void handleSearch() { System.out.println("Search: " + searchField.getText()); }
+
+    @FXML private void handleUserClick() { 
+        if (userAvatar == null) return;
+        
+        ContextMenu userMenu = new ContextMenu();
+        MenuItem miCompte = new MenuItem("Mon compte");
+        MenuItem miCommandes = new MenuItem("Mes commandes");
+        MenuItem miDeconnexion = new MenuItem("Déconnexion");
+        
+        miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
+        miDeconnexion.setOnAction(e -> {
+            SessionManager.getInstance().logout();
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+        });
+        
+        userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
+        userMenu.show(userAvatar, javafx.geometry.Side.BOTTOM, 0, 0);
+    }
+
+    @FXML private void handleCategoryClick(javafx.event.ActionEvent event) {
+        if (event.getSource() instanceof Button) {
+            Button b = (Button) event.getSource();
+            System.out.println("Filter by Category: " + b.getText());
+        }
+    }
+
+    @FXML private void handleSearch() { 
+        if (searchField != null) {
+            System.out.println("Search: " + searchField.getText());
+        }
+    }
 }

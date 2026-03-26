@@ -62,6 +62,8 @@ public enum RequestType {
     GET_ALL_SKUS,
     GET_SKU_BY_PRODUIT,
     GET_SKU_BY_CODE,
+    GET_SKU_BY_VARIANTS,
+    GET_PRODUCT_VARIANTS,
     ADD_SKU,
     UPDATE_SKU,
     DELETE_SKU,
