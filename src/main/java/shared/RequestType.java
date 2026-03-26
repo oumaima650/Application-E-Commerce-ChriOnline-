@@ -67,7 +67,6 @@ public enum RequestType {
     DELETE_SKU,
     ADD_VALUE_TO_SKU,
     REMOVE_VALUE_FROM_SKU,
-
     
     // Admin operations
     ADMIN_GET_ALL_PRODUCTS,
@@ -77,6 +76,10 @@ public enum RequestType {
     ADMIN_DELETE_PRODUCT,
     ADMIN_UPDATE_ORDER_STATUS,
     ADMIN_BAN_USER,
-    ADMIN_UNBAN_USER
-}
+    ADMIN_UNBAN_USER,
 
+    // Profil client
+    GET_PROFILE,
+    GET_ADDRESSES,
+    ADD_ADDRESS,
+}

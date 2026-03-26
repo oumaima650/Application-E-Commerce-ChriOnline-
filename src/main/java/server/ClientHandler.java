@@ -36,6 +36,7 @@ public class ClientHandler implements Runnable {
     private final VarianteService varianteService;
     private final ProduitVarValeurService pvvService;
     private final SKUService skuService;
+    private final service.ClientService clientService;
 
     private ObjectOutputStream out;
     private ObjectInputStream  in;
@@ -54,6 +55,7 @@ public class ClientHandler implements Runnable {
         this.varianteService = new VarianteService();
         this.pvvService = new ProduitVarValeurService();
         this.skuService = new SKUService();
+        this.clientService = new service.ClientService();
     }
 
 
@@ -83,8 +85,14 @@ public class ClientHandler implements Runnable {
 
                 System.out.println("[ClientHandler] Requête reçue : " + requete.getType() + " de " + clientAddr);
 
-                Reponse reponse = dispatch(requete);
-                envoyer(reponse);
+                try {
+                    Reponse reponse = dispatch(requete);
+                    envoyer(reponse);
+                } catch (Exception e) {
+                    System.err.println("[ClientHandler] Erreur lors du dispatch : " + e.getMessage());
+                    e.printStackTrace();
+                    envoyer(new Reponse(false, "Erreur interne du serveur lors du traitement de la requête.", null));
+                }
 
                 if (requete.getType() == shared.RequestType.LOGOUT) {
                     break;
@@ -149,7 +157,11 @@ public class ClientHandler implements Runnable {
                     yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
                 }
 
-                if (requete.getParametres() == null) requete.setParametres(new java.util.HashMap<>());
+                if (requete.getParametres() == null) {
+                    requete.setParametres(new java.util.HashMap<>());
+                } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
+                    requete.setParametres(new java.util.HashMap<>(requete.getParametres()));
+                }
                 requete.getParametres().put("idClient", userId);
 
                 service.PanierService panierService = new service.PanierService();
@@ -172,7 +184,11 @@ public class ClientHandler implements Runnable {
                     yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
                 }
 
-                if (requete.getParametres() == null) requete.setParametres(new java.util.HashMap<>());
+                if (requete.getParametres() == null) {
+                    requete.setParametres(new java.util.HashMap<>());
+                } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
+                    requete.setParametres(new java.util.HashMap<>(requete.getParametres()));
+                }
                 requete.getParametres().put("idClient", userId);
                 requete.getParametres().put("idUtilisateur", userId);
 
@@ -206,6 +222,13 @@ public class ClientHandler implements Runnable {
                     case GET_ORDER -> commandeService.getCommandeByReference(requete);
                     case GET_ORDERS_FILTERED -> commandeService.getCommandesFiltrees(requete);
                     case UPDATE_ORDER_STATUS -> commandeService.updateStatutCommande(requete);
+
+                    // ───────────────────────────────
+                    // Profil client & Adresses
+                    // ───────────────────────────────
+                    case GET_PROFILE  -> clientService.getProfile(requete);
+                    case GET_ADDRESSES -> clientService.getAdresses(requete);
+                    case ADD_ADDRESS   -> clientService.addAdresse(requete);
 
 
                     

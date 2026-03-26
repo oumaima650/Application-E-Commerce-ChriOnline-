@@ -71,7 +71,9 @@ public class ClientSocket {
                 return (Reponse) in.readObject();
             }
         } catch (Exception e) {
-            System.err.println("[ClientSocket] Erreur lors de l'envoi/réception : " + e.getMessage());
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getName();
+            System.err.println("[ClientSocket] Erreur lors de l'envoi/réception : " + errorMsg);
+            e.printStackTrace();
             // Attempt to reconnect for the next request
             close();
         }
