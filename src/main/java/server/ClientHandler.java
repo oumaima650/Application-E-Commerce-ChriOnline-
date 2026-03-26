@@ -1,7 +1,7 @@
 package server;
 
 import service.AuthService;
-import server.ServiceUDP;
+import server.ServeurUDP;
 import service.AdminService;
 import service.CarteBancaireService;
 import service.CategorieService;

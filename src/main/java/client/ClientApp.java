@@ -79,7 +79,7 @@ public class ClientApp extends Application {
         registerUdpPort();
         
         // Démarrer directement sur la page d'accueil (MainHome)
-        SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
+        SceneManager.switchTo("login.fxml", "ChriOnline - Accueil");
         
         primaryStage.show();
     }

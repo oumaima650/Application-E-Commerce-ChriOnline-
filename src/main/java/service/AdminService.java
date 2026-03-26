@@ -8,7 +8,7 @@ import model.LigneCommande;
 import model.Produit;
 import model.Utilisateur;
 import model.enums.StatutCommande;
-import server.ServiceUDP;
+import server.ServeurUDP;
 import shared.Reponse;
 import shared.Requete;
 
@@ -24,10 +24,10 @@ import java.util.HashMap;
 
 public class AdminService {
     
-    private final ServiceUDP serviceUDP;
+    private final ServeurUDP serviceUDP;
     
     public AdminService() {
-        this.serviceUDP = ServiceUDP.getInstance();
+        this.serviceUDP = ServeurUDP.getInstance();
     }
 /*
     public Reponse getAllProducts(Requete requete) {
