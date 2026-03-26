@@ -19,7 +19,7 @@
     <center>
         <TabPane tabClosingPolicy="UNAVAILABLE" style="-fx-background-color: transparent;">
             
-            <!-- TAB 1 : PRODUITS -->
+            <!-- TAB 1 : PRODUITS (Commenté)
             <Tab text="📦 Produits">
                 <VBox spacing="15" style="-fx-padding: 20px;">
                     <HBox spacing="15" alignment="CENTER_LEFT">
@@ -51,6 +51,7 @@
                     </TableView>
                 </VBox>
             </Tab>
+            -->
 
             <!-- TAB 2 : COMMANDES -->
             <Tab text="🛒 Commandes">
@@ -79,7 +80,7 @@
                     <HBox spacing="15" alignment="CENTER_LEFT">
                         <TextField promptText="Rechercher un utilisateur..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
                     </HBox>
-                    <TableView fx:id="tableUtilisateurs" VBox.vgrow="ALWAYS" styleClass="table-view">
+                    <TableView fx:id="tableClients" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
                             <TableColumn text="ID" prefWidth="50">
                                 <cellValueFactory><PropertyValueFactory property="id" /></cellValueFactory>
@@ -90,10 +91,8 @@
                             <TableColumn text="Email" prefWidth="200">
                                 <cellValueFactory><PropertyValueFactory property="email" /></cellValueFactory>
                             </TableColumn>
-                            <TableColumn text="Rôle" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="role" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn fx:id="colActionsUtilisateur" text="Actions" prefWidth="150"/>
+                            <TableColumn fx:id="colStatutClient" text="Statut" prefWidth="120"/>
+                            <TableColumn fx:id="colActionsClient" text="Actions" prefWidth="150"/>
                         </columns>
                     </TableView>
                 </VBox>

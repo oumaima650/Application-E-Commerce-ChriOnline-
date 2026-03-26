@@ -39,6 +39,12 @@ public class AuthService {
 
             int userId = loginData.id();
             Utilisateur user = UtilisateurDAO.findById(userId);
+
+            // Bloquer si le client est banni
+            if (user instanceof Client && "BANNI".equals(((Client) user).getStatut())) {
+                return new Reponse(false, "Ce compte a été banni par l'administrateur.", null);
+            }
+
             String token = SessionManager.getInstance().creerSession(user);
 
             Map<String, Object> donnees = new HashMap<>();
