@@ -59,7 +59,7 @@ public class SceneManager {
         Scene scene = root.getScene();
         if (scene == null) {
             scene = new Scene(root);
-            String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
+            String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);
         }
 
@@ -98,7 +98,7 @@ public class SceneManager {
             sceneCache.put(fxmlFile, root); // Cache for next time
 
             Scene scene = new Scene(root);
-            String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
+            String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);
 
             primaryStage.setTitle(title);
@@ -128,7 +128,7 @@ public class SceneManager {
                 // PRÉ-CRÉER LA SCÈNE AVEC LES CSS POUR ÉVITER LE RECHARGEMENT
                 javafx.application.Platform.runLater(() -> {
                     Scene scene = new Scene(root);
-                    String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
+                    String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
                     scene.getStylesheets().add(cssPath);
 
                     sceneCache.put(fxmlFile, root);

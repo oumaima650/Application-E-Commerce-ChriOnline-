@@ -35,7 +35,7 @@ public class ClientApp extends Application {
 
             // Créer la scène avec les styles
             javafx.scene.Scene scene = new javafx.scene.Scene(root);
-            String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
+            String cssPath = getClass().getResource("/com/chrionline/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);
             
             primaryStage.setTitle("ChriOnline - Boutique en ligne");

@@ -6,7 +6,7 @@
 <?import javafx.geometry.Insets?>
 <?import java.lang.String?>
 
-<BorderPane stylesheets="@../css/panier.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.PanierController" style="-fx-background-color: #FFFFFF;">
+<BorderPane stylesheets="@../com/chrionline/css/panier.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.PanierController" style="-fx-background-color: #FFFFFF;">
     <top>
         <!-- Navbar Placeholder -->
         <HBox styleClass="navbar" spacing="24" alignment="CENTER_LEFT">
