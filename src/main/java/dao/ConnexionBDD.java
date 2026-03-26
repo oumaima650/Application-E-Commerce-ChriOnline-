@@ -21,8 +21,8 @@ public class ConnexionBDD {
                 throw new RuntimeException("Fichier db.properties introuvable dans le classpath !");
             }
             props.load(input);
-            URL      = props.getProperty("db.url");
-            USER     = props.getProperty("db.user");
+            URL = props.getProperty("db.url");
+            USER = props.getProperty("db.user");
             PASSWORD = props.getProperty("db.password");
         } catch (IOException e) {
             throw new RuntimeException("Erreur lors du chargement de db.properties", e);
@@ -31,13 +31,14 @@ public class ConnexionBDD {
 
     private static Connection connection = null;
 
-    private ConnexionBDD() {}
-
+    private ConnexionBDD() {
+    }
 
     public static Connection getConnection() {
         try {
             if (connection == null || connection.isClosed()) {
-                // Charger le driver explicitement (optionnel dans les versions récentes de JDBC)
+                // Charger le driver explicitement (optionnel dans les versions récentes de
+                // JDBC)
                 Class.forName("com.mysql.cj.jdbc.Driver");
 
                 connection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -53,7 +54,6 @@ public class ConnexionBDD {
         }
         return connection;
     }
-
 
     public static void closeConnection() {
         try {

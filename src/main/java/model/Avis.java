@@ -43,4 +43,8 @@ public class Avis implements Serializable {
 
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
+
+    private String nomClient;
+    public String getNomClient() { return nomClient; }
+    public void setNomClient(String nomClient) { this.nomClient = nomClient; }
 }
