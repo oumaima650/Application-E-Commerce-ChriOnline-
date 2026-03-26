@@ -60,17 +60,14 @@
                     </HBox>
                     <TableView fx:id="tableCommandes" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
-                            <TableColumn text="ID Commande" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="id" /></cellValueFactory>
+                            <TableColumn text="Référence" prefWidth="120">
+                                <cellValueFactory><PropertyValueFactory property="reference" /></cellValueFactory>
                             </TableColumn>
                             <TableColumn text="Client" prefWidth="150">
-                                <cellValueFactory><PropertyValueFactory property="client" /></cellValueFactory>
+                                <cellValueFactory><PropertyValueFactory property="idClient" /></cellValueFactory>
                             </TableColumn>
-                            <TableColumn text="Date" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="date" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Total" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="total" /></cellValueFactory>
+                            <TableColumn text="Date" prefWidth="150">
+                                <cellValueFactory><PropertyValueFactory property="createdAt" /></cellValueFactory>
                             </TableColumn>
                             <TableColumn text="Statut" prefWidth="120">
                                 <cellValueFactory><PropertyValueFactory property="statut" /></cellValueFactory>

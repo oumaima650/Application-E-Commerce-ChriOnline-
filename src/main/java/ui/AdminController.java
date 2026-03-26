@@ -6,6 +6,7 @@ import model.Commande;
 //import model.Utilisateur;
 import model.enums.StatutCommande;
 import client.utils.SceneManager;
+import client.utils.SessionManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -90,7 +91,8 @@ public class AdminController {
         // Charger les commandes
         new Thread(() -> {
             try {
-                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_ORDERS, null, "ADMIN_TOKEN");
+                String adminToken = SessionManager.getInstance().getSession().getToken();
+                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_ORDERS, null, adminToken);
                 shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
                 if (reponse.isSucces() && reponse.getDonnees() != null) {
                     // Les commandes sont dans une Map avec clé "commandes"
@@ -99,13 +101,13 @@ public class AdminController {
                     @SuppressWarnings("unchecked")
                     java.util.List<java.util.Map<String, Object>> commandesData = (java.util.List<java.util.Map<String, Object>>) dataMap.get("commandes");
 
-                    // Créer des commandes virtuelles pour l'affichage
+                    // Créer des commandes simples pour l'affichage
                     ObservableList<Commande> commandesList = FXCollections.observableArrayList();
                     for (java.util.Map<String, Object> map : commandesData) {
                         Commande cmd = new Commande();
                         cmd.setIdCommande(((Number) map.get("rawId")).intValue());
                         cmd.setReference((String) map.get("id"));
-
+                        
                         // Parser le statut
                         String statutStr = (String) map.get("statut");
                         StatutCommande statut = StatutCommande.VALIDEE;
@@ -200,10 +202,10 @@ public class AdminController {
     }
 */
     private void setupCommandeActions() {
-        colActionsCommande.setCellFactory(new Callback<>() {
+        colActionsCommande.setCellFactory(new Callback<TableColumn<Commande, Void>, TableCell<Commande, Void>>() {
             @Override
             public TableCell<Commande, Void> call(final TableColumn<Commande, Void> param) {
-                return new TableCell<>() {
+                return new TableCell<Commande, Void>() {
                     private final ComboBox<String> statusCombo = new ComboBox<>(FXCollections.observableArrayList("Validée", "Expédiée", "Livrée"));
                     
                     {
@@ -223,7 +225,8 @@ public class AdminController {
                                         params.put("orderId", item.getIdCommande());
                                         params.put("status", newVal);
                                         
-                                        Requete requete = new Requete(RequestType.ADMIN_UPDATE_ORDER_STATUS, params, "ADMIN_TOKEN");
+                                        String adminToken = SessionManager.getInstance().getSession().getToken();
+                                        Requete requete = new Requete(RequestType.ADMIN_UPDATE_ORDER_STATUS, params, adminToken);
                                         shared.Reponse reponse = client.ClientSocket.getInstance().envoyer(requete);
                                         
                                         if (reponse.isSucces()) {
@@ -306,6 +309,39 @@ public class AdminController {
             }
         });
     }
+/*
+    private void setupUtilisateurActions() {
+        colActionsUtilisateur.setCellFactory(new Callback<>() {
+            @Override
+            public TableCell<Utilisateur, Void> call(final TableColumn<Utilisateur, Void> param) {
+                return new TableCell<>() {
+                    private final Button btnToggle = new Button("Bannir");
+
+                    {
+                        btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
+                        btnToggle.setOnAction(event -> {
+                            Utilisateur item = getTableView().getItems().get(getIndex());
+                            if(btnToggle.getText().equals("Bannir")) {
+                                btnToggle.setText("Débannir");
+                                btnToggle.setStyle("-fx-background-color: gray; -fx-text-fill: white; -fx-background-radius: 10;");
+                                System.out.println("Utilisateur " + item.getId() + " banni.");
+                            } else {
+                                btnToggle.setText("Bannir");
+                                btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
+                                System.out.println("Utilisateur " + item.getId() + " ré-autorisé.");
+                            }
+                        });
+                    }
+
+                    @Override
+                    protected void updateItem(Void item, boolean empty) {
+                        super.updateItem(item, empty);
+                        setGraphic(empty ? null : btnToggle);
+                    }
+                };
+            }
+        });
+    }
 
     private void openEditModal(Produit item) {
         try {
@@ -345,19 +381,9 @@ public class AdminController {
             case VALIDEE: return "Validée";
             case EXPEDIEE: return "Expédiée";
             case LIVREE: return "Livrée";
+            case EN_ATTENTE: return "En attente";
             default: return statut.name();
         }
     }
-  /*  
-    /**
-     * Crée un bouton avec icône SVG
-     
-    private Button createIconButton(String iconConstant, double size, String color) {
-        SVGPath icon = IconLibrary.getIcon(iconConstant, size, color);
-        Button button = new Button();
-        button.setGraphic(icon);
-        return button;
-    }
-*/
 }
 
