@@ -81,7 +81,7 @@ public class PanierController implements Initializable {
         Task<Reponse> fetchTask = new Task<>() {
             @Override
             protected Reponse call() throws Exception {
-                Requete req = new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getToken());
+                Requete req = new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getAccessToken());
                 return ClientSocket.getInstance().envoyer(req);
             }
 
@@ -165,7 +165,7 @@ public class PanierController implements Initializable {
             p.put("sku", sku);
             p.put("quantite", nextQty);
             
-            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p, SessionManager.getInstance().getSession().getToken());
+            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p, SessionManager.getInstance().getSession().getAccessToken());
 
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {
@@ -212,7 +212,7 @@ public class PanierController implements Initializable {
             Map<String, Object> p = new HashMap<>();
             p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
             p.put("sku", sku);
-            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p, SessionManager.getInstance().getSession().getToken());
+            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p, SessionManager.getInstance().getSession().getAccessToken());
 
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {
@@ -284,6 +284,11 @@ public class PanierController implements Initializable {
         SceneManager.switchTo("commandes.fxml", "ChriOnline - Mes Commandes");
     }
     
+    @FXML
+    private void goToProfile() {
+        SceneManager.switchTo("profile.fxml", "ChriOnline - Mon Profil");
+    }
+
     @FXML
     private void goToHome() {
         SceneManager.switchTo("produits.fxml", "ChriOnline - Catalogue");

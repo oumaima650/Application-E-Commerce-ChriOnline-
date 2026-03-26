@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.shape.SVGPath?>
+<?import javafx.scene.text.Text?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.ProfileController" stylesheets="@../css/profile.css" styleClass="root">
+    
+    <!-- NAVBAR (TOP) -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20" styleClass="navbar">
+            <Button styleClass="nav-button" onAction="#goBack">
+                <graphic>
+                    <SVGPath content="M15 19l-7-7 7-7" fill="WHITE" stroke="WHITE" strokeWidth="2"/>
+                </graphic>
+            </Button>
+            <Label text="Mon Profil" styleClass="nav-title"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button styleClass="nav-button" onAction="#goToCart">
+                <graphic>
+                    <SVGPath content="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" fill="WHITE" stroke="WHITE" strokeWidth="2"/>
+                </graphic>
+            </Button>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: white;">
+            <VBox alignment="TOP_CENTER" spacing="28">
+                <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
+
+                <!-- HEADER / USER CARD -->
+                <VBox alignment="CENTER" spacing="12" styleClass="user-header-card">
+                    <StackPane>
+                        <Circle radius="45" fill="#fce7f3" stroke="#f472b6" strokeWidth="2"/>
+                        <Label fx:id="lblInitials" text="JD" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #db2777;"/>
+                    </StackPane>
+                    <VBox alignment="CENTER" spacing="4">
+                        <Label fx:id="lblFullName" text="Loading..." styleClass="user-name"/>
+                        <Label fx:id="lblEmail" text="Loading..." styleClass="user-email"/>
+                    </VBox>
+                </VBox>
+
+                <GridPane hgap="24" vgap="24" maxWidth="800">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="50"/>
+                        <ColumnConstraints percentWidth="50"/>
+                    </columnConstraints>
+
+                    <!-- PERSONAL INFO -->
+                    <VBox spacing="16" styleClass="profile-section" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <SVGPath content="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" styleClass="section-icon"/>
+                            <Label text="Informations Personnelles" styleClass="section-title"/>
+                        </HBox>
+                        <VBox spacing="10">
+                            <HBox spacing="10">
+                                <Label text="Téléphone:" styleClass="info-label"/>
+                                <Label fx:id="lblPhone" text="+212 6..." styleClass="info-value"/>
+                            </HBox>
+                            <HBox spacing="10">
+                                <Label text="Status:" styleClass="info-label"/>
+                                <Label text="Client Vérifié" styleClass="status-pill"/>
+                            </HBox>
+                        </VBox>
+                    </VBox>
+
+                    <!-- CART SUMMARY -->
+                    <VBox spacing="16" styleClass="profile-section" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <SVGPath content="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17" styleClass="section-icon"/>
+                            <Label text="Panier Actuel" styleClass="section-title"/>
+                        </HBox>
+                        <VBox alignment="CENTER" spacing="12" VBox.vgrow="ALWAYS">
+                            <Label fx:id="lblCartItemCount" text="0 articles" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
+                            <Button text="Voir le panier" styleClass="btn-secondary" onAction="#goToCart"/>
+                        </VBox>
+                    </VBox>
+
+                    <!-- ADDRESSES MANAGEMENT -->
+                    <VBox spacing="16" styleClass="profile-section" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2">
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <SVGPath content="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" styleClass="section-icon"/>
+                            <Label text="Mes Adresses de Livraison" styleClass="section-title"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button text="+ Ajouter" styleClass="btn-add" onAction="#handleAddAddress"/>
+                        </HBox>
+                        <VBox fx:id="addressesContainer" spacing="10" minHeight="60">
+                            <!-- Injected by Controller -->
+                            <Label text="Chargement des adresses..." style="-fx-text-fill: #94a3b8;"/>
+                        </VBox>
+                    </VBox>
+                </GridPane>
+
+                <!-- DANGER ZONE / ACTIONS -->
+                <VBox spacing="16" styleClass="profile-section" style="-fx-border-color: #fee2e2; -fx-background-color: #fffefb;" maxWidth="800">
+                    <Label text="Sécurité et Session" styleClass="section-title" style="-fx-text-fill: #991b1b;"/>
+                    <HBox spacing="16" alignment="CENTER">
+                        <Button text="Se Déconnecter" styleClass="btn-logout" onAction="#handleLogout"/>
+                        <Button text="Déconnecter tous les appareils" styleClass="btn-logout-all" onAction="#handleLogoutAll"/>
+                    </HBox>
+                    <Label text="Note : La déconnexion globale invalidera toutes vos sessions sur tous vos navigateurs et applications mobiles." 
+                           wrapText="true" style="-fx-font-size: 11px; -fx-text-fill: #94a3b8;" textAlignment="CENTER"/>
+                </VBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+</BorderPane>

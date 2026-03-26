@@ -72,7 +72,7 @@ public class CommandesController {
             // Envoyer la requête au serveur avec l'ID de session réel
             Requete req = new Requete(RequestType.GET_ORDERS, 
                 Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), 
-                SessionManager.getInstance().getSession().getToken());
+                SessionManager.getInstance().getSession().getAccessToken());
 
             Reponse rep = ClientSocket.getInstance().envoyer(req);
             
@@ -189,6 +189,7 @@ public class CommandesController {
 
     @FXML private void goBack() { SceneManager.clearCache("panier.fxml"); SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier"); }
     @FXML private void refreshOrders() { loadCommandes(); }
+    @FXML private void goToProfile() { SceneManager.switchTo("profile.fxml", "ChriOnline - Mon Profil"); }
 
     /**
      * Classe interne pour l'affichage uniquement : Simplifie le binding TableView

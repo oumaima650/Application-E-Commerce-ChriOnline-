@@ -87,7 +87,7 @@ public class CheckoutController {
                         shared.Requete req = new shared.Requete(
                             shared.RequestType.GET_PROFILE,
                             Map.of("idClient", sm.getCurrentUser().getIdUtilisateur()),
-                            sm.getSession().getToken()
+                            sm.getSession().getAccessToken()
                         );
                         shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                         if (rep.isSucces() && rep.getDonnees() != null) {
@@ -125,7 +125,7 @@ public class CheckoutController {
                 shared.Requete req = new shared.Requete(
                     shared.RequestType.GET_ADDRESSES,
                     Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
-                    SessionManager.getInstance().getSession().getToken()
+                    SessionManager.getInstance().getSession().getAccessToken()
                 );
                 shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                 if (rep.isSucces() && rep.getDonnees() != null) {
@@ -247,7 +247,7 @@ public class CheckoutController {
                     p.put("addresseComplete", newAddr);
                     p.put("ville", ville);
                     p.put("codePostal", codePostal);
-                    shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getToken());
+                    shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getAccessToken());
                     client.ClientSocket.getInstance().envoyer(req);
                 });
             }
@@ -276,7 +276,7 @@ public class CheckoutController {
         params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
         params.put("statut", "VALIDEE");
 
-        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getToken());
+        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
         shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
 
         if (rep.isSucces() && rep.getDonnees() != null) {
@@ -321,7 +321,7 @@ public class CheckoutController {
                 params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
                 params.put("statut", "EN_ATTENTE");
 
-                shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getToken());
+                shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
                 client.ClientSocket.getInstance().envoyer(req);
 
                 SceneManager.clearCache("panier.fxml");

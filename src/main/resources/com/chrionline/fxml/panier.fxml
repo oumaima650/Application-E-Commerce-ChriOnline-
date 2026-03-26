@@ -16,7 +16,11 @@
                 <Button text="📋 Mes Commandes" styleClass="nav-button" onAction="#goToCommandes"/>
                 <SVGPath content="M 11 4 a 7 7 0 1 0 14 7 a 7 7 0 0 0 0 -14 z M 21 21 l -4.35 -4.35" styleClass="nav-icon"/>
                 <SVGPath content="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" styleClass="nav-icon"/>
-                <SVGPath content="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" styleClass="nav-icon"/>
+                <Button styleClass="nav-button" onAction="#goToProfile">
+                    <graphic>
+                        <SVGPath content="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" styleClass="nav-icon" fill="WHITE" stroke="WHITE" strokeWidth="2"/>
+                    </graphic>
+                </Button>
             </HBox>
         </HBox>
     </top>
