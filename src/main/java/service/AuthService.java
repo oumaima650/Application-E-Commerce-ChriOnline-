@@ -27,14 +27,17 @@ public class AuthService {
             String email      = (String) params.get("email");
             String motDePasse = (String) params.get("motDePasse");
 
-            int userId = UtilisateurDAO.verifyLogInInformations(email, motDePasse);
+            UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
 
-            if (userId == -1) {
+            if (loginData == null) {
                 return new Reponse(false, "Aucun compte trouvé avec cet email.", null);
-            } else if (userId == 0) {
+            }
+
+            if (!PasswordService.verify(motDePasse, loginData.hash())) {
                 return new Reponse(false, "Mot de passe incorrect.", null);
             }
 
+            int userId = loginData.id();
             Utilisateur user = UtilisateurDAO.findById(userId);
             String token = SessionManager.getInstance().creerSession(user);
 
@@ -71,6 +74,12 @@ public class AuthService {
             String prenom     = (String) params.get("prenom");
             String telephone  = (String) params.get("telephone");
 
+            // Password strength validation
+            PasswordService.ValidationResult strength = PasswordService.validateStrength(motDePasse);
+            if (!strength.isValid()) {
+                return new Reponse(false, strength.message(), null);
+            }
+
             if (UtilisateurDAO.userExist(email)) {
                 return new Reponse(false, "Email déjà utilisé : " + email, null);
             }
@@ -79,8 +88,10 @@ public class AuthService {
                 return new Reponse(false, "Numéro de téléphone déjà utilisé : " + telephone, null);
             }
 
+            // Hash password before saving
+            String hashedPw = PasswordService.hash(motDePasse);
             ClientDAO clientDAO = new ClientDAO();
-            Client client = clientDAO.create(email, motDePasse, nom, prenom, telephone);
+            Client client = clientDAO.create(email, hashedPw, nom, prenom, telephone);
 
             Map<String, Object> donnees = new HashMap<>();
             donnees.put("utilisateur", client);
