@@ -332,24 +332,37 @@ public class CheckoutController {
                     row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
                     row.setStyle("-fx-padding: 5; -fx-background-color: white; -fx-background-radius: 8;");
 
-                    // Photo ou Icone
+                    // Photo ou Icone (Support Cloudinary)
                     javafx.scene.Node visual;
-                    if (imgPath != null && !imgPath.isEmpty() && (imgPath.endsWith(".jpg") || imgPath.endsWith(".png"))) {
+                    if (imgPath != null && !imgPath.isEmpty() && (imgPath.startsWith("http") || imgPath.startsWith("https"))) {
                         try {
-                            javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(new javafx.scene.image.Image(imgPath, 40, 40, true, true));
-                            iv.setFitWidth(40); iv.setFitHeight(40);
+                            javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(new javafx.scene.image.Image(imgPath, true));
+                            iv.setFitWidth(45); 
+                            iv.setFitHeight(45);
+                            iv.setPreserveRatio(true);
+                            
+                            // Rounded corners
+                            javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(45, 45);
+                            clip.setArcWidth(10);
+                            clip.setArcHeight(10);
+                            iv.setClip(clip);
+                            
                             visual = iv;
                         } catch (Exception ex) {
                             visual = ui.utils.IconLibrary.getIcon(ui.utils.IconLibrary.PHONE, 24, "#95A5A6");
                         }
                     } else {
-                        // Fallback icone si pas de photo
-                        String iconPath = (imgPath != null && !imgPath.isEmpty()) ? imgPath : ui.utils.IconLibrary.PHONE;
+                        // Fallback icone si pas de photo ou pas une URL
+                        String iconPath = (imgPath == null || imgPath.isEmpty() || imgPath.endsWith(".jpg") || imgPath.endsWith(".png")) 
+                                          ? ui.utils.IconLibrary.PHONE : imgPath;
                         visual = ui.utils.IconLibrary.getIcon(iconPath, 24, "#95A5A6");
                     }
                     
                     StackPane imgContainer = new StackPane(visual);
-                    imgContainer.setMinWidth(45); imgContainer.setAlignment(javafx.geometry.Pos.CENTER);
+                    imgContainer.setMinWidth(50); 
+                    imgContainer.setPrefSize(50, 50);
+                    imgContainer.setAlignment(javafx.geometry.Pos.CENTER);
+                    imgContainer.setStyle("-fx-background-color: #F8F9FA; -fx-background-radius: 8;");
 
                     VBox details = new VBox(2);
                     Label lblNom = new Label(nom);
@@ -378,7 +391,7 @@ public class CheckoutController {
 
     @FXML
     private void goToHome() {
-        SceneManager.switchTo("produits.fxml", "ChriOnline - Catalogue");
+        SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
     }
 
     @FXML
