@@ -6,6 +6,8 @@ import service.CategorieService;
 import service.NotificationService;
 import service.PaiementService;
 import service.ProduitService;
+import service.ProduitVarValeurService;
+import service.VarianteService;
 import shared.Reponse;
 import shared.Requete;
 
@@ -24,6 +26,8 @@ public class ClientHandler implements Runnable {
     private final PaiementService paiementService;
     private final ProduitService produitService;
     private final service.CommandeService commandeService;
+    private final VarianteService varianteService;
+    private final ProduitVarValeurService pvvService;
 
     private ObjectOutputStream out;
     private ObjectInputStream  in;
@@ -37,6 +41,8 @@ public class ClientHandler implements Runnable {
         this.paiementService = new PaiementService();
         this.produitService = new ProduitService();
         this.commandeService = new service.CommandeService();
+        this.varianteService = new VarianteService();
+        this.pvvService = new ProduitVarValeurService();
     }
 
 
@@ -98,7 +104,12 @@ public class ClientHandler implements Runnable {
 
             case GET_ALL_CATEGORIES -> categorieService.getAll(requete);
             case GET_CATEGORIE_BY_ID -> categorieService.getById(requete);
-
+ 
+            // Variantes (Public)
+            case GET_ALL_VARIANTES -> varianteService.getAll(requete);
+            case GET_VARIANTES_BY_PRODUIT -> varianteService.getByProduit(requete);
+            case GET_PVV_BY_PRODUIT -> pvvService.getByProduit(requete);
+ 
             // Cart Operations
             case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART, UPDATE_QUANTITY_CART -> {
                 String token = requete.getTokenSession();
@@ -161,10 +172,6 @@ public class ClientHandler implements Runnable {
                     // ───────────────────────────────
                     // PRODUIT
                     // ───────────────────────────────
-                    case GET_ALL_PRODUITS -> produitService.getAll(requete);
-                    case GET_PRODUIT_BY_ID -> produitService.getById(requete);
-                    case SEARCH_PRODUITS_BY_NOM -> produitService.rechercherParNom(requete);
-                    case COUNT_PRODUITS -> produitService.compter(requete);
                     case ADD_PRODUIT -> produitService.creer(requete);
                     case UPDATE_PRODUIT -> produitService.modifier(requete);
                     case DELETE_PRODUIT -> produitService.supprimer(requete);
@@ -175,6 +182,15 @@ public class ClientHandler implements Runnable {
                     case DELETE_CATEGORIE -> categorieService.supprimer(requete);
                     case ADD_VARIANTE_TO_CATEGORIE -> categorieService.ajouterVariante(requete);
                     case REMOVE_VARIANTE_FROM_CATEGORIE -> categorieService.retirerVariante(requete);
+ 
+                    // Variantes CRUD
+                    case ADD_VARIANTE -> varianteService.creer(requete);
+                    case UPDATE_VARIANTE -> varianteService.modifier(requete);
+                    case DELETE_VARIANTE -> varianteService.supprimer(requete);
+ 
+                    // PVV (ProduitVarValeur) management
+                    case ADD_PVV -> pvvService.creer(requete);
+                    case DELETE_PVV -> pvvService.supprimer(requete);
 
                     default -> new Reponse(false, "Fonctionnalité '" + requete.getType() + "' non encore implémentée.", null);
                 };
