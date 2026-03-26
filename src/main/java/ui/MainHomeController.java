@@ -134,7 +134,7 @@ public class MainHomeController implements Initializable {
         updateBadges();
 
         // User Avatar and Name from Session
-        String email = SessionManager.getInstance().getEmail();
+        String email = SessionManager.getInstance().getCurrentUser() != null ? SessionManager.getInstance().getCurrentUser().getEmail() : null;
         if (email != null && !email.isEmpty()) {
             String name = email.split("@")[0].toUpperCase();
             if (userInitial != null) userInitial.setText(name.substring(0, 1));
@@ -183,7 +183,8 @@ public class MainHomeController implements Initializable {
         // GET_CART
         Task<Reponse> cartTask = new Task<>() {
             @Override protected Reponse call() {
-                return sendToServer(new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getUserId()), SessionManager.getInstance().getToken()));
+                if (!SessionManager.getInstance().isAuthenticated()) return null;
+                return sendToServer(new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getToken()));
             }
         };
         cartTask.setOnSucceeded(e -> {
@@ -205,7 +206,8 @@ public class MainHomeController implements Initializable {
         // GET_NOTIFICATIONS (Badge on icons if relevant)
         Task<Reponse> notifTask = new Task<>() {
             @Override protected Reponse call() {
-                return sendToServer(new Requete(RequestType.GET_NOTIFICATIONS, Map.of("idUtilisateur", SessionManager.getInstance().getUserId()), SessionManager.getInstance().getToken()));
+                if (!SessionManager.getInstance().isAuthenticated()) return null;
+                return sendToServer(new Requete(RequestType.GET_NOTIFICATIONS, Map.of("idUtilisateur", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getToken()));
             }
         };
         notifTask.setOnSucceeded(e -> {
@@ -305,7 +307,8 @@ public class MainHomeController implements Initializable {
     private void loadCategories() {
         Task<Reponse> catTask = new Task<>() {
             @Override protected Reponse call() {
-                return sendToServer(new Requete(RequestType.GET_ALL_CATEGORIES, new HashMap<>(), SessionManager.getInstance().getToken()));
+                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getToken() : "";
+                return sendToServer(new Requete(RequestType.GET_ALL_CATEGORIES, new HashMap<>(), token));
             }
         };
         catTask.setOnSucceeded(e -> {
@@ -374,7 +377,8 @@ public class MainHomeController implements Initializable {
     private void loadProducts() {
         Task<Reponse> pTask = new Task<>() {
             @Override protected Reponse call() {
-                return sendToServer(new Requete(RequestType.GET_ALL_PRODUITS_AFFICHABLES, new HashMap<>(), SessionManager.getInstance().getToken()));
+                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getToken() : "";
+                return sendToServer(new Requete(RequestType.GET_ALL_PRODUITS_AFFICHABLES, new HashMap<>(), token));
             }
         };
         pTask.setOnSucceeded(e -> {
@@ -664,7 +668,7 @@ public class MainHomeController implements Initializable {
         
         miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
         miDeconnexion.setOnAction(e -> {
-            SessionManager.getInstance().logout();
+            SessionManager.getInstance().fermer();
             SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
         });
         

@@ -13,7 +13,7 @@
     xmlns:fx="http://javafx.com/fxml/1"
     fx:controller="ui.LoginController"
     styleClass="login-root"
-    stylesheets="@../css/global.css,@../css/login.css"
+    stylesheets="@../css/styles.css"
     prefWidth="480" prefHeight="640"
     minWidth="420" minHeight="560">
 

@@ -66,7 +66,8 @@ public class ProductDetailController implements Initializable {
     private void loadProductDetails() {
         Task<Reponse> task = new Task<>() {
             @Override protected Reponse call() {
-                return sendRequest(new Requete(RequestType.GET_PRODUIT_BY_ID, Map.of("id", selectedProductId), SessionManager.getInstance().getToken()));
+                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getToken() : "";
+                return sendRequest(new Requete(RequestType.GET_PRODUIT_BY_ID, Map.of("id", selectedProductId), token));
             }
         };
         task.setOnSucceeded(e -> {
@@ -101,7 +102,8 @@ public class ProductDetailController implements Initializable {
     private void loadVariants() {
         Task<Reponse> task = new Task<>() {
             @Override protected Reponse call() {
-                return sendRequest(new Requete(RequestType.GET_PRODUCT_VARIANTS, Map.of("idProduit", selectedProductId), SessionManager.getInstance().getToken()));
+                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getToken() : "";
+                return sendRequest(new Requete(RequestType.GET_PRODUCT_VARIANTS, Map.of("idProduit", selectedProductId), token));
             }
         };
         task.setOnSucceeded(e -> {
@@ -160,9 +162,10 @@ public class ProductDetailController implements Initializable {
 
         Task<Reponse> task = new Task<>() {
             @Override protected Reponse call() {
+                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getToken() : "";
                 return sendRequest(new Requete(RequestType.GET_SKU_BY_VARIANTS, 
                     Map.of("idProduit", selectedProductId, "pvvIds", new ArrayList<>(selectedPVVs.values())), 
-                    SessionManager.getInstance().getToken()));
+                    token));
             }
         };
         task.setOnSucceeded(e -> {
@@ -205,9 +208,10 @@ public class ProductDetailController implements Initializable {
         
         Task<Reponse> task = new Task<>() {
             @Override protected Reponse call() {
+                if (!SessionManager.getInstance().isAuthenticated()) return null;
                 return sendRequest(new Requete(RequestType.ADD_TO_CART, 
-                    Map.of("idClient", SessionManager.getInstance().getUserId(), "sku", currentSelectedSku, "quantite", quantity), 
-                    SessionManager.getInstance().getToken()));
+                    Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur(), "sku", currentSelectedSku, "quantite", quantity), 
+                    SessionManager.getInstance().getSession().getToken()));
             }
         };
         task.setOnSucceeded(e -> {
@@ -222,7 +226,8 @@ public class ProductDetailController implements Initializable {
     private void updateCartBadge() {
         Task<Reponse> task = new Task<>() {
             @Override protected Reponse call() {
-                return sendRequest(new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getUserId()), SessionManager.getInstance().getToken()));
+                if (!SessionManager.getInstance().isAuthenticated()) return null;
+                return sendRequest(new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getToken()));
             }
         };
         task.setOnSucceeded(e -> {

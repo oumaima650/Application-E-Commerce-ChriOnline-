@@ -78,8 +78,8 @@ public class ClientApp extends Application {
         // Dans un vrai cas, ce serait fait après un login réussi
         registerUdpPort();
         
-        // Démarrer sur la page Admin pour visualiser l'interface demandée
-        SceneManager.switchTo("login.fxml", "ChriOnline Admin");
+        // Démarrer directement sur la page d'accueil (MainHome)
+        SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
         
         primaryStage.show();
     }
