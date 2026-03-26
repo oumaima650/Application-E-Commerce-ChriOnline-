@@ -135,6 +135,7 @@ public class ClientHandler implements Runnable {
                 yield response;
             }
             case GET_PRODUIT_BY_ID -> produitService.getById(requete);
+            case GET_PRODUIT_COMPLET_AVEC_VARIANTES -> produitService.getProduitCompletAvecVariantes(requete);
             case SEARCH_PRODUITS_BY_NOM -> produitService.rechercherParNom(requete);
             case COUNT_PRODUITS -> produitService.compter(requete);
 

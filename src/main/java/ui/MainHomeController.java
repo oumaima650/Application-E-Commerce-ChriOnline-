@@ -8,6 +8,8 @@ import javafx.scene.shape.SVGPath;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.geometry.Insets;
@@ -72,6 +74,7 @@ public class MainHomeController implements Initializable {
     @FXML private Label heroTitle;
     @FXML private Label heroSubtitle;
     @FXML private Button heroButton;
+    @FXML private ImageView heroBannerImage;
 
     // Section Components (Dynamic)
     @FXML private FlowPane productGrid;
@@ -97,9 +100,14 @@ public class MainHomeController implements Initializable {
 
     // Data State
     private ObservableList<Map<String, Object>> productsList = FXCollections.observableArrayList();
+    // Banner image URLs (populated after products load)
+    private final List<String> bannerImageUrls = new ArrayList<>();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+      
+     
+        
         setupNavbar();
         setupFilterBar();
         setupSidebar();
@@ -113,7 +121,8 @@ public class MainHomeController implements Initializable {
             mainScrollPane.setFitToHeight(true);
         }
     }
-
+    
+   
     // ==========================================
     // 1. NAVBAR IMPLEMENTATION
     // ==========================================
@@ -263,6 +272,26 @@ public class MainHomeController implements Initializable {
     private void showBanner(int index) {
         currentBannerIndex = index;
         Map<String, String> data = bannersData.get(index);
+
+        // Load Cloudinary image asynchronously if available
+        if (heroBannerImage != null) {
+            String url = bannerImageUrls.size() > index ? bannerImageUrls.get(index) : null;
+            if (url != null && !url.isBlank()) {
+                // Load in background thread to avoid blocking UI
+                new Thread(() -> {
+                    try {
+                        Image img = new Image(url, 200, 200, true, true, true);
+                        Platform.runLater(() -> {
+                            if (!img.isError()) heroBannerImage.setImage(img);
+                        });
+                    } catch (Exception e) {
+                        System.err.println("[Hero] Image load error: " + e.getMessage());
+                    }
+                }).start();
+            } else {
+                heroBannerImage.setImage(null);
+            }
+        }
         
         if (heroBadge != null) heroBadge.setText(data.get("badge"));
         if (heroTitle != null) heroTitle.setText(data.get("title"));
@@ -314,17 +343,22 @@ public class MainHomeController implements Initializable {
         catTask.setOnSucceeded(e -> {
             Reponse rep = catTask.getValue();
             if (rep != null && rep.isSucces()) {
-                List<Map<String, Object>> categories = (List<Map<String, Object>>) rep.getDonnees().get("categories");
-                Platform.runLater(() -> setupCategories(categories));
+                try {
+                    @SuppressWarnings("unchecked")
+                    List<model.Categorie> categories = (List<model.Categorie>) rep.getDonnees().get("categories");
+                    Platform.runLater(() -> setupCategories(categories));
+                } catch (Exception ex) {
+                    System.err.println("Failed to cast categories: " + ex.getMessage());
+                }
             } else {
-                Platform.runLater(() -> System.err.println("Failed to load categories"));
+                Platform.runLater(() -> System.err.println("Failed to load categories: " + (rep != null ? rep.getMessage() : "null response")));
             }
         });
         new Thread(catTask).start();
     }
 
-    private void setupCategories(List<Map<String, Object>> categories) {
-        if (mainContent == null) return;
+    private void setupCategories(List<model.Categorie> categories) {
+        if (mainContent == null || categories == null || categories.isEmpty()) return;
         
         Label h = new Label("Explorer les Catégories");
         h.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + ";");
@@ -334,15 +368,19 @@ public class MainHomeController implements Initializable {
         String[] gradients = {"#FF724C", "#FDBF50", "#2A2C41", "#3b82f6", "#10b981"};
 
         for (int i = 0; i < categories.size(); i++) {
-            Map<String, Object> c = categories.get(i);
-            String name = (String) c.get("nom");
+            model.Categorie c = categories.get(i);
+            String name = c.getNom();
             String color = gradients[i % gradients.length];
-            grid.getChildren().add(createCategoryCard(name, (Integer) c.get("nombreProduits"), color));
+            grid.getChildren().add(createCategoryCard(name, null, color));
         }
 
         // Insert after Hero Banner
         int bannerIdx = mainContent.getChildren().indexOf(heroBanner);
-        mainContent.getChildren().add(bannerIdx + 1, new VBox(10, h, grid));
+        if (bannerIdx >= 0) {
+            mainContent.getChildren().add(bannerIdx + 1, new VBox(10, h, grid));
+        } else {
+            mainContent.getChildren().add(0, new VBox(10, h, grid));
+        }
     }
 
     private VBox createCategoryCard(String name, Integer count, String color) {
@@ -360,7 +398,8 @@ public class MainHomeController implements Initializable {
 
         Label em = new Label(emoji); em.setStyle("-fx-font-size: 35px;");
         Label nm = new Label(name); nm.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;");
-        Label ct = new Label(count + " Produits"); ct.setStyle("-fx-text-fill: rgba(255,255,255,0.7); -fx-font-size: 10px;");
+        Label ct = new Label(count != null ? count + " Produits" : ""); 
+        ct.setStyle("-fx-text-fill: rgba(255,255,255,0.7); -fx-font-size: 10px;");
         
         card.getChildren().addAll(em, nm, ct);
 
@@ -395,6 +434,7 @@ public class MainHomeController implements Initializable {
 
     private void processProducts(List<?> data) {
         productsList.clear();
+        bannerImageUrls.clear();
         for (Object o : data) {
             model.ProduitAffichable p = (model.ProduitAffichable) o;
             Map<String, Object> m = new HashMap<>();
@@ -407,6 +447,22 @@ public class MainHomeController implements Initializable {
             m.put("id", p.getIdProduit());
             productsList.add(m);
         }
+        
+        // Populate banner images with the first 3 products that have a valid Cloudinary URL
+        for (Object o : data) {
+            model.ProduitAffichable p = (model.ProduitAffichable) o;
+            String img = p.getImage();
+            if (img != null && !img.isBlank()) {
+                bannerImageUrls.add(img);
+                if (bannerImageUrls.size() >= bannersData.size()) break;
+            }
+        }
+        // If fewer products than slides, pad with nulls
+        while (bannerImageUrls.size() < bannersData.size()) bannerImageUrls.add(null);
+        
+        // Refresh the current slide with the new image
+        showBanner(currentBannerIndex);
+        
         setupTopProductsGrid();
         setupMeilleuresVentes();
         setupPromotionsSection();
@@ -447,7 +503,7 @@ public class MainHomeController implements Initializable {
         promo.setPadding(new Insets(25));
         promo.setStyle("-fx-background-color: #FFF0EB; -fx-background-radius: 20px;");
         
-        Label h = new Label("Promotions du Jour 🔥");
+        Label h = new Label("Promotions du Jour ");
         h.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + CORAIL + ";");
         
         FlowPane grid = new FlowPane(15, 15);
@@ -466,11 +522,39 @@ public class MainHomeController implements Initializable {
         card.setPadding(new Insets(12));
         card.setStyle("-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1px; -fx-border-radius: 16px;");
         
-        // Placeholder image/icon area
+        // Image du produit depuis Cloudinary/URL SKU
         StackPane img = new StackPane();
         img.setPrefHeight(100);
         img.setStyle("-fx-background-color: " + BLANC_CASSE + "; -fx-background-radius: 12px;");
-        img.getChildren().add(IconLibrary.getIcon(IconLibrary.PACKAGE, 30, BLEU_NUIT));
+        
+        // Charger l'image du SKU
+        String imageUrl = (String) p.get("image");
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            ImageView productImage = new ImageView();
+            productImage.setFitWidth(160);
+            productImage.setFitHeight(100);
+            productImage.setPreserveRatio(true);
+            productImage.setSmooth(true);
+            
+            // Charger l'image en arrière-plan
+            new Thread(() -> {
+                try {
+                    Image imgObj = new Image(imageUrl, 160, 100, true, true, true);
+                    Platform.runLater(() -> {
+                        if (!imgObj.isError()) {
+                            productImage.setImage(imgObj);
+                            img.getChildren().clear();
+                            img.getChildren().add(productImage);
+                        }
+                    });
+                } catch (Exception e) {
+                    System.err.println("[ProductCard] Erreur chargement image: " + e.getMessage());
+                }
+            }).start();
+        } else {
+            // Image par défaut si pas d'URL
+            img.getChildren().add(IconLibrary.getIcon(IconLibrary.PACKAGE, 30, BLEU_NUIT));
+        }
         
         int prix = (int) p.get("prix");
         int prixOrig = (int) p.get("prixOriginal");
@@ -481,12 +565,15 @@ public class MainHomeController implements Initializable {
             img.getChildren().add(badge);
         }
 
-        Label nm = new Label((String) p.get("nom")); nm.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: " + BLEU_NUIT + ";");
+        Label nm = new Label((String) p.get("nom")); 
+        nm.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: " + BLEU_NUIT + ";");
         nm.setWrapText(true);
         
         HBox pBox = new HBox(8);
-        Label sp = new Label(prix + " MAD"); sp.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold; -fx-font-size: 14px;");
-        Label op = new Label(prixOrig + ""); op.setStyle("-fx-text-fill: #aaa; -fx-font-size: 10px; -fx-strikethrough: true;");
+        Label sp = new Label(prix + " MAD"); 
+        sp.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold; -fx-font-size: 14px;");
+        Label op = new Label(prixOrig + ""); 
+        op.setStyle("-fx-text-fill: #aaa; -fx-font-size: 10px; -fx-strikethrough: true;");
         pBox.getChildren().addAll(sp, op);
         
         HBox rBox = new HBox(2);
@@ -503,15 +590,16 @@ public class MainHomeController implements Initializable {
 
         card.getChildren().addAll(img, nm, rBox, pBox, btnAdd);
         
-        // Navigation to Detail
+        // Navigation to Detail avec les variantes
         card.setOnMouseClicked(e -> {
             Integer id = (Integer) p.get("id");
             System.out.println("Product Card Clicked: " + p.get("nom") + " (ID: " + id + ")");
             if (id != null) {
+                // Stocker l'ID du produit sélectionné pour la page de détail
                 ProductDetailController.setSelectedProductId(id);
                 SceneManager.switchTo("product-detail.fxml", (String) p.get("nom"));
             } else {
-                System.err.println("❌ ERROR: Product ID is null for " + p.get("nom"));
+                System.err.println(" ERROR: Product ID is null for " + p.get("nom"));
             }
         });
         card.setCursor(javafx.scene.Cursor.HAND);
@@ -620,12 +708,12 @@ public class MainHomeController implements Initializable {
     }
 
     private Reponse sendToServer(Requete req) {
-        try (Socket s = new Socket(SERVER_HOST, SERVER_PORT);
-             ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
-             ObjectInputStream in = new ObjectInputStream(s.getInputStream())) {
-            out.writeObject(req); out.flush();
-            return (Reponse) in.readObject();
-        } catch (Exception e) { return null; }
+        try {
+            return client.ClientSocket.getInstance().envoyer(req);
+        } catch (Exception e) {
+            System.err.println("[MainHomeController] sendToServer error: " + e.getMessage());
+            return null;
+        }
     }
 
     private void showError(String msg, Runnable retry) {
