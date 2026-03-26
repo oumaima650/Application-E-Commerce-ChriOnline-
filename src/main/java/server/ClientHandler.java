@@ -11,8 +11,11 @@ import service.ProduitService;
 import service.ProduitVarValeurService;
 import service.SKUService;
 import service.VarianteService;
+import io.jsonwebtoken.ExpiredJwtException;
+import service.JWTService;
 import shared.Reponse;
 import shared.Requete;
+import shared.RequestType;
 
 import java.util.Map;
 
@@ -108,10 +111,46 @@ public class ClientHandler implements Runnable {
 
 
     private Reponse dispatch(Requete requete) {
-        return switch (requete.getType()) {
-            case LOGIN  -> authService.login(requete);
-            case LOGOUT -> authService.logout(requete);
-            case REGISTER -> authService.signup(requete);
+        RequestType type = requete.getType();
+
+        // 1. PUBLIC ENDPOINTS (No Auth)
+        if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH) {
+            return switch (type) {
+                case LOGIN    -> authService.login(requete);
+                case REGISTER -> authService.signup(requete);
+                case REFRESH  -> authService.refresh(requete);
+                default       -> new Reponse(false, "Internal Error", null);
+            };
+        }
+
+        // 2. JWT VALIDATION for all other endpoints
+        JWTService.TokenClaims claims;
+        try {
+            String token = requete.getTokenSession();
+            if (token == null || token.isBlank()) {
+                return new Reponse(false, "INVALID_TOKEN", null);
+            }
+            claims = JWTService.verifyAccessToken(token);
+        } catch (ExpiredJwtException e) {
+            return new Reponse(false, "TOKEN_EXPIRED", null);
+        } catch (Exception e) {
+            return new Reponse(false, "INVALID_TOKEN", null);
+        }
+
+        // 3. SECURE CONTEXT SETUP
+        // Inject userId and role into parameters for downstream processing
+        if (requete.getParametres() == null) {
+            requete.setParametres(new java.util.HashMap<>());
+        }
+        int userId = Integer.parseInt(claims.userId());
+        requete.getParametres().put("userId", userId);
+        requete.getParametres().put("userRole", claims.role());
+        requete.getParametres().put("sessionId", claims.sessionId());
+
+        // 4. DISPATCH
+        return switch (type) {
+            case LOGOUT     -> authService.logout(requete);
+            case LOGOUT_ALL -> authService.logoutAll(requete);
 
             // ───────────────────────────────
             // PUBLIC OPERATIONS (No Auth)
@@ -148,15 +187,8 @@ public class ClientHandler implements Runnable {
                 }
             }
  
-            // Cart Operations
             case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART, UPDATE_QUANTITY_CART -> {
-                String token = requete.getTokenSession();
-                int userId = AuthService.getUserIdFromToken(token);
-                if ("DEBUG".equals(token)) userId = 7;
-                if (userId <= 0) {
-                    yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
-                }
-
+                // userId is already injected into requete.getParametres() in the JWT validation step above
                 if (requete.getParametres() == null) {
                     requete.setParametres(new java.util.HashMap<>());
                 } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
@@ -176,14 +208,7 @@ public class ClientHandler implements Runnable {
             }
 
             default -> {
-                String token = requete.getTokenSession();
-                int userId = -1;
-                if (token != null) userId = AuthService.getUserIdFromToken(token);
-
-                if (userId <= 0) {
-                    yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
-                }
-
+                // userId is already injected into requete.getParametres() in the JWT validation step above
                 if (requete.getParametres() == null) {
                     requete.setParametres(new java.util.HashMap<>());
                 } else if (!(requete.getParametres() instanceof java.util.HashMap)) {

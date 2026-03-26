@@ -118,12 +118,13 @@ public class LoginController implements Initializable {
                 return;
             }
             if (reponse.isSucces()) {
-                // Save token + user info in session
-                String token     = (String) reponse.getDonnees().get("token");
-                Utilisateur user = (Utilisateur) reponse.getDonnees().get("utilisateur");
-                String type      = (String) reponse.getDonnees().get("typeUtilisateur");
+                // Save tokens + user info in session
+                String accessToken  = (String) reponse.getDonnees().get("accessToken");
+                String refreshToken = (String) reponse.getDonnees().get("refreshToken");
+                Utilisateur user    = (Utilisateur) reponse.getDonnees().get("utilisateur");
+                String type         = (String) reponse.getDonnees().get("typeUtilisateur");
 
-                client.utils.SessionManager.getInstance().ouvrir(token, user);
+                client.utils.SessionManager.getInstance().ouvrir(accessToken, refreshToken, user);
 
                 System.out.println("[Login] Connecté — user=" + user.getEmail() + " type=" + type);
                 navigateToMain(type);

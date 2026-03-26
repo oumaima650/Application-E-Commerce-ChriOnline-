@@ -22,8 +22,8 @@ public class SessionManager {
     /**
      * Initializes a new session after successful login.
      */
-    public void ouvrir(String token, Utilisateur user) {
-        this.currentSession = new Session(token, user);
+    public void ouvrir(String accessToken, String refreshToken, Utilisateur user) {
+        this.currentSession = new Session(accessToken, refreshToken, user);
         System.out.println("[Client Session] Session ouverte pour : " + user.getEmail());
     }
 
@@ -40,7 +40,7 @@ public class SessionManager {
     }
 
     public boolean isAuthenticated() {
-        return currentSession != null && currentSession.getToken() != null;
+        return currentSession != null && currentSession.getAccessToken() != null;
     }
 
     public Utilisateur getCurrentUser() {
