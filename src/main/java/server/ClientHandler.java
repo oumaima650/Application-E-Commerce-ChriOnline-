@@ -144,6 +144,10 @@ public class ClientHandler implements Runnable {
                     case MARK_NOTIFICATION_READ -> notificationService.markAsRead(requete);
                     
                     case PROCESS_PAYMENT -> paiementService.processPayment(requete);
+
+                    // ───────────────────────────────
+                    // Commande
+                    // ───────────────────────────────
                     
                     case VALIDATE_ORDER -> commandeService.passerCommande(requete);
                     case GET_ORDERS -> commandeService.getCommandesByClient(requete);
