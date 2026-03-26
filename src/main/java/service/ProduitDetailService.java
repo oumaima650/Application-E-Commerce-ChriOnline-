@@ -1,4 +1,4 @@
-package client;
+package service;
 
 import client.ClientSocket;
 import shared.Requete;
@@ -9,7 +9,6 @@ import util.ProduitVariantUtils;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
 
 /**
  * Service client pour récupérer et manipuler les détails complets d'un produit
@@ -66,7 +65,7 @@ public class ProduitDetailService {
         Map<String, Object> produit = getProduitComplet(idProduit);
         
         if (produit != null) {
-            System.out.println("✅ Produit trouvé:");
+            System.out.println("Produit trouvé:");
             System.out.println("   Nom: " + produit.get("nomProduit"));
             System.out.println("   Description: " + produit.get("description"));
             
@@ -105,7 +104,7 @@ public class ProduitDetailService {
             }
             
         } else {
-            System.out.println("❌ Produit non trouvé ou erreur lors de la récupération");
+            System.out.println("Produit non trouvé ou erreur lors de la récupération");
         }
         
         System.out.println("=== Fin Test ===\n");

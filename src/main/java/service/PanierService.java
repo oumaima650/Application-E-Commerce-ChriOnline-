@@ -41,7 +41,8 @@ public class PanierService {
 
     /**
      * Ajoute un article au panier via une requête.
-     * Paramètres attendus : "idClient" (Integer), "sku" (String), "quantite" (Integer)
+     * Paramètres attendus : "idClient" (Integer), "sku" (String), "quantite"
+     * (Integer)
      */
     public shared.Reponse ajouter(shared.Requete requete) {
         Map<String, Object> params = requete.getParametres();
@@ -55,7 +56,7 @@ public class PanierService {
 
         try {
             Panier panier = recupererPanier(idClient);
-            
+
             // On gère la logique de mise à jour de la liste ici
             LignePanier ligneAEnregistrer = null;
             Optional<LignePanier> ligneExistante = panier.getLignes().stream()
@@ -64,19 +65,20 @@ public class PanierService {
 
             if (ligneExistante.isPresent()) {
                 ligneAEnregistrer = ligneExistante.get();
-                ligneAEnregistrer.setQuantite(ligneAEnregistrer.getQuantite() + quantite);
+                ligneAEnregistrer.setQuantite(quantite); // ✅ REMPLACER la quantité, pas additionner
             } else {
                 ligneAEnregistrer = new LignePanier(panier.getIdPanier(), sku, quantite, BigDecimal.ZERO);
                 panier.getLignes().add(ligneAEnregistrer);
             }
-            
+
             // Persistance
             panierDAO.ajouterOuMettreAJourLigne(ligneAEnregistrer);
             calculerTotal(panier);
-            
+
             return new shared.Reponse(true, "Produit ajouté au panier.", null);
         } catch (Exception e) {
-            return new shared.Reponse(false, "Stock ou produit introuvable, ou erreur interne : " + e.getMessage(), null);
+            return new shared.Reponse(false, "Stock ou produit introuvable, ou erreur interne : " + e.getMessage(),
+                    null);
         }
     }
 
@@ -96,7 +98,7 @@ public class PanierService {
         try {
             Panier panier = recupererPanier(idClient);
             boolean removed = panier.getLignes().removeIf(l -> l.getSku().equals(sku));
-            
+
             if (removed) {
                 panierDAO.supprimerLigne(panier.getIdPanier(), sku);
                 calculerTotal(panier);
@@ -147,13 +149,13 @@ public class PanierService {
         try {
             Panier panier = recupererPanier(idClient);
             Map<String, Object> donnees = new java.util.HashMap<>();
-            
+
             if (panier.getLignes() == null || panier.getLignes().isEmpty()) {
                 donnees.put("lignes", java.util.Collections.emptyList());
                 donnees.put("total", 0.0);
                 return new shared.Reponse(true, "Le panier est vide.", donnees);
             }
-            
+
             // Préparer les données pour le client
             java.util.List<Map<String, Object>> lignesMap = new java.util.ArrayList<>();
             for (LignePanier ligne : panier.getLignes()) {
@@ -161,14 +163,15 @@ public class PanierService {
                 l.put("sku", ligne.getSku());
                 l.put("quantite", ligne.getQuantite());
                 l.put("image", ligne.getImage());
-                // We use sousTotal because the LignePanier model does not store the unit price directly
+                // We use sousTotal because the LignePanier model does not store the unit price
+                // directly
                 l.put("sousTotal", ligne.getSousTotal() != null ? ligne.getSousTotal().doubleValue() : 0.0);
                 lignesMap.add(l);
             }
-            
+
             donnees.put("lignes", lignesMap);
             donnees.put("total", panier.getTotal());
-            
+
             return new shared.Reponse(true, "Panier récupéré.", donnees);
         } catch (Exception e) {
             return new shared.Reponse(false, "Erreur lors de la récupération du panier : " + e.getMessage(), null);
@@ -221,5 +224,3 @@ public class PanierService {
         panierDAO.viderPanier(panier.getIdPanier());
     }
 }
-
-

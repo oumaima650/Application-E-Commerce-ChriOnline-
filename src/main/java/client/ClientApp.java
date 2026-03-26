@@ -19,7 +19,7 @@ public class ClientApp extends Application {
         primaryStage.setTitle("ChriOnline - E-Commerce");
         primaryStage.setMinWidth(1100);
         primaryStage.setMinHeight(750);
-        
+
         // INITIALISER LE SCENE MANAGER
         SceneManager.init(primaryStage);
 
@@ -27,7 +27,7 @@ public class ClientApp extends Application {
             // Charger la homepage premium
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-home.fxml"));
             Parent root = loader.load();
-            
+
             // Pré-charger d'autres scènes pour la fluidité
             SceneManager.cacheScene("main-home.fxml", root);
             SceneManager.loadAsync("product-detail.fxml");
@@ -37,53 +37,52 @@ public class ClientApp extends Application {
             javafx.scene.Scene scene = new javafx.scene.Scene(root);
             String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);
-            
+
             primaryStage.setTitle("ChriOnline - Boutique en ligne");
             primaryStage.setScene(scene);
             primaryStage.show();
-            
+
             System.out.println("✅ Homepage ChriOnline chargée avec succès !");
-            
+
         } catch (Exception e) {
             System.err.println("❌ Erreur lors du chargement de la homepage:");
             e.printStackTrace();
-            
+
             // Afficher une scène de secours avec un message d'erreur
             javafx.scene.layout.VBox errorBox = new javafx.scene.layout.VBox(20);
             errorBox.setAlignment(javafx.geometry.Pos.CENTER);
             errorBox.setStyle("-fx-padding: 40; -fx-alignment: center;");
-            
+
             javafx.scene.control.Label errorLabel = new javafx.scene.control.Label(
-                "Erreur de chargement de l'interface\n\n" + e.getMessage() +
-                "\n\nVérifiez que:\n" +
-                "1. Le fichier /fxml/main-home.fxml existe\n" +
-                "2. Le fichier /css/styles.css existe\n" +
-                "3. Le controller ui.MainHomeController est correct"
-            );
+                    "Erreur de chargement de l'interface\n\n" + e.getMessage() +
+                            "\n\nVérifiez que:\n" +
+                            "1. Le fichier /fxml/main-home.fxml existe\n" +
+                            "2. Le fichier /css/styles.css existe\n" +
+                            "3. Le controller ui.MainHomeController est correct");
             errorLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-size: 14px; -fx-wrap-text: true;");
-            
+
             errorBox.getChildren().add(errorLabel);
-            
+
             javafx.scene.Scene errorScene = new javafx.scene.Scene(errorBox, 600, 400);
             primaryStage.setScene(errorScene);
             primaryStage.show();
         }
-        
+
         // Démarrer le listener UDP
         udpListener = new ClientUDP(UDP_PORT);
         udpListener.start();
         System.out.println("[ClientApp] Client UDP démarré sur le port " + UDP_PORT);
-        
+
         // Enregistrer le port UDP auprès du serveur (simulation pour admin)
         // Dans un vrai cas, ce serait fait après un login réussi
         registerUdpPort();
-        
+
         // Démarrer directement sur la page d'accueil (MainHome)
         SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
-        
+
         primaryStage.show();
     }
-    
+
     /**
      * Enregistre le port UDP auprès du serveur pour recevoir les notifications
      */
@@ -93,10 +92,10 @@ public class ClientApp extends Application {
             // Dans un vrai cas, ce serait fait après authentification
             java.util.Map<String, Object> params = new java.util.HashMap<>();
             params.put("udpPort", UDP_PORT);
-            
+
             shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER_UDP_PORT, params, "ADMIN_TOKEN");
             shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
-            
+
             if (reponse.isSucces()) {
                 System.out.println("[ClientApp] Port UDP " + UDP_PORT + " enregistré avec succès");
             } else {
@@ -114,7 +113,7 @@ public class ClientApp extends Application {
     public static NotificationsController getNotificationsController() {
         return notificationsController;
     }
-    
+
     /**
      * Définit le contrôleur Notifications et le connecte au ClientUDP
      */

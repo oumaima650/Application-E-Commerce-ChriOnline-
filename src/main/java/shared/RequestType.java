@@ -87,4 +87,8 @@ public enum RequestType {
     GET_PROFILE,
     GET_ADDRESSES,
     ADD_ADDRESS,
+    
+    // Avis
+    GET_AVIS_BY_PRODUIT,
+    ADD_AVIS,
 }
