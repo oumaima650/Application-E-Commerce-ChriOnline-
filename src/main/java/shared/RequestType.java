@@ -57,7 +57,14 @@ public enum RequestType {
     GET_NOTIFICATIONS,
     MARK_NOTIFICATION_READ,
     
-   
-   
+    // SKU
+    GET_ALL_SKUS,
+    GET_SKU_BY_PRODUIT,
+    GET_SKU_BY_CODE,
+    ADD_SKU,
+    UPDATE_SKU,
+    DELETE_SKU,
+    ADD_VALUE_TO_SKU,
+    REMOVE_VALUE_FROM_SKU,
 }
 
