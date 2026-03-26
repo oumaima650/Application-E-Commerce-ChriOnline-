@@ -73,6 +73,16 @@ public class LoginController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Assurer que le CSS spécifique à Login est toujours chargé, même en cache
+        if (rootPane != null) {
+            try {
+                rootPane.getStylesheets().add(getClass().getResource("/css/global.css").toExternalForm());
+                rootPane.getStylesheets().add(getClass().getResource("/css/login.css").toExternalForm());
+            } catch (Exception e) {
+                System.err.println("[LoginController] Erreur de chargement du CSS : " + e.getMessage());
+            }
+        }
+
         setupTabSwitching();
         setupFocusEffects();
         setupLiveValidation();
@@ -332,7 +342,14 @@ public class LoginController implements Initializable {
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
             System.out.println("[LoginController] Navigation vers la boutique...");
-            SceneManager.switchTo("produits.fxml", "ChriOnline - Produits");
+            String redirect = SessionManager.getInstance().getPendingRedirect();
+            if (redirect != null && !redirect.isEmpty()) {
+                String title = SessionManager.getInstance().getPendingRedirectTitle();
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo(redirect, title != null ? title : "ChriOnline");
+            } else {
+                SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
+            }
         }
     }
 

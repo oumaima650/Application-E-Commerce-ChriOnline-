@@ -23,7 +23,8 @@
 
     <center>
         <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-width: 0;">
-            <HBox spacing="40" alignment="TOP_CENTER" style="-fx-padding: 40;">
+            <VBox alignment="TOP_CENTER">
+                <HBox spacing="40" alignment="TOP_CENTER" style="-fx-padding: 40;" maxWidth="940">
                 
                 <!-- Left: Image Gallery -->
                 <VBox spacing="15" prefWidth="450">
@@ -68,7 +69,7 @@
                                 <Label text="Quantité" style="-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #999;"/>
                                 <HBox alignment="CENTER" spacing="15" style="-fx-background-color: white; -fx-background-radius: 50px; -fx-padding: 5 15; -fx-border-color: #E0E0E0; -fx-border-radius: 50px;">
                                     <Button text="−" onAction="#decrementQty" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
-                                    <Label fx:id="quantityLabel" text="1" style="-fx-font-weight: bold;"/>
+                                    <TextField fx:id="quantityField" text="1" prefWidth="40" alignment="CENTER" style="-fx-background-color: transparent; -fx-font-weight: bold;"/>
                                     <Button text="+" onAction="#incrementQty" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
                                 </HBox>
                             </VBox>
@@ -94,6 +95,30 @@
                     </VBox>
                 </VBox>
             </HBox>
+            
+            <!-- Avis Section -->
+            <VBox spacing="20" style="-fx-padding: 0 40 40 40;" maxWidth="940">
+                <Separator/>
+                <Label text="Avis et commentaires" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+                
+                <!-- Display existing reviews -->
+                <VBox fx:id="reviewsContainer" spacing="15">
+                    <!-- Injected by controller -->
+                </VBox>
+                
+                <!-- Add new review form -->
+                <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 15px; -fx-border-color: #E0E0E0; -fx-border-radius: 15px;">
+                    <Label text="Laissez votre avis" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="Note :" style="-fx-font-weight: bold;"/>
+                        <ComboBox fx:id="evaluationComboBox" prefWidth="100"/>
+                    </HBox>
+                    <TextArea fx:id="avisContentField" promptText="Écrivez votre commentaire ici..." prefRowCount="3" wrapText="true"/>
+                    <Button text="Soumettre mon avis" onAction="#handleSubmitAvis" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 50px; -fx-padding: 10 20;"/>
+                    <Label fx:id="avisStatusLabel" text="" visible="false"/>
+                </VBox>
+            </VBox>
+        </VBox>
         </ScrollPane>
     </center>
 

@@ -28,6 +28,7 @@ import javafx.util.Duration;
 import shared.Requete;
 import shared.Reponse;
 import shared.RequestType;
+import model.Categorie;
 import client.utils.SessionManager;
 import client.utils.SceneManager;
 import ui.utils.IconLibrary;
@@ -42,44 +43,68 @@ import java.io.*;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import javafx.event.ActionEvent;
+import javafx.animation.PauseTransition;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class MainHomeController implements Initializable {
 
     // Navbar Components
-    @FXML private HBox navbar;
-    @FXML private Label logoLabel;
-    @FXML private TextField searchField;
-    @FXML private Button cartButton;
-    @FXML private Label cartBadge;
-    @FXML private StackPane userAvatarContainer;
-    @FXML private Circle userAvatar;
-    @FXML private Label userInitial;
+    @FXML
+    private HBox navbar;
+    @FXML
+    private Label logoLabel;
+    @FXML
+    private TextField searchField;
+    @FXML
+    private Button cartButton;
+    @FXML
+    private Button loginButton;
+    @FXML
+    private HBox categoriesContainer;
+    private List<VBox> categoryCards = new ArrayList<>();
 
-    // Sidebar Components
-    @FXML private VBox sidebar;
-    @FXML private Button btnTous;
-    @FXML private Button btnSmartphones;
-    @FXML private Button btnAccessoires;
-    @FXML private Button btnOrdinateurs;
-    @FXML private Button btnMontres;
-    @FXML private Button btnPromotions;
+    // Filter Bar Components (promoted to fields for sync)
+    private MenuButton catsFilter;
+    private CheckBox cbPromoFilter;
+    @FXML
+    private Label cartBadge;
+    @FXML
+    private StackPane userAvatarContainer;
+    @FXML
+    private Circle userAvatar;
+    @FXML
+    private Label userInitial;
+
 
     // Main Layout Components
-    @FXML private ScrollPane mainScrollPane;
-    @FXML private VBox mainContent;
+    @FXML
+    private ScrollPane mainScrollPane;
+    @FXML
+    private VBox mainContent;
 
     // Hero Banner Components
-    @FXML private StackPane heroBanner;
-    @FXML private Label heroBadge;
-    @FXML private Label heroTitle;
-    @FXML private Label heroSubtitle;
-    @FXML private Button heroButton;
-    @FXML private ImageView heroBannerImage;
+    @FXML
+    private StackPane heroBanner;
+    @FXML
+    private Label heroBadge;
+    @FXML
+    private Label heroTitle;
+    @FXML
+    private Label heroSubtitle;
+    @FXML
+    private Button heroButton;
+    @FXML
+    private ImageView heroBannerImage;
 
     // Section Components (Dynamic)
-    @FXML private FlowPane productGrid;
-    @FXML private Label sectionTitle;
-    @FXML private Button voirToutButton;
+    @FXML
+    private FlowPane productGrid;
+    @FXML
+    private Label sectionTitle;
+    @FXML
+    private Button voirToutButton;
 
     // Palette de couleurs
     private static final String CORAIL = "#FF724C";
@@ -99,55 +124,212 @@ public class MainHomeController implements Initializable {
     private Timeline countdownTimeline;
 
     // Data State
+    private List<Map<String, Object>> allProducts = new ArrayList<>();
     private ObservableList<Map<String, Object>> productsList = FXCollections.observableArrayList();
     // Banner image URLs (populated after products load)
     private final List<String> bannerImageUrls = new ArrayList<>();
 
+    // Filter State
+    private String selectedCategory = "Toutes les catégories";
+    private boolean showOnlyPromo = false;
+    private boolean showOnlyInStock = false;
+    private int maxPrice = 50000;
+    private String currentSort = "Nouveautés ✨";
+
+    /**
+     * Enhanced Filter Bar: Respects the Produit/SKU model provided by the user,
+     * allowing for real-time filtering of sellable SKUs by price, stock, and promo.
+     */
+    /**
+     * Enhanced Filter Bar: Respects the Produit/SKU model provided by the user,
+     * allowing for real-time filtering of sellable SKUs by price, stock, and promo.
+     */
+    private void setupFilterBar() {
+        HBox bar = new HBox(20);
+        bar.setPadding(new Insets(15, 30, 15, 30));
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setStyle(
+                "-fx-background-color: white; -fx-background-radius: 20px; -fx-border-color: #F4F4F8; -fx-border-width: 1.5;");
+
+        // Add premium shadow
+        DropShadow ds = new DropShadow(20, Color.rgb(0, 0, 0, 0.08));
+        ds.setOffsetY(8);
+        bar.setEffect(ds);
+
+        Label l = new Label("Filtrage Avancé :");
+        l.setStyle("-fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 15px;");
+        l.setGraphic(IconLibrary.getIcon(IconLibrary.SEARCH, 18, CORAIL));
+        l.setGraphicTextGap(10);
+
+        catsFilter = new MenuButton(selectedCategory);
+        catsFilter.setStyle("-fx-background-color: " + BLANC_CASSE + "; -fx-background-radius: 50px; -fx-text-fill: "
+                + BLEU_NUIT + "; -fx-font-size: 12px; -fx-padding: 6 18; -fx-cursor: hand;");
+
+        // Populate Categories dynamically
+        Set<String> categories = new TreeSet<>();
+        for (Map<String, Object> p : allProducts) {
+            if (p.get("categorie") != null)
+                categories.add((String) p.get("categorie"));
+        }
+
+        MenuItem allItem = new MenuItem("Toutes les catégories");
+        allItem.setOnAction(e -> {
+            selectedCategory = "Toutes les catégories";
+            catsFilter.setText("Toutes les catégories");
+            applyFilters();
+        });
+        catsFilter.getItems().add(allItem);
+
+        for (String c : categories) {
+            MenuItem mi = new MenuItem(c);
+            mi.setOnAction(e -> {
+                selectedCategory = c;
+                catsFilter.setText(c);
+                applyFilters();
+            });
+            catsFilter.getItems().add(mi);
+        }
+
+        HBox toggles = new HBox(12);
+        CheckBox cbPromo = new CheckBox("En solde 🏷️");
+        cbPromoFilter = cbPromo;
+        cbPromo.setSelected(showOnlyPromo);
+        cbPromo.setOnAction(e -> {
+            showOnlyPromo = cbPromo.isSelected();
+            applyFilters();
+        });
+
+        CheckBox cbStock = new CheckBox("En stock 📦");
+        cbStock.setSelected(showOnlyInStock);
+        cbStock.setOnAction(e -> {
+            showOnlyInStock = cbStock.isSelected();
+            applyFilters();
+        });
+
+        String cbStyle = "-fx-background-color: " + BLANC_CASSE
+                + "; -fx-background-radius: 50px; -fx-padding: 8 15; -fx-font-size: 11px; -fx-cursor: hand; -fx-text-fill: "
+                + BLEU_NUIT + ";";
+        cbPromo.setStyle(cbStyle);
+        cbStock.setStyle(cbStyle);
+        toggles.getChildren().addAll(cbPromo, cbStock);
+
+        Separator sep = new Separator(Orientation.VERTICAL);
+        sep.setPrefHeight(25);
+
+        VBox pCont = new VBox(2);
+        Label pLabel = new Label("Tranche de Prix (MAD)");
+        pLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #999; -fx-font-weight: bold; -fx-letter-spacing: 0.5;");
+        HBox pRow = new HBox(12);
+        pRow.setAlignment(Pos.CENTER_LEFT);
+        Slider pSlider = new Slider(0, 50000, maxPrice);
+        pSlider.setPrefWidth(140);
+        Label v = new Label("Max " + (maxPrice / 1000) + "k");
+        v.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + "; -fx-font-size: 13px;");
+
+        // Debounce price slider
+        PauseTransition pause = new PauseTransition(Duration.millis(300));
+        pSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            maxPrice = newVal.intValue();
+            v.setText("Max " + (maxPrice / 1000) + "k");
+            pause.playFromStart();
+        });
+        pause.setOnFinished(e -> applyFilters());
+
+        pRow.getChildren().addAll(pSlider, v);
+        pCont.getChildren().addAll(pLabel, pRow);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        ComboBox<String> sort = new ComboBox<>(FXCollections.observableArrayList("Nouveautés ✨", "Prix croissant 📈",
+                "Prix décroissant 📉", "Mieux notés ⭐"));
+        sort.setValue(currentSort);
+        sort.setStyle("-fx-background-color: white; -fx-border-color: " + CORAIL
+                + "; -fx-border-radius: 50px; -fx-background-radius: 50px; -fx-font-size: 11px; -fx-padding: 3 10; -fx-font-weight: bold;");
+        sort.setOnAction(e -> {
+            currentSort = sort.getValue();
+            applyFilters();
+        });
+
+        bar.getChildren().addAll(l, catsFilter, toggles, sep, pCont, spacer, sort);
+
+        if (mainContent != null) {
+            // Remove previous filter if any to avoid duplicates
+            mainContent.getChildren().removeIf(n -> n.getId() != null && n.getId().equals("filter-bar-wrapper"));
+
+            VBox wrapper = new VBox(bar);
+            wrapper.setId("filter-bar-wrapper");
+            wrapper.setPadding(new Insets(10, 0, 30, 0));
+
+            // Insert after Hero Banner if possible, otherwise at top
+            int bannerIdx = mainContent.getChildren().indexOf(heroBanner);
+            if (bannerIdx >= 0) {
+                mainContent.getChildren().add(bannerIdx + 1, wrapper);
+            } else {
+                mainContent.getChildren().add(0, wrapper);
+            }
+        }
+    }
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-      
-     
-        
+
         setupNavbar();
         setupFilterBar();
-        setupSidebar();
         setupHeroSlider();
         loadCategories();
         loadProducts();
-        
+
         // Final UI tweaks
         if (mainScrollPane != null) {
             mainScrollPane.setStyle("-fx-background-color: " + BLANC_CASSE + "; -fx-border-width: 0;");
             mainScrollPane.setFitToHeight(true);
         }
     }
-    
-   
+
     // ==========================================
     // 1. NAVBAR IMPLEMENTATION
     // ==========================================
     private void setupNavbar() {
         if (logoLabel != null) {
             logoLabel.setText("ChriOnline");
-            logoLabel.setStyle("-fx-text-fill: " + SAFRAN + "; -fx-font-size: 18px; -fx-font-weight: bold; -fx-letter-spacing: -0.5px;");
+            logoLabel.setStyle("-fx-text-fill: " + SAFRAN
+                    + "; -fx-font-size: 18px; -fx-font-weight: bold; -fx-letter-spacing: -0.5px;");
         }
 
         // Search bar custom style
         if (searchField != null) {
             searchField.setPromptText("Rechercher des produits...");
-            searchField.setStyle("-fx-background-color: rgba(255,255,255,0.08); -fx-background-radius: 50px; " +
-                    "-fx-text-fill: white; -fx-prompt-text-fill: rgba(255,255,255,0.6); -fx-padding: 8 16;");
+            searchField.setStyle(
+                    "-fx-background-color: transparent; -fx-text-fill: white; -fx-prompt-text-fill: rgba(255,255,255,0.6); -fx-padding: 8 16;");
+
+            // Style the container (HBox) for better visibility
+            if (searchField.getParent() instanceof HBox) {
+                searchField.getParent().setStyle(
+                        "-fx-background-color: rgba(255,255,255,0.15); -fx-background-radius: 50px; -fx-alignment: CENTER_LEFT; -fx-padding: 0 16;");
+            }
         }
 
         // Load Cart and Notif counts
         updateBadges();
 
-        // User Avatar and Name from Session
-        String email = SessionManager.getInstance().getCurrentUser() != null ? SessionManager.getInstance().getCurrentUser().getEmail() : null;
-        if (email != null && !email.isEmpty()) {
+        // User Authentication State
+        boolean loggedIn = SessionManager.getInstance().isAuthenticated();
+        if (loginButton != null) {
+            loginButton.setVisible(!loggedIn);
+            loginButton.setManaged(!loggedIn);
+        }
+        if (userAvatarContainer != null) {
+            userAvatarContainer.setVisible(loggedIn);
+            userAvatarContainer.setManaged(loggedIn);
+        }
+
+        if (loggedIn) {
+            String email = SessionManager.getInstance().getCurrentUser().getEmail();
             String name = email.split("@")[0].toUpperCase();
-            if (userInitial != null) userInitial.setText(name.substring(0, 1));
-            // Show full name prefix as tooltip if possible (skip for now to stay in pure FX)
+            if (userInitial != null) {
+                userInitial.setText(name.substring(0, 1));
+            }
         }
 
         if (userAvatar != null) {
@@ -155,45 +337,17 @@ public class MainHomeController implements Initializable {
         }
     }
 
-    private void setupSidebar() {
-        // Style ALL sidebar icons and buttons
-        Button[] btns = {btnTous, btnSmartphones, btnAccessoires, btnOrdinateurs, btnMontres, btnPromotions};
-        String[] icons = {IconLibrary.CATEGORY, IconLibrary.PHONE, IconLibrary.HEADPHONE, IconLibrary.LAPTOP, IconLibrary.WATCH, IconLibrary.TAG};
-
-        for (int i = 0; i < btns.length; i++) {
-            if (btns[i] != null) {
-                btns[i].setGraphic(IconLibrary.getIcon(icons[i], 16, "rgba(244,244,248,0.4)"));
-                btns[i].setStyle("-fx-background-color: transparent; -fx-text-fill: rgba(244,244,248,0.4); " +
-                        "-fx-padding: 10 15; -fx-background-radius: 10px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;");
-                
-                final int idx = i;
-                btns[i].setOnMouseEntered(e -> {
-                    if (!btns[idx].getStyle().contains(CORAIL)) {
-                        btns[idx].setStyle("-fx-background-color: rgba(255,114,76,0.1); -fx-text-fill: " + SAFRAN + "; " +
-                                "-fx-padding: 10 15; -fx-background-radius: 10px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;");
-                    }
-                });
-                btns[i].setOnMouseExited(e -> {
-                    if (!btns[idx].getStyle().contains(CORAIL)) {
-                        btns[idx].setStyle("-fx-background-color: transparent; -fx-text-fill: rgba(244,244,248,0.4); " +
-                                "-fx-padding: 10 15; -fx-background-radius: 10px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;");
-                    }
-                });
-            }
-        }
-        
-        if (btnTous != null) {
-            btnTous.setStyle("-fx-background-color: " + CORAIL + "; -fx-text-fill: white; " +
-                    "-fx-padding: 10 15; -fx-background-radius: 10px; -fx-font-weight: bold; -fx-alignment: CENTER_LEFT;");
-        }
-    }
 
     private void updateBadges() {
         // GET_CART
         Task<Reponse> cartTask = new Task<>() {
-            @Override protected Reponse call() {
-                if (!SessionManager.getInstance().isAuthenticated()) return null;
-                return sendToServer(new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getToken()));
+            @Override
+            protected Reponse call() {
+                if (!SessionManager.getInstance().isAuthenticated())
+                    return null;
+                return sendToServer(new Requete(RequestType.GET_CART,
+                        Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
+                        SessionManager.getInstance().getSession().getToken()));
             }
         };
         cartTask.setOnSucceeded(e -> {
@@ -205,7 +359,8 @@ public class MainHomeController implements Initializable {
                     if (cartBadge != null) {
                         cartBadge.setText(String.valueOf(count));
                         cartBadge.setVisible(count > 0);
-                        cartBadge.setStyle("-fx-background-color: " + CORAIL + "; -fx-background-radius: 50px; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 1 5;");
+                        cartBadge.setStyle("-fx-background-color: " + CORAIL
+                                + "; -fx-background-radius: 50px; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 1 5;");
                     }
                 });
             }
@@ -214,9 +369,13 @@ public class MainHomeController implements Initializable {
 
         // GET_NOTIFICATIONS (Badge on icons if relevant)
         Task<Reponse> notifTask = new Task<>() {
-            @Override protected Reponse call() {
-                if (!SessionManager.getInstance().isAuthenticated()) return null;
-                return sendToServer(new Requete(RequestType.GET_NOTIFICATIONS, Map.of("idUtilisateur", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getToken()));
+            @Override
+            protected Reponse call() {
+                if (!SessionManager.getInstance().isAuthenticated())
+                    return null;
+                return sendToServer(new Requete(RequestType.GET_NOTIFICATIONS,
+                        Map.of("idUtilisateur", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
+                        SessionManager.getInstance().getSession().getToken()));
             }
         };
         notifTask.setOnSucceeded(e -> {
@@ -235,16 +394,19 @@ public class MainHomeController implements Initializable {
     // ==========================================
     private void setupHeroSlider() {
         bannersData = new ArrayList<>();
-        bannersData.add(Map.of("badge", "NOUVELLE COLLECTION", "title", "Smartphones\nHaut de Gamme", "subtitle", "Découvrez notre sélection des derniers modèles", "btn", "Découvrir →"));
-        bannersData.add(Map.of("badge", "SOLDES FLASH", "title", "Accessoires\nIndispensables", "subtitle", "Jusqu'à -50% sur l'audio et le gaming", "btn", "Voir les offres"));
-        bannersData.add(Map.of("badge", "OFFRE LIMITÉE", "title", "Flash Deals\nSamsung S24", "subtitle", "Fin de l'offre dans : 03:42:15", "btn", "Profiter vite"));
+        bannersData.add(Map.of("badge", "NOUVELLE COLLECTION", "title", "Smartphones\nHaut de Gamme", "subtitle",
+                "Découvrez notre sélection des derniers modèles", "btn", "Découvrir →"));
+        bannersData.add(Map.of("badge", "SOLDES FLASH", "title", "Accessoires\nIndispensables", "subtitle",
+                "Jusqu'à -50% sur l'audio et le gaming", "btn", "Voir les offres"));
+        bannersData.add(Map.of("badge", "OFFRE LIMITÉE", "title", "Flash Deals\nSamsung S24", "subtitle",
+                "Fin de l'offre dans : 03:42:15", "btn", "Profiter vite"));
 
         // Add Navigation Dots below banner
         sliderDots = new HBox(8);
         sliderDots.setAlignment(Pos.BOTTOM_CENTER);
         StackPane.setAlignment(sliderDots, Pos.BOTTOM_CENTER);
         StackPane.setMargin(sliderDots, new Insets(0, 0, 15, 0));
-        
+
         for (int i = 0; i < bannersData.size(); i++) {
             Circle dot = new Circle(4, Color.web("white", 0.3));
             dot.setCursor(javafx.scene.Cursor.HAND);
@@ -252,10 +414,10 @@ public class MainHomeController implements Initializable {
             dot.setOnMouseClicked(e -> showBanner(index));
             sliderDots.getChildren().add(dot);
         }
-        
+
         if (heroBanner != null) {
             heroBanner.getChildren().add(sliderDots);
-            heroBanner.setStyle("-fx-background-radius: 20px;");
+            // Removed the inline style override so FXML's background color stays intact
         }
 
         // Automatic Sliding
@@ -282,7 +444,8 @@ public class MainHomeController implements Initializable {
                     try {
                         Image img = new Image(url, 200, 200, true, true, true);
                         Platform.runLater(() -> {
-                            if (!img.isError()) heroBannerImage.setImage(img);
+                            if (!img.isError())
+                                heroBannerImage.setImage(img);
                         });
                     } catch (Exception e) {
                         System.err.println("[Hero] Image load error: " + e.getMessage());
@@ -292,11 +455,15 @@ public class MainHomeController implements Initializable {
                 heroBannerImage.setImage(null);
             }
         }
-        
-        if (heroBadge != null) heroBadge.setText(data.get("badge"));
-        if (heroTitle != null) heroTitle.setText(data.get("title"));
-        if (heroSubtitle != null) heroSubtitle.setText(data.get("subtitle"));
-        if (heroButton != null) heroButton.setText(data.get("btn"));
+
+        if (heroBadge != null)
+            heroBadge.setText(data.get("badge"));
+        if (heroTitle != null)
+            heroTitle.setText(data.get("title"));
+        if (heroSubtitle != null)
+            heroSubtitle.setText(data.get("subtitle"));
+        if (heroButton != null)
+            heroButton.setText(data.get("btn"));
 
         // Update dots
         if (sliderDots != null) {
@@ -308,7 +475,10 @@ public class MainHomeController implements Initializable {
         }
 
         // 3rd Banner Countdown logic
-        if (index == 2) startCountdown(); else stopCountdown();
+        if (index == 2)
+            startCountdown();
+        else
+            stopCountdown();
     }
 
     private void startCountdown() {
@@ -320,7 +490,9 @@ public class MainHomeController implements Initializable {
                 heroSubtitle.setText("Offre terminée !");
                 stopCountdown();
             } else {
-                long h = sec / 3600; long m = (sec % 3600) / 60; long s = sec % 60;
+                long h = sec / 3600;
+                long m = (sec % 3600) / 60;
+                long s = sec % 60;
                 heroSubtitle.setText(String.format("Fin de l'offre dans : %02d:%02d:%02d", h, m, s));
             }
         }));
@@ -328,95 +500,23 @@ public class MainHomeController implements Initializable {
         countdownTimeline.play();
     }
 
-    private void stopCountdown() { if (countdownTimeline != null) countdownTimeline.stop(); }
+    private void stopCountdown() {
+        if (countdownTimeline != null)
+            countdownTimeline.stop();
+    }
 
     // ==========================================
     // 3. CATEGORIES SECTION
-    // ==========================================
-    private void loadCategories() {
-        Task<Reponse> catTask = new Task<>() {
-            @Override protected Reponse call() {
-                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getToken() : "";
-                return sendToServer(new Requete(RequestType.GET_ALL_CATEGORIES, new HashMap<>(), token));
-            }
-        };
-        catTask.setOnSucceeded(e -> {
-            Reponse rep = catTask.getValue();
-            if (rep != null && rep.isSucces()) {
-                try {
-                    @SuppressWarnings("unchecked")
-                    List<model.Categorie> categories = (List<model.Categorie>) rep.getDonnees().get("categories");
-                    Platform.runLater(() -> setupCategories(categories));
-                } catch (Exception ex) {
-                    System.err.println("Failed to cast categories: " + ex.getMessage());
-                }
-            } else {
-                Platform.runLater(() -> System.err.println("Failed to load categories: " + (rep != null ? rep.getMessage() : "null response")));
-            }
-        });
-        new Thread(catTask).start();
-    }
-
-    private void setupCategories(List<model.Categorie> categories) {
-        if (mainContent == null || categories == null || categories.isEmpty()) return;
-        
-        Label h = new Label("Explorer les Catégories");
-        h.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + ";");
-        h.setPadding(new Insets(20, 0, 10, 0));
-
-        FlowPane grid = new FlowPane(20, 20);
-        String[] gradients = {"#FF724C", "#FDBF50", "#2A2C41", "#3b82f6", "#10b981"};
-
-        for (int i = 0; i < categories.size(); i++) {
-            model.Categorie c = categories.get(i);
-            String name = c.getNom();
-            String color = gradients[i % gradients.length];
-            grid.getChildren().add(createCategoryCard(name, null, color));
-        }
-
-        // Insert after Hero Banner
-        int bannerIdx = mainContent.getChildren().indexOf(heroBanner);
-        if (bannerIdx >= 0) {
-            mainContent.getChildren().add(bannerIdx + 1, new VBox(10, h, grid));
-        } else {
-            mainContent.getChildren().add(0, new VBox(10, h, grid));
-        }
-    }
-
-    private VBox createCategoryCard(String name, Integer count, String color) {
-        VBox card = new VBox(8);
-        card.setAlignment(Pos.CENTER);
-        card.setPadding(new Insets(15));
-        card.setPrefSize(140, 140);
-        card.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 20px; -fx-cursor: hand;");
-        
-        String emoji = "📦";
-        if (name.toLowerCase().contains("phone")) emoji = "📱";
-        else if (name.toLowerCase().contains("audio")) emoji = "🎧";
-        else if (name.toLowerCase().contains("ordinateur")) emoji = "💻";
-        else if (name.toLowerCase().contains("montre")) emoji = "⌚";
-
-        Label em = new Label(emoji); em.setStyle("-fx-font-size: 35px;");
-        Label nm = new Label(name); nm.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;");
-        Label ct = new Label(count != null ? count + " Produits" : ""); 
-        ct.setStyle("-fx-text-fill: rgba(255,255,255,0.7); -fx-font-size: 10px;");
-        
-        card.getChildren().addAll(em, nm, ct);
-
-        ScaleTransition st = new ScaleTransition(Duration.millis(200), card);
-        card.setOnMouseEntered(e -> { st.setToX(1.05); st.setToY(1.05); st.play(); });
-        card.setOnMouseExited(e -> { st.setToX(1.0); st.setToY(1.0); st.play(); });
-        
-        return card;
-    }
-
     // ==========================================
     // 4. PRODUCTS & NEW SECTIONS
     // ==========================================
     private void loadProducts() {
         Task<Reponse> pTask = new Task<>() {
-            @Override protected Reponse call() {
-                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getToken() : "";
+            @Override
+            protected Reponse call() {
+                String token = SessionManager.getInstance().isAuthenticated()
+                        ? SessionManager.getInstance().getSession().getToken()
+                        : "";
                 return sendToServer(new Requete(RequestType.GET_ALL_PRODUITS_AFFICHABLES, new HashMap<>(), token));
             }
         };
@@ -433,8 +533,10 @@ public class MainHomeController implements Initializable {
     }
 
     private void processProducts(List<?> data) {
+        allProducts.clear();
         productsList.clear();
         bannerImageUrls.clear();
+        bannersData.clear(); // Clear existing hardcoded banners
         for (Object o : data) {
             model.ProduitAffichable p = (model.ProduitAffichable) o;
             Map<String, Object> m = new HashMap<>();
@@ -445,40 +547,108 @@ public class MainHomeController implements Initializable {
             m.put("image", p.getImage());
             m.put("stock", p.getStock());
             m.put("id", p.getIdProduit());
-            productsList.add(m);
+            allProducts.add(m);
         }
-        
-        // Populate banner images with the first 3 products that have a valid Cloudinary URL
-        for (Object o : data) {
-            model.ProduitAffichable p = (model.ProduitAffichable) o;
-            String img = p.getImage();
-            if (img != null && !img.isBlank()) {
-                bannerImageUrls.add(img);
-                if (bannerImageUrls.size() >= bannersData.size()) break;
+
+        applyFilters();
+    }
+
+    private void applyFilters() {
+        List<Map<String, Object>> filtered = new ArrayList<>(allProducts);
+
+        // 1. Category Filter
+        if (selectedCategory != null && !selectedCategory.equals("Toutes les catégories")) {
+            filtered.removeIf(p -> !selectedCategory.equals(p.get("categorie")));
+        }
+
+        // 2. Promo Filter
+        if (showOnlyPromo) {
+            filtered.removeIf(p -> {
+                int prix = (int) p.get("prix");
+                int prixOrig = (int) p.get("prixOriginal");
+                return prix >= prixOrig;
+            });
+        }
+
+        // 3. Stock Filter
+        if (showOnlyInStock) {
+            filtered.removeIf(p -> (int) p.get("stock") <= 0);
+        }
+
+        // 4. Price Filter
+        filtered.removeIf(p -> (int) p.get("prix") > maxPrice);
+
+        // 5. Sorting
+        if (currentSort != null) {
+            switch (currentSort) {
+                case "Prix croissant 📈":
+                    filtered.sort((a, b) -> Integer.compare((int) a.get("prix"), (int) b.get("prix")));
+                    break;
+                case "Prix décroissant 📉":
+                    filtered.sort((a, b) -> Integer.compare((int) b.get("prix"), (int) a.get("prix")));
+                    break;
+                case "Mieux notés ⭐":
+                    // Fallback to ID for now if rating not in model
+                    filtered.sort((a, b) -> Integer.compare((int) b.get("id"), (int) a.get("id")));
+                    break;
+                default: // Nouveautés - sorted by ID desc
+                    filtered.sort((a, b) -> Integer.compare((int) b.get("id"), (int) a.get("id")));
+                    break;
             }
         }
-        // If fewer products than slides, pad with nulls
-        while (bannerImageUrls.size() < bannersData.size()) bannerImageUrls.add(null);
-        
-        // Refresh the current slide with the new image
+
+        refreshProductGrid(filtered);
+
+        // Populate banner images and dynamic text from the first products with images
+        bannerImageUrls.clear();
+        bannersData.clear();
+        for (Map<String, Object> p : allProducts) {
+            String img = (String) p.get("image");
+            if (img != null && !img.isBlank()) {
+                bannerImageUrls.add(img);
+
+                Map<String, String> banner = new HashMap<>();
+                banner.put("badge", "OFFRE SPÉCIALE");
+                banner.put("title", (String) p.get("nom"));
+                banner.put("subtitle",
+                        "Découvrez notre nouvelle collection " + (p.get("categorie") != null ? p.get("categorie") : ""));
+                banner.put("btn", "Acheter maintenant →");
+                bannersData.add(banner);
+
+                if (bannerImageUrls.size() >= 3)
+                    break; // Limit to 3 banners
+            }
+        }
+
+        // Pad fallbacks if needed
+        if (bannersData.isEmpty()) {
+            bannersData.add(Map.of("badge", "NOUVELLE COLLECTION", "title", "Produits\nTendance", "subtitle",
+                    "Découvrez notre sélection des derniers modèles", "btn", "Découvrir →"));
+        }
+        while (bannerImageUrls.size() < bannersData.size())
+            bannerImageUrls.add(null);
+
         showBanner(currentBannerIndex);
-        
+        setupFooter();
+    }
+
+    private void refreshProductGrid(List<Map<String, Object>> filtered) {
+        productsList.setAll(filtered);
         setupTopProductsGrid();
         setupMeilleuresVentes();
-        setupPromotionsSection();
-        setupFooter(); // Always at the end
     }
 
     private void setupTopProductsGrid() {
-        if (productGrid == null) return;
+        if (productGrid == null)
+            return;
         productGrid.getChildren().clear();
-        
+
         HBox hBox = new HBox(15);
         hBox.setPadding(new Insets(10, 0, 10, 0));
         for (int i = 0; i < Math.min(6, productsList.size()); i++) {
             hBox.getChildren().add(createProductCard(productsList.get(i)));
         }
-        
+
         ScrollPane sp = new ScrollPane(hBox);
         sp.setFitToHeight(true);
         sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
@@ -487,7 +657,9 @@ public class MainHomeController implements Initializable {
     }
 
     private void setupMeilleuresVentes() {
+        mainContent.getChildren().removeIf(n -> n.getId() != null && n.getId().contains("best-sellers-section"));
         VBox sec = new VBox(15);
+        sec.setId("best-sellers-section");
         Label h = new Label("Meilleures Ventes");
         h.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + ";");
         FlowPane grid = new FlowPane(15, 15);
@@ -498,35 +670,19 @@ public class MainHomeController implements Initializable {
         mainContent.getChildren().add(sec);
     }
 
-    private void setupPromotionsSection() {
-        VBox promo = new VBox(20);
-        promo.setPadding(new Insets(25));
-        promo.setStyle("-fx-background-color: #FFF0EB; -fx-background-radius: 20px;");
-        
-        Label h = new Label("Promotions du Jour ");
-        h.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + CORAIL + ";");
-        
-        FlowPane grid = new FlowPane(15, 15);
-        for (Map<String, Object> p : productsList) {
-            if ((Integer) p.get("prix") < (Integer) p.get("prixOriginal")) {
-                grid.getChildren().add(createProductCard(p));
-            }
-        }
-        promo.getChildren().addAll(h, grid);
-        mainContent.getChildren().add(promo);
-    }
 
     private VBox createProductCard(Map<String, Object> p) {
         VBox card = new VBox(10);
         card.setPrefSize(180, 240);
         card.setPadding(new Insets(12));
-        card.setStyle("-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1px; -fx-border-radius: 16px;");
-        
+        card.setStyle(
+                "-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1px; -fx-border-radius: 16px;");
+
         // Image du produit depuis Cloudinary/URL SKU
         StackPane img = new StackPane();
         img.setPrefHeight(100);
         img.setStyle("-fx-background-color: " + BLANC_CASSE + "; -fx-background-radius: 12px;");
-        
+
         // Charger l'image du SKU
         String imageUrl = (String) p.get("image");
         if (imageUrl != null && !imageUrl.isBlank()) {
@@ -535,7 +691,7 @@ public class MainHomeController implements Initializable {
             productImage.setFitHeight(100);
             productImage.setPreserveRatio(true);
             productImage.setSmooth(true);
-            
+
             // Charger l'image en arrière-plan
             new Thread(() -> {
                 try {
@@ -555,156 +711,188 @@ public class MainHomeController implements Initializable {
             // Image par défaut si pas d'URL
             img.getChildren().add(IconLibrary.getIcon(IconLibrary.PACKAGE, 30, BLEU_NUIT));
         }
-        
+
         int prix = (int) p.get("prix");
         int prixOrig = (int) p.get("prixOriginal");
         if (prix < prixOrig) {
-            Label badge = new Label("- " + (int)(100 - (prix*100.0/prixOrig)) + "%");
-            badge.setStyle("-fx-background-color: " + CORAIL + "; -fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2 6; -fx-background-radius: 5px;");
+            Label badge = new Label("- " + (int) (100 - (prix * 100.0 / prixOrig)) + "%");
+            badge.setStyle("-fx-background-color: " + CORAIL
+                    + "; -fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold; -fx-padding: 2 6; -fx-background-radius: 5px;");
             StackPane.setAlignment(badge, Pos.TOP_LEFT);
             img.getChildren().add(badge);
         }
 
-        Label nm = new Label((String) p.get("nom")); 
+        Label nm = new Label((String) p.get("nom"));
         nm.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: " + BLEU_NUIT + ";");
         nm.setWrapText(true);
-        
+
         HBox pBox = new HBox(8);
-        Label sp = new Label(prix + " MAD"); 
+        Label sp = new Label(prix + " MAD");
         sp.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold; -fx-font-size: 14px;");
-        Label op = new Label(prixOrig + ""); 
+        Label op = new Label(prixOrig + "");
         op.setStyle("-fx-text-fill: #aaa; -fx-font-size: 10px; -fx-strikethrough: true;");
         pBox.getChildren().addAll(sp, op);
-        
+
         HBox rBox = new HBox(2);
-        for (int i=0; i<4; i++) rBox.getChildren().add(IconLibrary.getFilledIcon(IconLibrary.STAR, 10, SAFRAN));
+        for (int i = 0; i < 4; i++)
+            rBox.getChildren().add(IconLibrary.getFilledIcon(IconLibrary.STAR, 10, SAFRAN));
         rBox.getChildren().add(IconLibrary.getIcon(IconLibrary.STAR, 10, SAFRAN));
 
         Button btnAdd = new Button("Ajouter");
         btnAdd.setMaxWidth(Double.MAX_VALUE);
-        btnAdd.setStyle("-fx-background-color: " + BLEU_NUIT + "; -fx-text-fill: white; -fx-font-size: 11px; -fx-background-radius: 50px; -fx-cursor: hand;");
+        btnAdd.setStyle("-fx-background-color: " + BLEU_NUIT
+                + "; -fx-text-fill: white; -fx-font-size: 11px; -fx-background-radius: 50px; -fx-cursor: hand;");
         btnAdd.setOnAction(e -> {
             e.consume(); // Prevent card click
-            showToast("Article ajouté !");
+            if (!SessionManager.getInstance().isAuthenticated()) {
+                SessionManager.getInstance().setPendingRedirect("main-home.fxml", "ChriOnline - Accueil");
+                SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+                return;
+            }
+
+            Integer idObj = (Integer) p.get("id");
+            if (idObj == null) {
+                showToast("Produit indisponible");
+                return;
+            }
+
+            Task<Reponse> task = new Task<>() {
+                @Override
+                protected Reponse call() {
+                    Map<String, Object> reqP = new HashMap<>();
+                    reqP.put("idProduit", idObj);
+                    String token = SessionManager.getInstance().getSession().getToken();
+                    Reponse skuRep = client.ClientSocket.getInstance()
+                            .envoyer(new Requete(RequestType.GET_SKU_BY_PRODUIT, reqP, token));
+
+                    if (skuRep != null && skuRep.isSucces() && skuRep.getDonnees() != null) {
+                        @SuppressWarnings("unchecked")
+                        List<Map<String, Object>> skus = (List<Map<String, Object>>) skuRep.getDonnees().get("skus");
+                        if (skus != null && !skus.isEmpty()) {
+                            String firstSku = (String) skus.get(0).get("SKU");
+                            Map<String, Object> addParams = new HashMap<>();
+                            addParams.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
+                            addParams.put("sku", firstSku);
+                            addParams.put("quantite", 1);
+                            return client.ClientSocket.getInstance()
+                                    .envoyer(new Requete(RequestType.ADD_TO_CART, addParams, token));
+                        }
+                    }
+                    return new Reponse(false, "Produit sans SKU disponible.", null);
+                }
+            };
+
+            task.setOnSucceeded(ev -> {
+                Reponse rep = task.getValue();
+                if (rep != null && rep.isSucces()) {
+                    showToast("Article ajouté au panier !");
+                    updateBadges();
+                } else {
+                    showToast(rep != null ? rep.getMessage() : "Serveur injoignable");
+                }
+            });
+            new Thread(task).start();
         });
 
-        card.getChildren().addAll(img, nm, rBox, pBox, btnAdd);
-        
-        // Navigation to Detail avec les variantes
+        card.getChildren().addAll(img, nm, pBox, rBox, btnAdd);
+
         card.setOnMouseClicked(e -> {
-            Integer id = (Integer) p.get("id");
-            System.out.println("Product Card Clicked: " + p.get("nom") + " (ID: " + id + ")");
-            if (id != null) {
-                // Stocker l'ID du produit sélectionné pour la page de détail
+            Object objId = p.get("id");
+            System.out.println("[MainHome] Card Clicked: " + p.get("nom") + " (ID: " + objId + ")");
+
+            if (objId instanceof Number) {
+                int id = ((Number) objId).intValue();
+                // Navigate to product detail
                 ProductDetailController.setSelectedProductId(id);
+                // Force cache clear for detail page to ensure fresh data
+                SceneManager.clearCache("product-detail.fxml");
                 SceneManager.switchTo("product-detail.fxml", (String) p.get("nom"));
             } else {
-                System.err.println(" ERROR: Product ID is null for " + p.get("nom"));
+                System.err.println("[MainHome] ERROR: Product ID is not a Number for " + p.get("nom"));
             }
         });
-        card.setCursor(javafx.scene.Cursor.HAND);
-        
+
+        // Hover Scale Effect
+        ScaleTransition st = new ScaleTransition(Duration.millis(200), card);
+        card.setOnMouseEntered(ev -> {
+            card.setCursor(javafx.scene.Cursor.HAND);
+            st.setToX(1.02);
+            st.setToY(1.02);
+            st.play();
+            card.setStyle(card.getStyle() + " -fx-border-color: " + CORAIL
+                    + "; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);");
+        });
+        card.setOnMouseExited(ev -> {
+            st.setToX(1.0);
+            st.setToY(1.0);
+            st.play();
+            card.setStyle(
+                    "-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1px; -fx-border-radius: 16px;");
+        });
+
         return card;
     }
 
-    // ==========================================
-    // 5. FILTERS & FOOTER & HELPERS
-    // ==========================================
-    /** 
-     * Enhanced Filter Bar: Respects the Produit/SKU model provided by the user,
-     * allowing for real-time filtering of sellable SKUs by price, stock, and promo.
-     */
-    private void setupFilterBar() {
-        HBox bar = new HBox(20);
-        bar.setPadding(new Insets(15, 30, 15, 30));
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setStyle("-fx-background-color: white; -fx-background-radius: 20px; -fx-border-color: #F4F4F8; -fx-border-width: 1.5;");
-        
-        // Add premium shadow
-        DropShadow ds = new DropShadow(20, Color.rgb(0,0,0,0.08));
-        ds.setOffsetY(8);
-        bar.setEffect(ds);
-        
-        Label l = new Label("Filtrage Avancé :"); l.setStyle("-fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 15px;");
-        l.setGraphic(IconLibrary.getIcon(IconLibrary.SEARCH, 18, CORAIL));
-        l.setGraphicTextGap(10);
-        
-        MenuButton cats = new MenuButton("Familles de Produits");
-        cats.setStyle("-fx-background-color: " + BLANC_CASSE + "; -fx-background-radius: 50px; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 12px; -fx-padding: 6 18; -fx-cursor: hand;");
-        
-        HBox toggles = new HBox(12);
-        CheckBox cbPromo = new CheckBox("En solde 🏷️");
-        CheckBox cbStock = new CheckBox("En stock 📦");
-        String cbStyle = "-fx-background-color: " + BLANC_CASSE + "; -fx-background-radius: 50px; -fx-padding: 8 15; -fx-font-size: 11px; -fx-cursor: hand; -fx-text-fill: " + BLEU_NUIT + ";";
-        cbPromo.setStyle(cbStyle);
-        cbStock.setStyle(cbStyle);
-        toggles.getChildren().addAll(cbPromo, cbStock);
-        
-        Separator sep = new Separator(Orientation.VERTICAL);
-        sep.setPrefHeight(25);
-        
-        VBox pCont = new VBox(2);
-        Label pLabel = new Label("Tranche de Prix (MAD)"); pLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #999; -fx-font-weight: bold; -fx-letter-spacing: 0.5;");
-        HBox pRow = new HBox(12); pRow.setAlignment(Pos.CENTER_LEFT);
-        Slider pSlider = new Slider(0, 50000, 25000);
-        pSlider.setPrefWidth(140);
-        Label v = new Label("Max 25k"); v.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + "; -fx-font-size: 13px;");
-        pSlider.valueProperty().addListener((obs, oldVal, newVal) -> v.setText("Max " + newVal.intValue() + "k"));
-        pRow.getChildren().addAll(pSlider, v);
-        pCont.getChildren().addAll(pLabel, pRow);
-        
-        Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
-        
-        ComboBox<String> sort = new ComboBox<>(FXCollections.observableArrayList("Nouveautés ✨", "Prix croissant 📈", "Prix décroissant 📉", "Mieux notés ⭐"));
-        sort.setValue("Trier par");
-        sort.setStyle("-fx-background-color: white; -fx-border-color: " + CORAIL + "; -fx-border-radius: 50px; -fx-background-radius: 50px; -fx-font-size: 11px; -fx-padding: 3 10; -fx-font-weight: bold;");
-
-        bar.getChildren().addAll(l, cats, toggles, sep, pCont, spacer, sort);
-        
-        if (mainContent != null) {
-            VBox wrapper = new VBox(bar);
-            wrapper.setPadding(new Insets(10, 0, 30, 0));
-            mainContent.getChildren().add(0, wrapper);
-        }
-    }
-
     private void setupFooter() {
-        VBox f = new VBox(30);
+        VBox f = new VBox(20);
         f.setPadding(new Insets(50, 40, 30, 40));
         f.setStyle("-fx-background-color: " + BLEU_NUIT + ";");
         f.setAlignment(Pos.CENTER);
+        f.setId("footer-box");
 
         HBox cols = new HBox(60);
         cols.setAlignment(Pos.CENTER);
-        
-        VBox c1 = new VBox(10); c1.getChildren().addAll(new Label("Liens utiles"), new Label("À propos"), new Label("FAQ"), new Label("Retours"));
-        VBox c2 = new VBox(10); c2.getChildren().addAll(new Label("Social"), new Label("📸 Instagram"), new Label("🐦 Twitter"), new Label("📘 Facebook"));
-        VBox c3 = new VBox(10); c3.getChildren().addAll(new Label("Contact"), new Label("📧 help@chrionline.ma"), new Label("📞 +212 5 22 00 00"));
-        
-        for (VBox c : List.of(c1, c2, c3)) {
-            ((Label)c.getChildren().get(0)).setStyle("-fx-text-fill: " + SAFRAN + "; -fx-font-weight: bold;");
-            for (int i=1; i<c.getChildren().size(); i++) ((Label)c.getChildren().get(i)).setStyle("-fx-text-fill: #AAA; -fx-font-size: 12px;");
-        }
+
+        VBox c1 = new VBox(10);
+        Label h1 = new Label("Liens utiles");
+        h1.setStyle("-fx-text-fill: " + SAFRAN + "; -fx-font-weight: bold;");
+        c1.getChildren().addAll(h1, createFooterLabel("À propos"), createFooterLabel("FAQ"),
+                createFooterLabel("Retours"));
+
+        VBox c2 = new VBox(10);
+        Label h2 = new Label("Social");
+        h2.setStyle("-fx-text-fill: " + SAFRAN + "; -fx-font-weight: bold;");
+        c2.getChildren().addAll(h2, createFooterLabel("📸 Instagram"), createFooterLabel("🐦 Twitter"),
+                createFooterLabel("📘 Facebook"));
+
+        VBox c3 = new VBox(10);
+        Label h3 = new Label("Contact");
+        h3.setStyle("-fx-text-fill: " + SAFRAN + "; -fx-font-weight: bold;");
+        c3.getChildren().addAll(h3, createFooterLabel("📧 help@chrionline.ma"),
+                createFooterLabel("📞 +212 5 22 00 00"));
+
+        cols.getChildren().addAll(c1, c2, c3);
+
+        Separator s = new Separator();
+        s.setOpacity(0.1);
+        s.setMaxWidth(800);
 
         Label copy = new Label("© 2026 ChriOnline. Tous droits réservés.");
         copy.setStyle("-fx-text-fill: rgba(255,255,255,0.3); -fx-font-size: 10px;");
-        
-        cols.getChildren().addAll(c1, c2, c3);
-        f.getChildren().addAll(cols, new Separator(), copy);
-        
+
+        f.getChildren().addAll(cols, s, copy);
+
         if (mainContent != null) {
-            // Remove previous footer if any
-            mainContent.getChildren().removeIf(n -> n instanceof VBox && "footer-box".equals(n.getId()));
-            mainContent.getChildren().removeIf(n -> n instanceof Region && "footer-spacer".equals(n.getId()));
+            // Remove previous footer and spacer if any
+            mainContent.getChildren().removeIf(
+                    n -> n.getId() != null && (n.getId().equals("footer-box") || n.getId().equals("footer-spacer")));
 
             // Push footer to bottom
             Region spacer = new Region();
             spacer.setId("footer-spacer");
             VBox.setVgrow(spacer, Priority.ALWAYS);
-            
-            f.setId("footer-box");
+
             mainContent.getChildren().addAll(spacer, f);
         }
+    }
+
+    private Label createFooterLabel(String text) {
+        Label l = new Label(text);
+        l.setStyle("-fx-text-fill: rgba(255,255,255,0.6); -fx-font-size: 12px; -fx-cursor: hand;");
+        l.setOnMouseEntered(e -> l.setStyle("-fx-text-fill: " + SAFRAN + "; -fx-font-size: 12px; -fx-cursor: hand;"));
+        l.setOnMouseExited(
+                e -> l.setStyle("-fx-text-fill: rgba(255,255,255,0.6); -fx-font-size: 12px; -fx-cursor: hand;"));
+        return l;
     }
 
     private Reponse sendToServer(Requete req) {
@@ -714,23 +902,32 @@ public class MainHomeController implements Initializable {
             System.err.println("[MainHomeController] sendToServer error: " + e.getMessage());
             return null;
         }
+
     }
 
     private void showError(String msg, Runnable retry) {
         VBox b = new VBox(10);
         b.setAlignment(Pos.CENTER);
         b.setPadding(new Insets(40));
-        Label l = new Label("⚠️ " + msg); l.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
+        Label l = new Label("⚠️ " + msg);
+        l.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
         Button r = new Button("Réessayer");
-        r.setOnAction(e -> { mainContent.getChildren().remove(b); retry.run(); });
+        r.setOnAction(e -> {
+            mainContent.getChildren().remove(b);
+            retry.run();
+        });
         b.getChildren().addAll(l, r);
         mainContent.getChildren().add(b);
     }
 
     private void showToast(String msg) {
         Label t = new Label(msg);
-        t.setStyle("-fx-background-color: " + BLEU_NUIT + "; -fx-text-fill: white; -fx-padding: 10 20; -fx-background-radius: 50px;");
-        StackPane p = new StackPane(t); p.setAlignment(Pos.BOTTOM_RIGHT); StackPane.setMargin(t, new Insets(20));
+        t.setStyle("-fx-background-color: " + BLEU_NUIT
+                + "; -fx-text-fill: white; -fx-padding: 10 20; -fx-background-radius: 50px;");
+        StackPane p = new StackPane(t);
+        p.setAlignment(Pos.BOTTOM_RIGHT);
+        StackPane.setMargin(t, new Insets(20));
+        p.setMouseTransparent(true); // Make the toast not block clicks
         if (mainContent.getScene() != null) {
             StackPane root = (StackPane) mainContent.getScene().getRoot();
             root.getChildren().add(p);
@@ -738,42 +935,173 @@ public class MainHomeController implements Initializable {
         }
     }
 
-    @FXML private void handleHeroAction() { 
-        System.out.println("Hero Action: S24 Details");
+    @FXML
+    private void handleHeroAction() {
+        System.out.println("Hero Action: Click");
     }
 
-    @FXML private void handleCartClick() { 
+    @FXML
+    private void handleCartClick() {
         SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
     }
 
-    @FXML private void handleUserClick() { 
-        if (userAvatar == null) return;
-        
+    @FXML
+    private void handleUserClick() {
+        if (userAvatar == null)
+            return;
+
         ContextMenu userMenu = new ContextMenu();
         MenuItem miCompte = new MenuItem("Mon compte");
-        MenuItem miCommandes = new MenuItem("Mes commandes");
+        MenuItem miCommandes = new MenuItem("Mes commandes"); // Added missing item
         MenuItem miDeconnexion = new MenuItem("Déconnexion");
-        
+
         miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
         miDeconnexion.setOnAction(e -> {
             SessionManager.getInstance().fermer();
             SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
         });
-        
+
         userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
         userMenu.show(userAvatar, javafx.geometry.Side.BOTTOM, 0, 0);
     }
 
-    @FXML private void handleCategoryClick(javafx.event.ActionEvent event) {
-        if (event.getSource() instanceof Button) {
-            Button b = (Button) event.getSource();
-            System.out.println("Filter by Category: " + b.getText());
+
+    @FXML
+    private void handleLoginClick() {
+        SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+    }
+
+    @FXML
+    public void handleSearchAction(ActionEvent event) {
+        if (searchField != null) {
+            System.out.println("Search Action: " + searchField.getText());
         }
     }
 
-    @FXML private void handleSearch() { 
-        if (searchField != null) {
-            System.out.println("Search: " + searchField.getText());
+    private void handleCategoryCardClick(javafx.scene.input.MouseEvent event) {
+        // Actually we don't need this method anymore as we use setOnMouseClicked on dynamic cards
+    }
+
+    private void loadCategories() {
+        Task<Reponse> task = new Task<>() {
+            @Override
+            protected Reponse call() {
+                return sendToServer(new Requete(RequestType.GET_ALL_CATEGORIES, null, null));
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            Reponse rep = task.getValue();
+            if (rep != null && rep.isSucces()) {
+                List<?> categories = (List<?>) rep.getDonnees().get("categories");
+                Platform.runLater(() -> {
+                    if (categoriesContainer != null) {
+                        categoriesContainer.getChildren().clear();
+                        categoryCards.clear();
+
+                        // 1. All Products Card
+                        VBox allCard = createCategoryCard("Toutes les catégories", IconLibrary.CATEGORY);
+                        categoriesContainer.getChildren().add(allCard);
+
+                        // 2. DB Categories
+                        if (categories != null) {
+                            for (Object obj : categories) {
+                                String name = null;
+                                if (obj instanceof Map) {
+                                    Map<String, Object> catMap = (Map<String, Object>) obj;
+                                    name = (String) catMap.get("nom");
+                                } else if (obj instanceof Categorie) {
+                                    name = ((Categorie) obj).getNom();
+                                }
+
+                                if (name != null) {
+                                    String icon = getIconForCategory(name);
+                                    VBox card = createCategoryCard(name, icon);
+                                    categoriesContainer.getChildren().add(card);
+                                }
+                            }
+                        }
+
+                        // 3. Promotions Card
+                        VBox promoCard = createCategoryCard("Promotions", IconLibrary.TAG);
+                        promoCard.setUserData("PROMO");
+                        categoriesContainer.getChildren().add(promoCard);
+                        
+                        updateCategorySelectionVisuals();
+                    }
+                });
+            }
+        });
+        new Thread(task).start();
+    }
+
+    private String getIconForCategory(String name) {
+        if (name == null) return IconLibrary.CATEGORY;
+        String n = name.toLowerCase();
+        if (n.contains("phone") || n.contains("smart")) return IconLibrary.PHONE;
+        if (n.contains("access")) return IconLibrary.HEADPHONE;
+        if (n.contains("ordi") || n.contains("laptop") || n.contains("élec") || n.contains("info")) return IconLibrary.LAPTOP;
+        if (n.contains("montre") || n.contains("watch")) return IconLibrary.WATCH;
+        if (n.contains("vête") || n.contains("mode") || n.contains("chauss") || n.contains("maison")) return IconLibrary.TAG;
+        return IconLibrary.CATEGORY;
+    }
+
+    private VBox createCategoryCard(String name, String iconPath) {
+        VBox card = new VBox(8);
+        card.setAlignment(Pos.CENTER);
+        card.setPrefSize(120, 80);
+        card.setPadding(new Insets(12));
+        card.setCursor(javafx.scene.Cursor.HAND);
+        
+        // Base Style
+        card.setStyle("-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1.5px;");
+
+        SVGPath icon = IconLibrary.getIcon(iconPath, 24, CORAIL);
+        Label label = new Label(name);
+        label.setStyle("-fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 11px; -fx-font-weight: bold;");
+
+        card.getChildren().addAll(icon, label);
+
+        card.setOnMouseClicked(ev -> {
+            if ("PROMO".equals(card.getUserData())) {
+                selectedCategory = "Toutes les catégories";
+                showOnlyPromo = true;
+            } else {
+                selectedCategory = name;
+                showOnlyPromo = false;
+            }
+            
+            // Sync with top filter bar
+            if (catsFilter != null) catsFilter.setText(selectedCategory);
+            if (cbPromoFilter != null) cbPromoFilter.setSelected(showOnlyPromo);
+
+            updateCategorySelectionVisuals();
+            applyFilters();
+        });
+
+        categoryCards.add(card);
+        return card;
+    }
+
+    private void updateCategorySelectionVisuals() {
+        for (VBox card : categoryCards) {
+            Label label = (Label) card.getChildren().get(1);
+            String cardName = label.getText();
+            
+            boolean isSelected = false;
+            if ("PROMO".equals(card.getUserData())) {
+                isSelected = showOnlyPromo;
+            } else {
+                isSelected = selectedCategory.equals(cardName) && !showOnlyPromo;
+            }
+
+            if (isSelected) {
+                card.setStyle("-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: " + CORAIL + "; -fx-border-width: 2px;");
+                card.setEffect(new DropShadow(15, Color.rgb(255, 114, 76, 0.25)));
+            } else {
+                card.setStyle("-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1.5px;");
+                card.setEffect(null);
+            }
         }
     }
 }
