@@ -1,22 +1,16 @@
 package client.utils;
 
+import shared.Session;
+import model.Utilisateur;
+
 /**
- * Singleton gérant la session utilisateur côté client.
- * Stocke l'ID de l'utilisateur, son token de session servant à l'authentification
- * auprès du serveur, ainsi que ses informations de profil de base.
+ * Singleton class to manage the current user session on the client side.
  */
 public class SessionManager {
-
     private static SessionManager instance;
+    private Session currentSession;
 
-    private String token;
-    private int userId;
-    private String email;
-    private String userType;
-
-    private SessionManager() {
-        // Constructeur privé pour le singleton
-    }
+    private SessionManager() {}
 
     public static synchronized SessionManager getInstance() {
         if (instance == null) {
@@ -26,34 +20,30 @@ public class SessionManager {
     }
 
     /**
-     * Ouvre une session avec les informations fournies par le serveur.
+     * Initializes a new session after successful login.
      */
-    public void ouvrir(String token, int userId, String email, String userType) {
-        this.token = token;
-        this.userId = userId;
-        this.email = email;
-        this.userType = userType;
-        System.out.println("[SessionManager] Session ouverte pour ID: " + userId + " (" + userType + ")");
+    public void ouvrir(String token, Utilisateur user) {
+        this.currentSession = new Session(token, user);
+        System.out.println("[Client Session] Session ouverte pour : " + user.getEmail());
     }
 
     /**
-     * Ferme la session en cours.
+     * Clears the current session (logout).
      */
     public void fermer() {
-        this.token = null;
-        this.userId = -1;
-        this.email = null;
-        this.userType = null;
-        System.out.println("[SessionManager] Session fermée.");
+        this.currentSession = null;
+        System.out.println("[Client Session] Session fermée.");
     }
 
-    public boolean estConnecte() {
-        return token != null && userId > 0;
+    public Session getSession() {
+        return currentSession;
     }
 
-    // Getters
-    public String getToken() { return token; }
-    public int getUserId() { return userId; }
-    public String getEmail() { return email; }
-    public String getUserType() { return userType; }
+    public boolean isAuthenticated() {
+        return currentSession != null && currentSession.getToken() != null;
+    }
+
+    public Utilisateur getCurrentUser() {
+        return (currentSession != null) ? currentSession.getUtilisateur() : null;
+    }
 }

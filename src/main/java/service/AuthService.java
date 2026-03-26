@@ -3,20 +3,18 @@ package service;
 import dao.ClientDAO;
 import dao.UtilisateurDAO;
 import model.Client;
+import model.Utilisateur;
 import model.enums.TypeEtulisateur;
 import shared.Reponse;
 import shared.Requete;
+import server.utils.SessionManager;
 
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 public class AuthService {
-
-    private static final ConcurrentHashMap<String, Integer> sessions = new ConcurrentHashMap<>();
 
     public Reponse login(Requete requete) {
         try {
@@ -33,21 +31,19 @@ public class AuthService {
 
             if (userId == -1) {
                 return new Reponse(false, "Aucun compte trouvé avec cet email.", null);
-            }else if (userId == 0) {
+            } else if (userId == 0) {
                 return new Reponse(false, "Mot de passe incorrect.", null);
             }
 
-            String token = UUID.randomUUID().toString();
-            sessions.put(token, userId);
-
-            TypeEtulisateur type = UtilisateurDAO.userType(userId);
+            Utilisateur user = UtilisateurDAO.findById(userId);
+            String token = SessionManager.getInstance().creerSession(user);
 
             Map<String, Object> donnees = new HashMap<>();
             donnees.put("token" ,token);
-            donnees.put("userId",userId);
-            donnees.put("typeUtilisateur", type.name());
+            donnees.put("utilisateur", user); // This will include all info (nom, prenom for Client)
+            donnees.put("typeUtilisateur", (user instanceof Client) ? "CLIENT" : "ADMIN");
 
-            System.out.println("[AuthService] Login OK — userId=" + userId + " type=" + type + " token=" + token);
+            System.out.println("[AuthService] Login OK — email=" + email + " token=" + token);
             return new Reponse(true, "Connexion réussie.", donnees);
 
         } catch (SQLException e) {
@@ -87,11 +83,7 @@ public class AuthService {
             Client client = clientDAO.create(email, motDePasse, nom, prenom, telephone);
 
             Map<String, Object> donnees = new HashMap<>();
-            donnees.put("userId",    client.getIdUtilisateur());
-            donnees.put("email",     client.getEmail());
-            donnees.put("nom",       client.getNom());
-            donnees.put("prenom",    client.getPrenom());
-            donnees.put("createdAt", client.getCreatedAt().toString());
+            donnees.put("utilisateur", client);
 
             System.out.println("[AuthService] Signup OK — userId=" + client.getIdUtilisateur());
             return new Reponse(true, "Compte créé avec succès.", donnees);
@@ -109,21 +101,20 @@ public class AuthService {
             return new Reponse(false, "Aucun token de session fourni.", null);
         }
 
-        if (sessions.remove(token) != null) {
-            System.out.println("[AuthService] Logout OK — token=" + token);
-            return new Reponse(true, "Déconnexion réussie.", null);
-        } else {
-            return new Reponse(false, "Token invalide ou déjà expiré.", null);
-        }
+        SessionManager.getInstance().fermerSession(token);
+        System.out.println("[AuthService] Logout OK — token=" + token);
+        return new Reponse(true, "Déconnexion réussie.", null);
     }
 
-
     public static int getUserIdFromToken(String token) {
-        if (token == null) return -1;
-        return sessions.getOrDefault(token, -1);
+        if (!SessionManager.getInstance().validerToken(token)) {
+            return -1;
+        }
+        Utilisateur user = SessionManager.getInstance().getUtilisateur(token);
+        return (user != null) ? user.getIdUtilisateur() : -1;
     }
 
     public static boolean isAuthenticated(String token) {
-        return getUserIdFromToken(token) > 0;
+        return SessionManager.getInstance().validerToken(token);
     }
 }
