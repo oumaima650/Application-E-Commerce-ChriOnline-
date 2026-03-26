@@ -19,9 +19,6 @@ import javax.net.ssl.*;
 import java.io.*;
 import java.net.Socket;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -107,11 +104,9 @@ public class LoginController implements Initializable {
             return;
         }
 
-        String hashedPassword = sha256(password);
-
         Map<String, Object> params = new HashMap<>();
         params.put("email",      email);
-        params.put("motDePasse", hashedPassword);
+        params.put("motDePasse", password);
 
         Requete requete = new Requete(RequestType.LOGIN, params, null);
 
@@ -185,11 +180,9 @@ public class LoginController implements Initializable {
             return;
         }
 
-        String hashedPassword = sha256(password);
-
         Map<String, Object> params = new HashMap<>();
         params.put("email",      email);
-        params.put("motDePasse", hashedPassword);
+        params.put("motDePasse", password);
         params.put("nom",        nom);
         params.put("prenom",     prenom);
         params.put("telephone",  phone);
@@ -273,28 +266,6 @@ public class LoginController implements Initializable {
         });
     }
 
-    /**
-     * Hashes a plain-text password with SHA-256.
-     * Returns a lowercase hex string (64 chars).
-     * Falls back to the original string if SHA-256 is unavailable (should never happen on JVM).
-     */
-    public static String sha256(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-
-            StringBuilder hex = new StringBuilder(64);
-            for (byte b : hashBytes) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-
-        } catch (NoSuchAlgorithmException e) {
-            // SHA-256 is always available in Java — this branch is unreachable
-            System.err.println("[LoginController] SHA-256 unavailable: " + e.getMessage());
-            return input;
-        }
-    }
 
     // ══════════════════════════════════════════════════════════════════════
     // TCP COMMUNICATION  (runs on background thread via runAsync)
@@ -361,8 +332,8 @@ public class LoginController implements Initializable {
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
             System.out.println("[LoginController] Navigation vers la boutique...");
-            SceneManager.switchTo("produits.fxml", "ChriOnline - Produits");
-            //SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
+            //SceneManager.switchTo("produits.fxml", "ChriOnline - Produits");
+            SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
         }
     }
 
