@@ -138,10 +138,26 @@ public class CommandeDAO {
         commande.setIdAdresse(rs.getObject("idAdresse", Integer.class));
         commande.setReference(rs.getString("reference"));
         
-        // Gérer le statut ENUM
-        try {
-            commande.setStatut(StatutCommande.valueOf(rs.getString("statut").toUpperCase()));
-        } catch (Exception e) {
+        // Gérer le statut ENUM (Supporte le minuscule accentué de la DB)
+        String dbStatut = rs.getString("statut");
+        if (dbStatut != null) {
+            dbStatut = dbStatut.toLowerCase().trim();
+            if (dbStatut.equals("en_attente") || dbStatut.equals("en attente")) {
+                commande.setStatut(StatutCommande.EN_ATTENTE);
+            } else if (dbStatut.equals("validée") || dbStatut.equals("validee")) {
+                commande.setStatut(StatutCommande.VALIDEE);
+            } else if (dbStatut.equals("expédiée") || dbStatut.equals("expediee")) {
+                commande.setStatut(StatutCommande.EXPEDIEE);
+            } else if (dbStatut.equals("livrée") || dbStatut.equals("livree")) {
+                commande.setStatut(StatutCommande.LIVREE);
+            } else {
+                try {
+                    commande.setStatut(StatutCommande.valueOf(dbStatut.toUpperCase()));
+                } catch (Exception e) {
+                    commande.setStatut(StatutCommande.EN_ATTENTE);
+                }
+            }
+        } else {
             commande.setStatut(StatutCommande.EN_ATTENTE);
         }
         
@@ -179,7 +195,7 @@ public class CommandeDAO {
             stmt.setInt(1, commande.getIdClient());
             stmt.setObject(2, commande.getIdAdresse());
             stmt.setString(3, commande.getReference());
-            stmt.setString(4, commande.getStatut().name().toLowerCase());
+            stmt.setString(4, commande.getStatut().name().toUpperCase());
             stmt.setObject(5, commande.getDateLivraisonPrevue());
             stmt.setTimestamp(6, Timestamp.valueOf(LocalDateTime.now()));
             stmt.setTimestamp(7, Timestamp.valueOf(LocalDateTime.now()));
@@ -205,7 +221,7 @@ public class CommandeDAO {
         
         try (Connection connection = ConnexionBDD.getConnection();
              PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setString(1, nouveauStatut.name().toLowerCase());
+            stmt.setString(1, nouveauStatut.name().toUpperCase());
             stmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
             stmt.setInt(3, idCommande);
             

@@ -55,6 +55,12 @@ public class CommandeService {
                     commandeMap.put("date", "N/A");
                 }
                 
+                if (commande.getDateLivraisonReelle() != null) {
+                    commandeMap.put("date_livraison_reelle", commande.getDateLivraisonReelle().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                } else {
+                    commandeMap.put("date_livraison_reelle", "");
+                }
+                
                 // Calculer le total et résumé des articles
                 if (commande.getLignes() != null && !commande.getLignes().isEmpty()) {
                     double total = commande.getLignes().stream()
@@ -127,6 +133,12 @@ public class CommandeService {
                 } else {
                     commandeMap.put("created_at", null);
                     commandeMap.put("date", "N/A");
+                }
+                
+                if (commande.getDateLivraisonReelle() != null) {
+                    commandeMap.put("date_livraison_reelle", commande.getDateLivraisonReelle().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                } else {
+                    commandeMap.put("date_livraison_reelle", "");
                 }
                 
                 // Calculer le total et résumé des articles
