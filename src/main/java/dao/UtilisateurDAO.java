@@ -16,25 +16,32 @@ public class UtilisateurDAO {
         return ConnexionBDD.getConnection();
     }
 
-    public static int verifyLogInInformations(String email, String motDePasse) throws SQLException {
-        if (userExist(email)) {
-            String getInfoRequete = "SELECT IdUtilisateur from Utilisateur WHERE email = ? AND motDePasse = ? ";
-            try (PreparedStatement ps = getConn().prepareStatement(getInfoRequete)) {
-                ps.setString(1, email);
-                ps.setString(2, motDePasse);
+    public record LoginData(int id, String hash) {}
 
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getInt(1);
-                    } else {
-                        // hadi password ghalet
-                        return 0;
-                    }
+    /**
+     * Gets the user ID and password hash for a given email.
+     * @return LoginData or null if user doesn't exist.
+     */
+    public static LoginData getLoginData(String email) throws SQLException {
+        String sql = "SELECT IdUtilisateur, motDePasse FROM Utilisateur WHERE email = ?";
+        try (PreparedStatement ps = getConn().prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new LoginData(rs.getInt(1), rs.getString(2));
                 }
             }
         }
-        // hadi ze3ma user makaynch
-        return -1;
+        return null;
+    }
+
+    /**
+     * @deprecated Use PasswordService.verify with getLoginData instead.
+     */
+    @Deprecated
+    public static int verifyLogInInformations(String email, String motDePasse) throws SQLException {
+        // ... kept for temporary compatibility if needed
+        return -1; 
     }
 
 
