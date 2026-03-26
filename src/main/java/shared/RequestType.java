@@ -67,7 +67,7 @@ public enum RequestType {
     DELETE_SKU,
     ADD_VALUE_TO_SKU,
     REMOVE_VALUE_FROM_SKU,
-    MARK_NOTIFICATION_READ,
+
     
     // Admin operations
     ADMIN_GET_ALL_PRODUCTS,
