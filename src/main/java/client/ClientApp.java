@@ -50,7 +50,7 @@ public class ClientApp extends Application {
             shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER_UDP_PORT, params, "ADMIN_TOKEN");
             shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
             
-            if (reponse.isSuccess()) {
+            if (reponse.isSucces()) {
                 System.out.println("[ClientApp] Port UDP " + UDP_PORT + " enregistré avec succès");
             } else {
                 System.err.println("[ClientApp] Erreur enregistrement port UDP: " + reponse.getMessage());
