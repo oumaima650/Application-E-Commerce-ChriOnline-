@@ -74,7 +74,7 @@ public class CommandeDAO {
     /**
      * Récupérer les commandes avec filtres
      */
-    public List<Commande> findWithFilters(int idClient, String statutFilter, String dateFilter, String categorieFilter) throws SQLException {
+    public List<Commande> findWithFilters(int idClient, String statutFilter, String dateFilter) throws SQLException {
         List<Commande> commandes = new ArrayList<>();
         // Note: La jointure avec Produit/Categorie nécessite une structure SKU-Produit que nous simplifions ici si nécessaire.
         StringBuilder query = new StringBuilder("SELECT c.* FROM Commande c WHERE c.IdClient = ?");
@@ -142,10 +142,18 @@ public class CommandeDAO {
         try {
             String dbStatut = rs.getString("statut");
             if (dbStatut != null) {
-                dbStatut = dbStatut.toUpperCase().replace("É", "E").replace("Ê", "E").replace("È", "E");
+                // On met en majuscules et on remplace les accents courants
+                dbStatut = dbStatut.toUpperCase()
+                                   .replace("É", "E")
+                                   .replace("È", "E")
+                                   .replace("Ê", "E")
+                                   .replace(" ", "_"); // Gère "EN ATTENTE" -> "EN_ATTENTE"
+
+                // On vérifie les mots clés pour être sûr de matcher l'Enum
                 if (dbStatut.contains("LIVRE")) dbStatut = "LIVREE";
                 else if (dbStatut.contains("EXPEDIE")) dbStatut = "EXPEDIEE";
                 else if (dbStatut.contains("VALIDE")) dbStatut = "VALIDEE";
+                
                 commande.setStatut(StatutCommande.valueOf(dbStatut));
             } else {
                 commande.setStatut(StatutCommande.EN_ATTENTE);
@@ -188,7 +196,7 @@ public class CommandeDAO {
             stmt.setInt(1, commande.getIdClient());
             stmt.setObject(2, commande.getIdAdresse());
             stmt.setString(3, commande.getReference());
-            stmt.setString(4, commande.getStatut().name().toLowerCase());
+            stmt.setString(4, commande.getStatut().name().toUpperCase());
             stmt.setObject(5, commande.getDateLivraisonPrevue());
             stmt.setTimestamp(6, Timestamp.valueOf(LocalDateTime.now()));
             stmt.setTimestamp(7, Timestamp.valueOf(LocalDateTime.now()));
@@ -214,7 +222,7 @@ public class CommandeDAO {
         
         try (Connection connection = ConnexionBDD.getConnection();
              PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setString(1, nouveauStatut.name().toLowerCase());
+            stmt.setString(1, nouveauStatut.name().toUpperCase());
             stmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
             stmt.setInt(3, idCommande);
             
