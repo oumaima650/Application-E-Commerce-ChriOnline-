@@ -4,11 +4,11 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.cell.PropertyValueFactory?>
 
-<BorderPane styleClass="root" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AdminController">
+<BorderPane style="-fx-background-color: #F4F4F8;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AdminController">
     <!-- Header Admin -->
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #24316B; -fx-padding: 15px 30px;">
-            <Label text="ChriOnline Admin" style="-fx-text-fill: #F8FFA1; -fx-font-weight: bold; -fx-font-size: 24px;"/>
+        <HBox alignment="CENTER_LEFT" spacing="20" styleClass="navbar" style="-fx-padding: 15px 30px;">
+            <Label text="ChriOnline Admin" styleClass="navbar-logo" style="-fx-font-size: 24px;"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button text="🔔" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 13px;" onAction="#ouvrirNotifications"/>
             <Button text="Se déconnecter" styleClass="btn-primary"/>
@@ -56,26 +56,18 @@
             <Tab text="🛒 Commandes">
                 <VBox spacing="15" style="-fx-padding: 20px;">
                     <HBox spacing="15" alignment="CENTER_LEFT">
-                        <TextField promptText="Filtrer les commandes..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
+                        <TextField fx:id="searchCommandeField" promptText="Filtrer les commandes..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
                     </HBox>
                     <TableView fx:id="tableCommandes" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
-                            <TableColumn text="ID Commande" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="id" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Client" prefWidth="150">
-                                <cellValueFactory><PropertyValueFactory property="client" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Date" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="date" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Total" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="total" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Statut" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="statut" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn fx:id="colActionsCommande" text="Changer Statut" prefWidth="180"/>
+                            <TableColumn fx:id="colId" text="ID commande" prefWidth="80"/>
+                            <TableColumn fx:id="colClient" text="Client" prefWidth="100"/>
+                            <TableColumn fx:id="colDate" text="Date commande" prefWidth="150"/>
+                            <TableColumn fx:id="colAdresse" text="Adresse livraison" prefWidth="200"/>
+                            <TableColumn fx:id="colTotal" text="Total" prefWidth="100"/>
+                            <TableColumn fx:id="colDateLivraisonPrevue" text="Livr. prévue" prefWidth="130"/>
+                            <TableColumn fx:id="colDateLivraisonReelle" text="Livr. réelle" prefWidth="130"/>
+                            <TableColumn fx:id="colActionsCommande" text="Statut" prefWidth="150"/>
                         </columns>
                     </TableView>
                 </VBox>
