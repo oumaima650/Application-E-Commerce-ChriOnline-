@@ -12,14 +12,26 @@ public class ProduitDAO {
 
         List<Produit> produits = new ArrayList<>();
         String query = "SELECT * FROM Produit";
+        
+        System.out.println("[ProduitDAO] Tentative de récupération des produits...");
+        System.out.println("[ProduitDAO] Query: " + query);
 
         try (Connection conn = ConnexionBDD.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
+            
+            System.out.println("[ProduitDAO] Connexion BD réussie, exécution de la requête...");
+            
             while (rs.next()) {
                 produits.add(mapResultSetToProduit(rs));
             }
+            
+            System.out.println("[ProduitDAO] " + produits.size() + " produits trouvés dans la base de données");
+            
         } catch (SQLException e) {
+            System.err.println("[ProduitDAO] Erreur SQL: " + e.getMessage());
+            System.err.println("[ProduitDAO] SQL State: " + e.getSQLState());
+            e.printStackTrace();
             throw new RuntimeException("Erreur lors de la récupération de tous les produits", e);
         }
         return produits;
@@ -30,6 +42,9 @@ public class ProduitDAO {
     public Produit getById(int id) {
 
         String query = "SELECT * FROM Produit WHERE idProduit = ?"; // protege contre les injections SQL
+        
+        System.out.println("[ProduitDAO] Tentative de récupération du produit id=" + id + "...");
+        System.out.println("[ProduitDAO] Query: " + query);
 
         try (Connection conn = ConnexionBDD.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {

@@ -8,6 +8,7 @@ public enum RequestType {
     
     //produits
     GET_ALL_PRODUITS,
+    GET_ALL_PRODUITS_AFFICHABLES,
     GET_PRODUIT_BY_ID,
     SEARCH_PRODUITS_BY_NOM,
     ADD_PRODUIT,

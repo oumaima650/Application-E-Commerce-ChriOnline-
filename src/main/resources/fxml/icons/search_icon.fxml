@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.shape.SVGPath?>
+<?import javafx.scene.paint.Color?>
+
+<SVGPath xmlns="http://javafx.com/javafx/17" 
+         content="M21 21l-4.35-4.35M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"
+         stroke="#888" strokeWidth="2" fill="null"
+         strokeLineCap="round" strokeLineJoin="round"/>
