@@ -40,9 +40,27 @@ public class AdminService {
     }
 */
     public Reponse getAllOrders(Requete requete) {
+        Map<String, Object> params = requete.getParametres();
         try {
+            String queryArg = params != null ? (String) params.get("query") : null;
             dao.CommandeDAO commandeDAO = new dao.CommandeDAO();
-            List<model.Commande> commandes = commandeDAO.getAdminOrders();
+            List<model.Commande> commandes = new java.util.ArrayList<>();
+            
+            if (queryArg == null || queryArg.trim().isEmpty()) {
+                commandes = commandeDAO.getAdminOrders();
+            } else {
+                queryArg = queryArg.trim();
+                model.Commande c = commandeDAO.findByReference(queryArg);
+                if (c != null) {
+                    commandes.add(c);
+                } else {
+                    try {
+                        int idClient = Integer.parseInt(queryArg);
+                        commandes = commandeDAO.findWithFilters(idClient, null, null, null);
+                    } catch (NumberFormatException e) {
+                    }
+                }
+            }
             
             List<Map<String, Object>> commandesData = new java.util.ArrayList<>();
             for (model.Commande c : commandes) {
@@ -78,12 +96,8 @@ public class AdminService {
                 }
                 map.put("total", String.format("%.2f MAD", total).replace(",", " "));
                 
-                String statut = c.getStatut().name();
-                if (c.getStatut() == model.enums.StatutCommande.VALIDEE) statut = "Validée";
-                if (c.getStatut() == model.enums.StatutCommande.EXPEDIEE) statut = "Expédiée";
-                if (c.getStatut() == model.enums.StatutCommande.LIVREE) statut = "Livrée";
-                
-                map.put("statut", statut);
+                map.put("total", String.format("%.2f MAD", total).replace(",", " "));
+                map.put("statut", c.getStatut().name());
                 commandesData.add(map);
             }
             
@@ -148,12 +162,8 @@ public class AdminService {
                 }
                 map.put("total", String.format("%.2f MAD", total).replace(",", " "));
                 
-                String statut = c.getStatut().name();
-                if (c.getStatut() == model.enums.StatutCommande.VALIDEE) statut = "Validée";
-                if (c.getStatut() == model.enums.StatutCommande.EXPEDIEE) statut = "Expédiée";
-                if (c.getStatut() == model.enums.StatutCommande.LIVREE) statut = "Livrée";
-                
-                map.put("statut", statut);
+                map.put("total", String.format("%.2f MAD", total).replace(",", " "));
+                map.put("statut", c.getStatut().name());
                 commandesData.add(map);
             }
             
@@ -247,6 +257,11 @@ public class AdminService {
             boolean success = commandeDAO.updateStatus(orderId, st);
             
             if (success) {
+                // Si la commande est marquée comme "Livrée", on met à jour la date de livraison réelle
+                if (st == model.enums.StatutCommande.LIVREE) {
+                    commandeDAO.setDateLivraisonReelle(orderId, java.time.LocalDateTime.now());
+                }
+
                 // Envoyer notification UDP au client concerné
                 int clientId = commandeDAO.getClientIdFromOrder(orderId);
                 if (clientId > 0) {

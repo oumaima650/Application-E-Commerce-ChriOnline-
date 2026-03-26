@@ -140,7 +140,16 @@ public class CommandeDAO {
         
         // Gérer le statut ENUM
         try {
-            commande.setStatut(StatutCommande.valueOf(rs.getString("statut").toUpperCase()));
+            String dbStatut = rs.getString("statut");
+            if (dbStatut != null) {
+                dbStatut = dbStatut.toUpperCase().replace("É", "E").replace("Ê", "E").replace("È", "E");
+                if (dbStatut.contains("LIVRE")) dbStatut = "LIVREE";
+                else if (dbStatut.contains("EXPEDIE")) dbStatut = "EXPEDIEE";
+                else if (dbStatut.contains("VALIDE")) dbStatut = "VALIDEE";
+                commande.setStatut(StatutCommande.valueOf(dbStatut));
+            } else {
+                commande.setStatut(StatutCommande.EN_ATTENTE);
+            }
         } catch (Exception e) {
             commande.setStatut(StatutCommande.EN_ATTENTE);
         }

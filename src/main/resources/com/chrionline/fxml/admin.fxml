@@ -60,17 +60,14 @@
                     </HBox>
                     <TableView fx:id="tableCommandes" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
-                            <TableColumn fx:id="colId" text="#ID" prefWidth="80"/>
-                            <TableColumn fx:id="colClient" text="Client #" prefWidth="100"/>
+                            <TableColumn fx:id="colId" text="ID commande" prefWidth="80"/>
+                            <TableColumn fx:id="colClient" text="Client" prefWidth="100"/>
                             <TableColumn fx:id="colDate" text="Date commande" prefWidth="150"/>
                             <TableColumn fx:id="colAdresse" text="Adresse livraison" prefWidth="200"/>
                             <TableColumn fx:id="colTotal" text="Total" prefWidth="100"/>
                             <TableColumn fx:id="colDateLivraisonPrevue" text="Livr. prévue" prefWidth="130"/>
                             <TableColumn fx:id="colDateLivraisonReelle" text="Livr. réelle" prefWidth="130"/>
-                            <TableColumn text="Statut" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="statut" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn fx:id="colActionsCommande" text="Changer statut" prefWidth="180"/>
+                            <TableColumn fx:id="colActionsCommande" text="Statut" prefWidth="150"/>
                         </columns>
                     </TableView>
                 </VBox>

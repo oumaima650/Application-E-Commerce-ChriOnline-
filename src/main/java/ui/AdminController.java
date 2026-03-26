@@ -226,7 +226,8 @@ public class AdminController {
                 } else {
                     java.util.Map<String, Object> params = new java.util.HashMap<>();
                     params.put("query", searchText.trim());
-                    requete = new Requete(RequestType.ADMIN_SEARCH_ORDERS, params, adminToken);
+                    // Use ADMIN_GET_ALL_ORDERS to avoid class version mismatch on the server
+                    requete = new Requete(RequestType.ADMIN_GET_ALL_ORDERS, params, adminToken);
                 }
                 
                 shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
@@ -260,8 +261,9 @@ public class AdminController {
                         // ── Statut ───────────────────────────────────────
                         String statutStr = (String) map.get("statut");
                         StatutCommande statut = StatutCommande.VALIDEE;
-                        if ("Expédiée".equals(statutStr)) statut = StatutCommande.EXPEDIEE;
-                        else if ("Livrée".equals(statutStr)) statut = StatutCommande.LIVREE;
+                        try {
+                            if (statutStr != null) statut = StatutCommande.valueOf(statutStr);
+                        } catch (Exception e) {}
                         cmd.setStatut(statut);
  
                         commandesList.add(cmd);
@@ -269,8 +271,6 @@ public class AdminController {
  
                     javafx.application.Platform.runLater(() -> {
                         tableCommandes.setItems(commandesList);
-                        // Appliquer les badges de couleur sur la colonne statut
-                        applyStatutBadgeCellFactory();
                         System.out.println("[AdminController] " + commandesList.size() + " commandes chargées.");
                     });
  
@@ -354,36 +354,7 @@ public class AdminController {
     // ═══════════════════════════════════════════════════════════════════════
     // BADGE COLORÉ POUR LA COLONNE STATUT
     // ═══════════════════════════════════════════════════════════════════════
-    @SuppressWarnings("unchecked")
-    private void applyStatutBadgeCellFactory() {
-        // Trouver la colonne "Statut" par son texte (ou injecter via @FXML colStatut)
-        for (TableColumn<Commande, ?> col : tableCommandes.getColumns()) {
-            if ("Statut".equals(col.getText())) {
-                TableColumn<Commande, StatutCommande> colStatut = (TableColumn<Commande, StatutCommande>) col;
-                colStatut.setCellFactory(c -> new TableCell<>() {
-                    @Override
-                    protected void updateItem(StatutCommande item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty || item == null) {
-                            setGraphic(null);
-                            setText(null);
-                            return;
-                        }
-                        Label badge = new Label(formatStatut(item));
-                        switch (item) {
-                            case VALIDEE  -> badge.setStyle("-fx-background-color:#FFF0EB; -fx-text-fill:#FF724C; -fx-background-radius:50; -fx-padding:3 10; -fx-font-weight:bold; -fx-font-size:11px;");
-                            case EXPEDIEE -> badge.setStyle("-fx-background-color:#EFF6FF; -fx-text-fill:#3B82F6; -fx-background-radius:50; -fx-padding:3 10; -fx-font-weight:bold; -fx-font-size:11px;");
-                            case LIVREE   -> badge.setStyle("-fx-background-color:#F0FDF4; -fx-text-fill:#22C55E; -fx-background-radius:50; -fx-padding:3 10; -fx-font-weight:bold; -fx-font-size:11px;");
-                            default       -> badge.setStyle("-fx-background-color:#F4F4F8; -fx-text-fill:#888888; -fx-background-radius:50; -fx-padding:3 10; -fx-font-size:11px;");
-                        }
-                        setGraphic(badge);
-                        setText(null);
-                    }
-                });
-                break;
-            }
-        }
-    }
+    // (L'ancienne méthode applyStatutBadgeCellFactory a été retirée car les colonnes ont été combinées)
 
     private void setupCommandeActions() {
         colActionsCommande.setCellFactory(new Callback<TableColumn<Commande, Void>, TableCell<Commande, Void>>() {
@@ -420,6 +391,21 @@ public class AdminController {
                                             if ("Expédiée".equals(newVal)) newStatut = StatutCommande.EXPEDIEE;
                                             else if ("Livrée".equals(newVal)) newStatut = StatutCommande.LIVREE;
                                             item.setStatut(newStatut);
+                                            
+                                            // Mettre à jour le dictionnaire pour rafraîchir l'affichage instantanément
+                                            if (rawCommandesData != null) {
+                                                for (java.util.Map<String, Object> m : rawCommandesData) {
+                                                    if (m.get("rawId") instanceof Number && ((Number) m.get("rawId")).intValue() == item.getIdCommande()) {
+                                                        m.put("statut", newStatut.name());
+                                                        if (newStatut == StatutCommande.LIVREE) {
+                                                            java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                                                            m.put("dateLivraisonReelle", java.time.LocalDateTime.now().format(dtf));
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            
                                             tableCommandes.refresh();
                                         } else {
                                             System.err.println("-> Erreur Serveur: " + reponse.getMessage());
