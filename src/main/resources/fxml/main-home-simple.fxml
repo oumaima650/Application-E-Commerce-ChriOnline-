@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.MainHomeController">
+    
+    <!-- TOP NAVBAR -->
+    <top>
+        <HBox style="-fx-background-color: #2A2C41; -fx-padding: 0 16;" prefHeight="56" alignment="CENTER_LEFT">
+            <!-- Logo -->
+            <Label fx:id="logoLabel" text="ChriOnline" style="-fx-text-fill: #FDBF50; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+            
+            <!-- Spacer -->
+            <Region HBox.hgrow="ALWAYS"/>
+            
+            <!-- Search Bar -->
+            <TextField fx:id="searchField" promptText="Rechercher des produits..." style="-fx-background-color: rgba(255,255,255,0.08); -fx-background-radius: 50px; -fx-text-fill: white; -fx-prompt-text-fill: rgba(255,255,255,0.6); -fx-font-size: 13px; -fx-padding: 8 16;" prefWidth="240" onAction="#handleSearch"/>
+            
+            <!-- Spacer -->
+            <Region prefWidth="20"/>
+            
+            <!-- Cart Button -->
+            <Button fx:id="cartButton" text="Panier (0)" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-background-radius: 50px; -fx-padding: 8 16; -fx-cursor: hand;" onAction="#handleCartClick"/>
+            
+            <!-- Spacer -->
+            <Region prefWidth="16"/>
+            
+            <!-- User Avatar -->
+            <Label fx:id="userInitial" text="U" style="-fx-background-color: #FF724C; -fx-background-radius: 50px; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8 12; -fx-cursor: hand;" onMouseClicked="#handleUserClick"/>
+        </HBox>
+    </top>
+    
+    <!-- CENTER CONTENT -->
+    <center>
+        <ScrollPane style="-fx-background-color: #F4F4F8; -fx-border-width: 0;" fitToWidth="true">
+            <VBox fx:id="mainContent" style="-fx-padding: 24; -fx-spacing: 28;">
+                
+                <!-- HERO BANNER -->
+                <StackPane style="-fx-pref-height: 200px; -fx-background-color: #2A2C41; -fx-background-radius: 20px;">
+                    <VBox alignment="CENTER_LEFT" style="-fx-padding: 32;">
+                        <Label fx:id="heroBadge" text="NOUVELLE COLLECTION" style="-fx-background-color: rgba(253,191,80,0.15); -fx-text-fill: #FDBF50; -fx-background-radius: 50px; -fx-padding: 4 12; -fx-font-size: 9px; -fx-font-weight: bold;"/>
+                        <Label fx:id="heroTitle" text="Smartphones&#10;Haut de Gamme" style="-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;"/>
+                        <Label fx:id="heroSubtitle" text="Découvrez notre sélection des derniers modèles" style="-fx-text-fill: rgba(255,255,255,0.55); -fx-font-size: 13px;"/>
+                        <Button fx:id="heroButton" text="Découvrir →" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-background-radius: 50px; -fx-padding: 10 24; -fx-font-weight: bold; -fx-cursor: hand;" onAction="#handleHeroAction"/>
+                    </VBox>
+                </StackPane>
+                
+                <!-- SECTION TITLE -->
+                <HBox alignment="CENTER_LEFT" style="-fx-spacing: 12;">
+                    <Label fx:id="sectionTitle" text="Top Produits" style="-fx-text-fill: #2A2C41; -fx-font-size: 20px; -fx-font-weight: bold;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="voirToutButton" text="Voir tout" style="-fx-text-fill: #FF724C; -fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
+                </HBox>
+                
+                <!-- PRODUCT GRID -->
+                <FlowPane fx:id="productGrid" style="-fx-hgap: 14; -fx-vgap: 14; -fx-pref-wrap-length: 680;">
+                    <!-- Products will be added dynamically -->
+                </FlowPane>
+                
+            </VBox>
+        </ScrollPane>
+    </center>
+    
+</BorderPane>

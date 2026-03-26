@@ -7,6 +7,7 @@ import service.CarteBancaireService;
 import service.CategorieService;
 import service.NotificationService;
 import service.PaiementService;
+import service.ProduitAffichableService;
 import service.ProduitService;
 import service.ProduitVarValeurService;
 import service.SKUService;
@@ -20,6 +21,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 
 public class ClientHandler implements Runnable {
 
@@ -32,6 +34,7 @@ public class ClientHandler implements Runnable {
     private final NotificationService notificationService;
     private final PaiementService paiementService;
     private final ProduitService produitService;
+    private final ProduitAffichableService produitAffichableService;
     private final service.CommandeService commandeService;
     private final VarianteService varianteService;
     private final ProduitVarValeurService pvvService;
@@ -51,6 +54,7 @@ public class ClientHandler implements Runnable {
         this.notificationService = new NotificationService();
         this.paiementService = new PaiementService();
         this.produitService = new ProduitService();
+        this.produitAffichableService = new ProduitAffichableService();
         this.commandeService = new service.CommandeService();
         this.varianteService = new VarianteService();
         this.pvvService = new ProduitVarValeurService();
@@ -117,7 +121,21 @@ public class ClientHandler implements Runnable {
             // PUBLIC OPERATIONS (No Auth)
             // ───────────────────────────────
             case GET_ALL_PRODUITS -> produitService.getAll(requete);
+            case GET_ALL_PRODUITS_AFFICHABLES -> {
+                System.out.println("[ClientHandler] Traitement GET_ALL_PRODUITS_AFFICHABLES...");
+                Reponse response = produitAffichableService.getAll(requete);
+                System.out.println("[ClientHandler] Réponse GET_ALL_PRODUITS_AFFICHABLES: " + (response.isSucces() ? "SUCCÈS" : "ÉCHEC"));
+                if (response.isSucces() && response.getDonnees() != null) {
+                    Object produitsObj = response.getDonnees().get("produits");
+                    if (produitsObj instanceof List) {
+                        List<?> produits = (List<?>) produitsObj;
+                        System.out.println("[ClientHandler] Nombre de produits retournés: " + produits.size());
+                    }
+                }
+                yield response;
+            }
             case GET_PRODUIT_BY_ID -> produitService.getById(requete);
+            case GET_PRODUIT_COMPLET_AVEC_VARIANTES -> produitService.getProduitCompletAvecVariantes(requete);
             case SEARCH_PRODUITS_BY_NOM -> produitService.rechercherParNom(requete);
             case COUNT_PRODUITS -> produitService.compter(requete);
 
@@ -133,6 +151,8 @@ public class ClientHandler implements Runnable {
             case GET_ALL_SKUS -> skuService.getAll(requete);
             case GET_SKU_BY_PRODUIT -> skuService.getByProduit(requete);
             case GET_SKU_BY_CODE -> skuService.getBySku(requete);
+            case GET_SKU_BY_VARIANTS -> skuService.getByVariants(requete);
+            case GET_PRODUCT_VARIANTS -> pvvService.getByProduit(requete);
             case REGISTER_UDP_PORT -> {
                 // Enregistrer le port UDP du client pour les notifications
                 Map<String, Object> params = requete.getParametres();
@@ -209,6 +229,7 @@ public class ClientHandler implements Runnable {
                     //case ADMIN_UPDATE_PRODUCT -> adminService.updateProduct(requete);
                     //case ADMIN_DELETE_PRODUCT -> adminService.deleteProduct(requete);
                     case ADMIN_UPDATE_ORDER_STATUS -> adminService.updateOrderStatus(requete);
+                    case ADMIN_SEARCH_ORDERS -> adminService.searchOrders(requete);
                     //case ADMIN_BAN_USER -> adminService.banUser(requete);
                     //case ADMIN_UNBAN_USER -> adminService.unbanUser(requete);
                     

@@ -138,26 +138,27 @@ public class CommandeDAO {
         commande.setIdAdresse(rs.getObject("idAdresse", Integer.class));
         commande.setReference(rs.getString("reference"));
         
-        // Gérer le statut ENUM (Supporte le minuscule accentué de la DB)
-        String dbStatut = rs.getString("statut");
-        if (dbStatut != null) {
-            dbStatut = dbStatut.toLowerCase().trim();
-            if (dbStatut.equals("en_attente") || dbStatut.equals("en attente")) {
-                commande.setStatut(StatutCommande.EN_ATTENTE);
-            } else if (dbStatut.equals("validée") || dbStatut.equals("validee")) {
-                commande.setStatut(StatutCommande.VALIDEE);
-            } else if (dbStatut.equals("expédiée") || dbStatut.equals("expediee")) {
-                commande.setStatut(StatutCommande.EXPEDIEE);
-            } else if (dbStatut.equals("livrée") || dbStatut.equals("livree")) {
-                commande.setStatut(StatutCommande.LIVREE);
+        // Gérer le statut ENUM
+        try {
+            String dbStatut = rs.getString("statut");
+            if (dbStatut != null) {
+                // On met en majuscules et on remplace les accents courants
+                dbStatut = dbStatut.toUpperCase()
+                                   .replace("É", "E")
+                                   .replace("È", "E")
+                                   .replace("Ê", "E")
+                                   .replace(" ", "_"); // Gère "EN ATTENTE" -> "EN_ATTENTE"
+
+                // On vérifie les mots clés pour être sûr de matcher l'Enum
+                if (dbStatut.contains("LIVRE")) dbStatut = "LIVREE";
+                else if (dbStatut.contains("EXPEDIE")) dbStatut = "EXPEDIEE";
+                else if (dbStatut.contains("VALIDE")) dbStatut = "VALIDEE";
+                
+                commande.setStatut(StatutCommande.valueOf(dbStatut));
             } else {
-                try {
-                    commande.setStatut(StatutCommande.valueOf(dbStatut.toUpperCase()));
-                } catch (Exception e) {
-                    commande.setStatut(StatutCommande.EN_ATTENTE);
-                }
+                commande.setStatut(StatutCommande.EN_ATTENTE);
             }
-        } else {
+        } catch (Exception e) {
             commande.setStatut(StatutCommande.EN_ATTENTE);
         }
         
@@ -309,6 +310,21 @@ public class CommandeDAO {
             }
         }
         return -1; // Commande non trouvée
+    }
+
+    /**
+     * ── NOUVEAU ──────────────────────────────────────────────────────────────
+     * Remplie dateLivraisonReelle quand l'admin passe la commande à "Livrée"
+     */
+    public boolean setDateLivraisonReelle(int idCommande, LocalDateTime date) throws SQLException {
+        String query = "UPDATE Commande SET dateLivraisonReelle = ?, updated_At = ? WHERE idCommande = ?";
+        try (Connection connection = ConnexionBDD.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setTimestamp(1, Timestamp.valueOf(date));
+            stmt.setTimestamp(2, Timestamp.valueOf(date));
+            stmt.setInt(3, idCommande);
+            return stmt.executeUpdate() > 0;
+        }
     }
 }
 

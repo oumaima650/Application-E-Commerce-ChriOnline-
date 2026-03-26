@@ -59,7 +59,7 @@ public class SceneManager {
         Scene scene = root.getScene();
         if (scene == null) {
             scene = new Scene(root);
-            String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
+            String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);
         }
 
@@ -93,12 +93,12 @@ public class SceneManager {
         }
 
         try {
-            FXMLLoader loader = new FXMLLoader(ClientApp.class.getResource("/com/chrionline/fxml/" + fxmlFile));
+            FXMLLoader loader = new FXMLLoader(ClientApp.class.getResource("/fxml/" + fxmlFile));
             Parent root = loader.load();
             sceneCache.put(fxmlFile, root); // Cache for next time
 
             Scene scene = new Scene(root);
-            String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
+            String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);
 
             primaryStage.setTitle(title);
@@ -117,19 +117,20 @@ public class SceneManager {
 
     /** Charge un FXML en arrière-plan et le met en cache */
     public static void loadAsync(String fxmlFile) {
-        if (sceneCache.containsKey(fxmlFile)) return;
+        if (sceneCache.containsKey(fxmlFile))
+            return;
 
         Thread thread = new Thread(() -> {
             try {
-                FXMLLoader loader = new FXMLLoader(ClientApp.class.getResource("/com/chrionline/fxml/" + fxmlFile));
+                FXMLLoader loader = new FXMLLoader(ClientApp.class.getResource("/fxml/" + fxmlFile));
                 Parent root = loader.load();
-                
+
                 // PRÉ-CRÉER LA SCÈNE AVEC LES CSS POUR ÉVITER LE RECHARGEMENT
                 javafx.application.Platform.runLater(() -> {
                     Scene scene = new Scene(root);
-                    String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
+                    String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
                     scene.getStylesheets().add(cssPath);
-                    
+
                     sceneCache.put(fxmlFile, root);
                     System.out.println("Scène préchargée : " + fxmlFile);
                 });
@@ -142,4 +143,3 @@ public class SceneManager {
         thread.start();
     }
 }
-

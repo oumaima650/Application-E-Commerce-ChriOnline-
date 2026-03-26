@@ -1,0 +1,15 @@
+<!-- Ajouter ces dépendances dans votre pom.xml entre <dependencies>...</dependencies> -->
+
+<!-- Cloudinary SDK -->
+<dependency>
+    <groupId>com.cloudinary</groupId>
+    <artifactId>cloudinary-http44</artifactId>
+    <version>1.33.0</version>
+</dependency>
+
+<!-- Alternative plus récente (si compatible avec Java 23) -->
+<dependency>
+    <groupId>com.cloudinary</groupId>
+    <artifactId>cloudinary-http5</artifactId>
+    <version>1.33.0</version>
+</dependency>
