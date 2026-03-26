@@ -1,10 +1,10 @@
 package ui;
 
 import client.ClientSocket;
-import client.models.MockDataService.CommandeMock;
-import client.models.MockDataService.ProduitMock;
-import client.models.MockDataService.UserMock;
-import client.models.MockDataService;
+import model.Commande;
+import model.Produit;
+import model.Utilisateur;
+import model.enums.StatutCommande;
 import client.utils.SceneManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -20,13 +20,13 @@ import shared.RequestType;
 
 public class AdminController {
 
-    @FXML private TableView<ProduitMock> tableProduits;
-    @FXML private TableView<CommandeMock> tableCommandes;
-    @FXML private TableView<UserMock> tableUtilisateurs;
+    @FXML private TableView<Produit> tableProduits;
+    @FXML private TableView<Commande> tableCommandes;
+    @FXML private TableView<Utilisateur> tableUtilisateurs;
 
-    @FXML private TableColumn<ProduitMock, Void> colActionsProduit;
-    @FXML private TableColumn<CommandeMock, Void> colActionsCommande;
-    @FXML private TableColumn<UserMock, Void> colActionsUtilisateur;
+    @FXML private TableColumn<Produit, Void> colActionsProduit;
+    @FXML private TableColumn<Commande, Void> colActionsCommande;
+    @FXML private TableColumn<Utilisateur, Void> colActionsUtilisateur;
 
     @FXML
     private void ouvrirNotifications() {
@@ -63,26 +63,23 @@ public class AdminController {
                 Requete requete = new Requete(RequestType.ADMIN_GET_ALL_PRODUCTS, null, "ADMIN_TOKEN");
                 Reponse reponse = ClientSocket.getInstance().envoyer(requete);
                 if (reponse.isSuccess() && reponse.getData() != null) {
-                    List<?> produits = (List<?>) reponse.getData();
-                    // Convertir en ProduitMock pour compatibilité UI
-                    ObservableList<ProduitMock> produitMocks = FXCollections.observableArrayList();
-                    // TODO: Adapter la conversion selon votre modèle Produit
-                    // pour l'instant, garder les mock data pour compatibilité
+                    @SuppressWarnings("unchecked")
+                    List<Produit> produits = (List<Produit>) reponse.getData();
+                    ObservableList<Produit> produitsList = FXCollections.observableArrayList(produits);
                     javafx.application.Platform.runLater(() -> {
-                        tableProduits.setItems(FXCollections.observableArrayList(MockDataService.getMockProducts()));
+                        tableProduits.setItems(produitsList);
+                        System.out.println("[AdminController] " + produitsList.size() + " produits chargés depuis la BDD");
                     });
                 } else {
                     System.err.println("Erreur chargement produits: " + reponse.getMessage());
-                    // Fallback sur mock data
                     javafx.application.Platform.runLater(() -> {
-                        tableProduits.setItems(FXCollections.observableArrayList(MockDataService.getMockProducts()));
+                        tableProduits.setItems(FXCollections.observableArrayList());
                     });
                 }
             } catch (Exception e) {
                 System.err.println("Exception lors du chargement des produits: " + e.getMessage());
-                // Fallback sur mock data
                 javafx.application.Platform.runLater(() -> {
-                    tableProduits.setItems(FXCollections.observableArrayList(MockDataService.getMockProducts()));
+                    tableProduits.setItems(FXCollections.observableArrayList());
                 });
             }
         }).start();
@@ -93,20 +90,23 @@ public class AdminController {
                 Requete requete = new Requete(RequestType.ADMIN_GET_ALL_ORDERS, null, "ADMIN_TOKEN");
                 Reponse reponse = ClientSocket.getInstance().envoyer(requete);
                 if (reponse.isSuccess() && reponse.getData() != null) {
+                    @SuppressWarnings("unchecked")
+                    List<Commande> commandes = (List<Commande>) reponse.getData();
+                    ObservableList<Commande> commandesList = FXCollections.observableArrayList(commandes);
                     javafx.application.Platform.runLater(() -> {
-                        // TODO: Adapter la conversion selon votre modèle Commande
-                        tableCommandes.setItems(FXCollections.observableArrayList(MockDataService.getMockOrders()));
+                        tableCommandes.setItems(commandesList);
+                        System.out.println("[AdminController] " + commandesList.size() + " commandes chargées depuis la BDD");
                     });
                 } else {
                     System.err.println("Erreur chargement commandes: " + reponse.getMessage());
                     javafx.application.Platform.runLater(() -> {
-                        tableCommandes.setItems(FXCollections.observableArrayList(MockDataService.getMockOrders()));
+                        tableCommandes.setItems(FXCollections.observableArrayList());
                     });
                 }
             } catch (Exception e) {
                 System.err.println("Exception lors du chargement des commandes: " + e.getMessage());
                 javafx.application.Platform.runLater(() -> {
-                    tableCommandes.setItems(FXCollections.observableArrayList(MockDataService.getMockOrders()));
+                    tableCommandes.setItems(FXCollections.observableArrayList());
                 });
             }
         }).start();
@@ -117,20 +117,23 @@ public class AdminController {
                 Requete requete = new Requete(RequestType.ADMIN_GET_ALL_USERS, null, "ADMIN_TOKEN");
                 Reponse reponse = ClientSocket.getInstance().envoyer(requete);
                 if (reponse.isSuccess() && reponse.getData() != null) {
+                    @SuppressWarnings("unchecked")
+                    List<Utilisateur> utilisateurs = (List<Utilisateur>) reponse.getData();
+                    ObservableList<Utilisateur> utilisateursList = FXCollections.observableArrayList(utilisateurs);
                     javafx.application.Platform.runLater(() -> {
-                        // TODO: Adapter la conversion selon votre modèle Utilisateur
-                        tableUtilisateurs.setItems(FXCollections.observableArrayList(MockDataService.getMockUsers()));
+                        tableUtilisateurs.setItems(utilisateursList);
+                        System.out.println("[AdminController] " + utilisateursList.size() + " utilisateurs chargés depuis la BDD");
                     });
                 } else {
                     System.err.println("Erreur chargement utilisateurs: " + reponse.getMessage());
                     javafx.application.Platform.runLater(() -> {
-                        tableUtilisateurs.setItems(FXCollections.observableArrayList(MockDataService.getMockUsers()));
+                        tableUtilisateurs.setItems(FXCollections.observableArrayList());
                     });
                 }
             } catch (Exception e) {
                 System.err.println("Exception lors du chargement des utilisateurs: " + e.getMessage());
                 javafx.application.Platform.runLater(() -> {
-                    tableUtilisateurs.setItems(FXCollections.observableArrayList(MockDataService.getMockUsers()));
+                    tableUtilisateurs.setItems(FXCollections.observableArrayList());
                 });
             }
         }).start();
@@ -139,7 +142,7 @@ public class AdminController {
     private void setupProduitActions() {
         colActionsProduit.setCellFactory(new Callback<>() {
             @Override
-            public TableCell<ProduitMock, Void> call(final TableColumn<ProduitMock, Void> param) {
+            public TableCell<Produit, Void> call(final TableColumn<Produit, Void> param) {
                 return new TableCell<>() {
                     private final Button btnEdit = createIconButton(IconLibrary.SETTINGS, 16, "#24316B");
                     private final Button btnDelete = createIconButton(IconLibrary.TRASH, 16, "#E74C3C");
@@ -150,12 +153,12 @@ public class AdminController {
                         btnDelete.setStyle("-fx-background-color: #F6D5EE; -fx-background-radius: 5px; -fx-cursor: hand; -fx-padding: 5px;");
                         
                         btnEdit.setOnAction(event -> {
-                            ProduitMock item = getTableView().getItems().get(getIndex());
+                            Produit item = getTableView().getItems().get(getIndex());
                             openEditModal(item);
                         });
 
                         btnDelete.setOnAction(event -> {
-                            ProduitMock item = getTableView().getItems().get(getIndex());
+                            Produit item = getTableView().getItems().get(getIndex());
                             tableProduits.getItems().remove(item);
                             System.out.println("Produit " + item.getId() + " supprimé.");
                         });
@@ -174,44 +177,45 @@ public class AdminController {
     private void setupCommandeActions() {
         colActionsCommande.setCellFactory(new Callback<>() {
             @Override
-            public TableCell<CommandeMock, Void> call(final TableColumn<CommandeMock, Void> param) {
+            public TableCell<Commande, Void> call(final TableColumn<Commande, Void> param) {
                 return new TableCell<>() {
-                    private final ComboBox<String> statusCombo = new ComboBox<>(FXCollections.observableArrayList("En attente", "Validée", "Expédiée", "Livrée"));
+                    private final ComboBox<String> statusCombo = new ComboBox<>(FXCollections.observableArrayList("Validée", "Expédiée", "Livrée"));
                     
                     {
-                        statusCombo.setStyle("-fx-background-radius: 10px; -fx-border-color: #ABA3F6; -fx-border-radius: 10px;");
+                        statusCombo.setStyle("-fx-background-radius: 5px; -fx-border-color: #ABA3F6; -fx-border-radius: 5px;");
                         statusCombo.setOnAction(event -> {
-                            CommandeMock item = getTableView().getItems().get(getIndex());
+                            Commande item = getTableView().getItems().get(getIndex());
                             if(item != null) {
-                                String oldVal = item.getStatut();
+                                String oldVal = formatStatut(item.getStatut());
                                 String newVal = statusCombo.getValue();
-                                if(!oldVal.equals(newVal)) {
-                                    item.setStatut(newVal);
-                                    System.out.println("Statut de la commande " + item.getId() + " passé à : " + newVal);
-                                    tableCommandes.refresh();
+                                if(newVal != null && !newVal.equals(oldVal)) {
                                     
-                                    // Simulation: Si "Expédiée" -> Envoyer notification UDP via le service
-                                    if(newVal.equals("Expédiée")) {
-                                        System.out.println("-> Admin: Envoi notification UDP pour commande " + item.getId());
+                                    System.out.println("-> Admin: MAJ statut Commande DB ID " + item.getIdCommande() + " vers " + newVal);
+                                    
+                                    // Envoyer requête TCP pour MAJ
+                                    try {
+                                        java.util.Map<String, Object> params = new java.util.HashMap<>();
+                                        params.put("orderId", item.getIdCommande());
+                                        params.put("status", newVal);
                                         
-                                        // Envoyer via le système de notification UDP
-                                        try {
-                                            // Créer une requête pour déclencher la notification UDP
-                                            java.util.Map<String, Object> params = new java.util.HashMap<>();
-                                            params.put("orderId", item.getId());
-                                            params.put("status", newVal);
-                                            
-                                            shared.Requete requete = new shared.Requete(shared.RequestType.ADMIN_UPDATE_ORDER_STATUS, params, "ADMIN_TOKEN");
-                                            shared.Reponse reponse = client.ClientSocket.getInstance().envoyer(requete);
-                                            
-                                            if (reponse.isSuccess()) {
-                                                System.out.println("-> Notification UDP envoyée avec succès");
-                                            } else {
-                                                System.err.println("-> Erreur envoi notification: " + reponse.getMessage());
-                                            }
-                                        } catch(Exception e) { 
-                                            e.printStackTrace(); 
+                                        Requete requete = new Requete(RequestType.ADMIN_UPDATE_ORDER_STATUS, params, "ADMIN_TOKEN");
+                                        Reponse reponse = client.ClientSocket.getInstance().envoyer(requete);
+                                        
+                                        if (reponse.isSuccess()) {
+                                            System.out.println("-> MAJ serveur réussie.");
+                                            // Mettre à jour l'objet Commande
+                                            StatutCommande newStatut = StatutCommande.VALIDEE;
+                                            if ("Expédiée".equals(newVal)) newStatut = StatutCommande.EXPEDIEE;
+                                            else if ("Livrée".equals(newVal)) newStatut = StatutCommande.LIVREE;
+                                            item.setStatut(newStatut);
+                                            tableCommandes.refresh();
+                                        } else {
+                                            System.err.println("-> Erreur Serveur: " + reponse.getMessage());
+                                            javafx.application.Platform.runLater(() -> statusCombo.setValue(oldVal));
                                         }
+                                    } catch(Exception e) { 
+                                        e.printStackTrace(); 
+                                        javafx.application.Platform.runLater(() -> statusCombo.setValue(oldVal));
                                     }
                                 }
                             }
@@ -224,8 +228,19 @@ public class AdminController {
                         if (empty) {
                             setGraphic(null);
                         } else {
-                            CommandeMock mock = getTableView().getItems().get(getIndex());
-                            statusCombo.setValue(mock.getStatut());
+                            Commande commande = getTableView().getItems().get(getIndex());
+                            // Temporarily remove listener to avoid triggering it
+                            javafx.event.EventHandler<javafx.event.ActionEvent> handler = statusCombo.getOnAction();
+                            statusCombo.setOnAction(null);
+                            
+                            String statutAffiche = formatStatut(commande.getStatut());
+                            // Si le statut est "En attente" (normalement filtré), on l'ajoute provisoirement
+                            if (!statusCombo.getItems().contains(statutAffiche)) {
+                                statusCombo.getItems().add(statutAffiche);
+                            }
+                            
+                            statusCombo.setValue(statutAffiche);
+                            statusCombo.setOnAction(handler);
                             setGraphic(statusCombo);
                         }
                     }
@@ -237,14 +252,14 @@ public class AdminController {
     private void setupUtilisateurActions() {
         colActionsUtilisateur.setCellFactory(new Callback<>() {
             @Override
-            public TableCell<UserMock, Void> call(final TableColumn<UserMock, Void> param) {
+            public TableCell<Utilisateur, Void> call(final TableColumn<Utilisateur, Void> param) {
                 return new TableCell<>() {
                     private final Button btnToggle = new Button("Bannir");
 
                     {
                         btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
                         btnToggle.setOnAction(event -> {
-                            UserMock item = getTableView().getItems().get(getIndex());
+                            Utilisateur item = getTableView().getItems().get(getIndex());
                             if(btnToggle.getText().equals("Bannir")) {
                                 btnToggle.setText("Débannir");
                                 btnToggle.setStyle("-fx-background-color: gray; -fx-text-fill: white; -fx-background-radius: 10;");
@@ -267,7 +282,7 @@ public class AdminController {
         });
     }
 
-    private void openEditModal(ProduitMock item) {
+    private void openEditModal(Produit item) {
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/chrionline/fxml/produit_form.fxml"));
             javafx.scene.Parent root = loader.load();
@@ -292,6 +307,21 @@ public class AdminController {
         } catch (java.io.IOException e) {
             e.printStackTrace();
             System.err.println("Impossible de charger la modale produit_form.fxml");
+        }
+    }
+    
+    /**
+     * Formate le statut pour l'affichage dans l'interface
+     */
+    private String formatStatut(StatutCommande statut) {
+        if (statut == null) return "N/A";
+        
+        switch (statut) {
+            case VALIDEE: return "Validée";
+            case EXPEDIEE: return "Expédiée";
+            case LIVREE: return "Livrée";
+            case EN_ATTENTE: return "En attente";
+            default: return statut.name();
         }
     }
     

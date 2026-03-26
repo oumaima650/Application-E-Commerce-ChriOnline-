@@ -257,8 +257,41 @@ public class CommandeDAO {
             }
         }
         return lignes;
+    /**
+     * Récupérer toutes les commandes pour l'administrateur (exclut celles 'en attente')
+     */
+    public List<Commande> getAdminOrders() throws SQLException {
+        List<Commande> commandes = new ArrayList<>();
+        String query = "SELECT * FROM Commande WHERE statut != 'en_attente' ORDER BY created_At DESC";
+        
+        try (Connection connection = ConnexionBDD.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                commandes.add(mapResultSetToCommande(rs));
+            }
+        }
+        return commandes;
     }
-
+    
+    /**
+     * Récupérer l'ID client d'une commande (crucial pour les notifications UDP)
+     */
+    public int getClientIdFromOrder(int orderId) throws SQLException {
+        String query = "SELECT IdClient FROM Commande WHERE idCommande = ?";
+        
+        try (Connection connection = ConnexionBDD.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, orderId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt("IdClient");
+            }
+        }
+        return -1; // Commande non trouvée
+    }
 }
 
 

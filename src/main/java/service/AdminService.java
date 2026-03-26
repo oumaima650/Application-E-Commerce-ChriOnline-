@@ -30,8 +30,36 @@ public class AdminService {
 
     public Reponse getAllOrders(Requete requete) {
         try {
-            List<model.Commande> commandes = dao.CommandeDAO.getAllOrders();
-            return new Reponse(true, "Commandes récupérées avec succès", commandes);
+            dao.CommandeDAO commandeDAO = new dao.CommandeDAO();
+            List<model.Commande> commandes = commandeDAO.getAdminOrders();
+            
+            List<Map<String, Object>> commandesData = new java.util.ArrayList<>();
+            for (model.Commande c : commandes) {
+                Map<String, Object> map = new java.util.HashMap<>();
+                map.put("rawId", c.getIdCommande());
+                map.put("id", c.getReference());
+                map.put("client", "Client #" + c.getIdClient());
+                
+                String date = c.getCreatedAt() != null ? c.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "N/A";
+                map.put("date", date);
+                
+                List<model.LigneCommande> lignes = commandeDAO.findLignesByCommandeId(c.getIdCommande());
+                double total = 0;
+                for (model.LigneCommande lc : lignes) {
+                    total += lc.getPrixAchat() * lc.getQuantite();
+                }
+                map.put("total", String.format("%.2f MAD", total).replace(",", " "));
+                
+                String statut = c.getStatut().name();
+                if (c.getStatut() == model.enums.StatutCommande.VALIDEE) statut = "Validée";
+                if (c.getStatut() == model.enums.StatutCommande.EXPEDIEE) statut = "Expédiée";
+                if (c.getStatut() == model.enums.StatutCommande.LIVREE) statut = "Livrée";
+                
+                map.put("statut", statut);
+                commandesData.add(map);
+            }
+            
+            return new Reponse(true, "Commandes récupérées avec succès", java.util.Map.of("commandes", commandesData));
         } catch (SQLException e) {
             return new Reponse(false, "Erreur lors de la récupération des commandes: " + e.getMessage(), null);
         }
@@ -85,17 +113,27 @@ public class AdminService {
         Map<String, Object> params = requete.getParametres();
         try {
             int orderId = (Integer) params.get("orderId");
-            String newStatus = (String) params.get("status");
+            String newStatusStr = (String) params.get("status");
             
-            boolean success = dao.CommandeDAO.updateOrderStatus(orderId, newStatus);
+            // Convertir la chaîne "Expédiée", "Validée", etc en Enum
+            model.enums.StatutCommande st = model.enums.StatutCommande.VALIDEE;
+            if (newStatusStr.equalsIgnoreCase("Expédiée") || newStatusStr.equalsIgnoreCase("Expediee")) st = model.enums.StatutCommande.EXPEDIEE;
+            else if (newStatusStr.equalsIgnoreCase("Livrée") || newStatusStr.equalsIgnoreCase("Livree")) st = model.enums.StatutCommande.LIVREE;
+            
+            dao.CommandeDAO commandeDAO = new dao.CommandeDAO();
+            boolean success = commandeDAO.updateStatus(orderId, st);
+            
             if (success) {
                 // Envoyer notification UDP au client concerné
-                // TODO: Récupérer le clientId depuis la commande
-                // int clientId = dao.CommandeDAO.getClientIdFromOrder(orderId);
-                // String message = "Votre commande #" + orderId + " est maintenant : " + newStatus;
-                // serviceUDP.envoyerNotification(clientId, message);
-                
-                System.out.println("[AdminService] Notification UDP envoyée pour commande #" + orderId);
+                int clientId = commandeDAO.getClientIdFromOrder(orderId);
+                if (clientId > 0) {
+                    String message = "Votre commande #" + orderId + " est maintenant : " + newStatusStr;
+                    serviceUDP.envoyerNotification(clientId, message);
+                    System.out.println("[AdminService] Notification UDP envoyée au client " + clientId + " pour commande #" + orderId);
+                } else {
+                    System.err.println("[AdminService] Impossible de trouver le client pour la commande #" + orderId);
+                }
+                System.out.println("[AdminService] Statut de la commande #" + orderId + " MAJ vers " + st.name());
                 return new Reponse(true, "Statut de la commande mis à jour avec succès", null);
             } else {
                 return new Reponse(false, "Échec de la mise à jour du statut", null);
