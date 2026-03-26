@@ -71,6 +71,7 @@ public enum RequestType {
     // Admin operations
     ADMIN_GET_ALL_PRODUCTS,
     ADMIN_GET_ALL_ORDERS,
+    ADMIN_SEARCH_ORDERS,
     ADMIN_GET_ALL_USERS,
     ADMIN_UPDATE_PRODUCT,
     ADMIN_DELETE_PRODUCT,
