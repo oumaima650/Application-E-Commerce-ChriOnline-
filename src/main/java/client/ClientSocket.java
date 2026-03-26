@@ -3,20 +3,24 @@ package client;
 import shared.Requete;
 import shared.Reponse;
 
-import java.io.*;
-import java.net.Socket;
+import client.utils.SSLSocketFactoryBuilder;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 /**
- * Singleton managing the TCP connection to the server.
+ * Singleton managing the secure TCP connection to the server using TLS 1.3.
  */
 public class ClientSocket {
     private static ClientSocket instance;
-    private Socket socket;
+    private SSLSocket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
     
-    private static final String HOST = "localhost";
-    private static final int PORT = 5555;
+    private static final String HOST = "127.0.0.1";
+    private static final int PORT = 8443;
 
     private ClientSocket() {
         connect();
@@ -31,13 +35,21 @@ public class ClientSocket {
 
     private void connect() {
         try {
-            socket = new Socket(HOST, PORT);
+            SSLSocketFactory factory = SSLSocketFactoryBuilder.build();
+            socket = (SSLSocket) factory.createSocket(HOST, PORT);
+            
+            // Enforce TLS 1.3 only
+            socket.setEnabledProtocols(new String[]{"TLSv1.3"});
+            socket.startHandshake();
+
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
             in = new ObjectInputStream(socket.getInputStream());
-            System.out.println("[ClientSocket] Connecté au serveur " + HOST + ":" + PORT);
-        } catch (IOException e) {
-            System.err.println("[ClientSocket] Erreur de connexion : " + e.getMessage());
+            
+            System.out.println("[ClientSocket] Connexion sécurisée établie via TLS 1.3 sur le port " + PORT);
+        } catch (Exception e) {
+            System.err.println("[ClientSocket] Erreur de connexion sécurisée : " + e.getMessage());
+            socket = null;
         }
     }
 

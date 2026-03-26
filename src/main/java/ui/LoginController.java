@@ -11,7 +11,10 @@ import javafx.util.Duration;
 import shared.Reponse;
 import shared.Requete;
 import shared.RequestType;
+import model.Utilisateur;
 import client.utils.SceneManager;
+import client.utils.SessionManager;
+import javax.net.ssl.*;
 
 import java.io.*;
 import java.net.Socket;
@@ -28,7 +31,7 @@ import java.util.regex.Pattern;
 public class LoginController implements Initializable {
 
     private static final String SERVER_HOST = "127.0.0.1";
-    private static final int    SERVER_PORT = 5555;
+    private static final int    SERVER_PORT = 8443;
 
     private static final int     PW_MIN       = 8;
     private static final int     PW_MAX       = 32;
@@ -121,13 +124,13 @@ public class LoginController implements Initializable {
             }
             if (reponse.isSucces()) {
                 // Save token + user info in session
-                String token  = (String) reponse.getDonnees().get("token");
-                int    userId = toInt(reponse.getDonnees().get("userId"));
-                String type   = (String) reponse.getDonnees().get("typeUtilisateur");
+                String token     = (String) reponse.getDonnees().get("token");
+                Utilisateur user = (Utilisateur) reponse.getDonnees().get("utilisateur");
+                String type      = (String) reponse.getDonnees().get("typeUtilisateur");
 
-//                SessionManager.getInstance().ouvrir(token, userId, email, type);
+                client.utils.SessionManager.getInstance().ouvrir(token, user);
 
-                System.out.println("[Login] Connecté — userId=" + userId + " type=" + type);
+                System.out.println("[Login] Connecté — user=" + user.getEmail() + " type=" + type);
                 navigateToMain(type);
             } else {
                 showError(loginErrorLabel, "⚠ " + reponse.getMessage());
@@ -302,19 +305,28 @@ public class LoginController implements Initializable {
      * Blocks — always call from a background thread (use runAsync).
      */
     private Reponse sendToServer(Requete requete) {
-        try (Socket socket           = new Socket(SERVER_HOST, SERVER_PORT);
-             ObjectOutputStream out  = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream  in   = new ObjectInputStream(socket.getInputStream())) {
+        try {
+            SSLSocketFactory factory = client.utils.SSLSocketFactoryBuilder.build();
+            try (SSLSocket socket        = (SSLSocket) factory.createSocket(SERVER_HOST, SERVER_PORT);
+                 ObjectOutputStream out  = new ObjectOutputStream(socket.getOutputStream());
+                 ObjectInputStream  in   = new ObjectInputStream(socket.getInputStream())) {
 
-            out.writeObject(requete);
-            out.flush();
-            return (Reponse) in.readObject();
+                // Enforce TLS 1.3 only
+                socket.setEnabledProtocols(new String[]{"TLSv1.3"});
+                socket.startHandshake();
 
-        } catch (IOException e) {
-            System.err.println("[LoginController] Serveur inaccessible : " + e.getMessage());
+                out.writeObject(requete);
+                out.flush();
+                return (Reponse) in.readObject();
+            }
+        } catch (SSLHandshakeException e) {
+            System.err.println("[LoginController] Échec de la connexion sécurisée (Handshake) : " + e.getMessage());
             return null;
-        } catch (ClassNotFoundException e) {
-            System.err.println("[LoginController] Réponse inconnue : " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("[LoginController] Serveur inaccessible ou erreur SSL : " + e.getMessage());
+            return null;
+        } catch (Exception e) {
+            System.err.println("[LoginController] Erreur de communication : " + e.getMessage());
             return null;
         }
     }
