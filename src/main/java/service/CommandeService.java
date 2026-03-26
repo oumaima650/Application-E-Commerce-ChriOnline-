@@ -106,14 +106,13 @@ public class CommandeService {
         Integer idClient = (Integer) params.get("idClient");
         String statutFilter = (String) params.get("statut");
         String dateFilter = (String) params.get("date");
-        String categorieFilter = (String) params.get("categorie");
 
         if (idClient == null) {
             return new shared.Reponse(false, "Paramètres manquants : idClient.", null);
         }
 
         try {
-            List<Commande> commandes = commandeDAO.findWithFilters(idClient, statutFilter, dateFilter, categorieFilter);
+            List<Commande> commandes = commandeDAO.findWithFilters(idClient, statutFilter, dateFilter);
             List<Map<String, Object>> commandesData = new ArrayList<>();
             
             for (Commande commande : commandes) {
@@ -172,8 +171,7 @@ public class CommandeService {
             donnees.put("total", commandesData.size());
             donnees.put("filtres", Map.of(
                 "statut", statutFilter,
-                "date", dateFilter,
-                "categorie", categorieFilter
+                "date", dateFilter
             ));
             
             return new shared.Reponse(true, commandesData.size() + " commandes trouvées avec filtres.", donnees);

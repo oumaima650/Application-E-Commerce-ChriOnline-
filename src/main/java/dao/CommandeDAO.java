@@ -74,7 +74,7 @@ public class CommandeDAO {
     /**
      * Récupérer les commandes avec filtres
      */
-    public List<Commande> findWithFilters(int idClient, String statutFilter, String dateFilter, String categorieFilter) throws SQLException {
+    public List<Commande> findWithFilters(int idClient, String statutFilter, String dateFilter) throws SQLException {
         List<Commande> commandes = new ArrayList<>();
         // Note: La jointure avec Produit/Categorie nécessite une structure SKU-Produit que nous simplifions ici si nécessaire.
         StringBuilder query = new StringBuilder("SELECT c.* FROM Commande c WHERE c.IdClient = ?");
