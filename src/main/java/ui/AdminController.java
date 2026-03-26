@@ -45,6 +45,7 @@ public class AdminController {
     @FXML private TableColumn<Commande, Void> colActionsCommande;
     
     //@FXML private TableColumn<Produit, Void> colActionsProduit;
+    @FXML private TableColumn<Client, String> colStatutClient;
     @FXML private TableColumn<Client, Void> colActionsClient;
 
     @FXML
@@ -177,11 +178,14 @@ public class AdminController {
             return new javafx.beans.property.SimpleStringProperty("—");
         });
  
-        // -- Colonne "Statut" avec badge coloré ------------------------------
-        TableColumn<Commande, Void> colStatutBadge = null;
-        // Note: la colonne statut est gérée dans le FXML via PropertyValueFactory
-        // mais on peut aussi lui attacher une cellFactory pour colorier le badge
-        // → voir la méthode setupStatutBadge() appelée après le chargement
+        // -- Colonnes Client ------------------------------------------------
+        if (colStatutClient != null) {
+            colStatutClient.setCellValueFactory(cellData -> {
+                Client c = cellData.getValue();
+                String status = c.getStatut() != null ? c.getStatut() : "CLIENT";
+                return new javafx.beans.property.SimpleStringProperty(status);
+            });
+        }
     }
 
     /**
@@ -288,6 +292,7 @@ public class AdminController {
         }).start();
     }
 
+    private void loadClients() {
         // Charger les clients
         new Thread(() -> {
             try {
@@ -462,7 +467,7 @@ public class AdminController {
                         btnToggle.setStyle("-fx-background-color: #24316B; -fx-text-fill: #F8FFA1; -fx-background-radius: 10; -fx-cursor: hand;");
                         btnToggle.setOnAction(event -> {
                             Client item = getTableView().getItems().get(getIndex());
-                            boolean isBanned = "BANNI".equals(item.getRole());
+                            boolean isBanned = "BANNI".equals(item.getStatut());
                             
                             try {
                                 RequestType type = isBanned ? RequestType.ADMIN_UNBAN_USER : RequestType.ADMIN_BAN_USER;
@@ -476,7 +481,8 @@ public class AdminController {
                                 if (rep.isSucces()) {
                                     System.out.println("Client " + item.getId() + (isBanned ? " débanni." : " banni."));
                                     // Mettre à jour l'objet localement pour rafraîchir la vue
-                                    item.setRole(isBanned ? "CLIENT" : "BANNI");
+                                    item.setStatut(isBanned ? "ACTIF" : "BANNI");
+                                    item.setDeletedAt(isBanned ? null : java.time.LocalDateTime.now());
                                     tableClients.refresh();
                                 } else {
                                     System.err.println("Erreur action utilisateur: " + rep.getMessage());
@@ -494,7 +500,7 @@ public class AdminController {
                             setGraphic(null);
                         } else {
                             Client user = getTableView().getItems().get(getIndex());
-                            if ("BANNI".equals(user.getRole())) {
+                            if ("BANNI".equals(user.getStatut())) {
                                 btnToggle.setText("Débannir");
                                 btnToggle.setStyle("-fx-background-color: #E74C3C; -fx-text-fill: white; -fx-background-radius: 10;");
                             } else {
@@ -509,6 +515,7 @@ public class AdminController {
         });
     }
 
+/*
     private void openEditModal(Produit item) {
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/chrionline/fxml/produit_form.fxml"));
@@ -536,7 +543,8 @@ public class AdminController {
             System.err.println("Impossible de charger la modale produit_form.fxml");
         }
     }
- */   
+*/
+   
     /**
      * Formate le statut pour l'affichage dans l'interface
      */
