@@ -11,10 +11,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-//import javafx.scene.layout.HBox;
-//import javafx.scene.shape.SVGPath;
-import javafx.util.Callback;
-//import ui.utils.IconLibrary;
 import shared.Reponse;
 import shared.Requete;
 import shared.RequestType;
@@ -57,11 +53,11 @@ public class AdminController {
     public void initialize() {
         // Mettre en cache la vue notifications pour un accès rapide
         try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/chrionline/fxml/notifications.fxml"));
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/notifications.fxml"));
             javafx.scene.Parent notificationsRoot = loader.load();
             SceneManager.cacheScene("notifications.fxml", notificationsRoot);
         } catch (Exception e) {
-            System.err.println("Erreur lors du chargement en cache de notifications.fxml: " + e.getMessage());
+            System.err.println("Erreur lors du chargement en cache de notifications.fxml (Path: /fxml/notifications.fxml): " + e.getMessage());
         }
         
         // Configurer les colonnes

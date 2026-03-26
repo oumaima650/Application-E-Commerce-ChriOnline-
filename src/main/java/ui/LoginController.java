@@ -11,6 +11,7 @@ import javafx.util.Duration;
 import shared.Reponse;
 import shared.Requete;
 import shared.RequestType;
+import client.ClientSocket;
 import model.Utilisateur;
 import client.utils.SceneManager;
 import client.utils.SessionManager;
@@ -329,11 +330,40 @@ public class LoginController implements Initializable {
     private void navigateToMain(String type) {
         if ("ADMIN".equals(type)) {
             System.out.println("[LoginController] Navigation vers le tableau de bord Admin...");
+            registerUdpPort(SessionManager.getInstance().getSession().getToken());
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
             System.out.println("[LoginController] Navigation vers la boutique...");
+            registerUdpPort(SessionManager.getInstance().getSession().getToken());
             SceneManager.switchTo("produits.fxml", "ChriOnline - Produits");
         }
+    }
+
+    private void registerUdpPort(String token) {
+        if (token == null) return;
+        
+        Task<Void> udpTask = new Task<>() {
+            @Override
+            protected Void call() {
+                try {
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("udpPort", client.ClientApp.UDP_PORT);
+                    
+                    Requete req = new Requete(RequestType.REGISTER_UDP_PORT, params, token);
+                    Reponse rep = ClientSocket.getInstance().envoyer(req);
+                    
+                    if (rep.isSucces()) {
+                        System.out.println("[LoginController] Port UDP " + client.ClientApp.UDP_PORT + " enregistré pour l'utilisateur.");
+                    } else {
+                        System.err.println("[LoginController] Échec enregistrement UDP: " + rep.getMessage());
+                    }
+                } catch (Exception e) {
+                    System.err.println("[LoginController] Erreur fatale enregistrement UDP: " + e.getMessage());
+                }
+                return null;
+            }
+        };
+        new Thread(udpTask).start();
     }
 
     private void setupTabSwitching() {

@@ -12,7 +12,7 @@ public class ClientApp extends Application {
     // Contrôleur de la page Notifications, accessible globalement
     private static NotificationsController notificationsController;
     private static ClientUDP udpListener;
-    private static final int UDP_PORT = 9090;
+    public static final int UDP_PORT = 9090;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -74,11 +74,7 @@ public class ClientApp extends Application {
         udpListener.start();
         System.out.println("[ClientApp] Client UDP démarré sur le port " + UDP_PORT);
         
-        // Enregistrer le port UDP auprès du serveur (simulation pour admin)
-        // Dans un vrai cas, ce serait fait après un login réussi
-        registerUdpPort();
-        
-        // Démarrer directement sur la page d'accueil (MainHome)
+        // Démarrer directement sur la page d'accueil (Login)
         SceneManager.switchTo("login.fxml", "ChriOnline - Accueil");
         
         primaryStage.show();
