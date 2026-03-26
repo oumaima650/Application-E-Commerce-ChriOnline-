@@ -1,4 +1,6 @@
 package service;
+import server.ServeurUDP;
+import dao.UtilisateurDAO;
 
 import dao.NotificationDAO;
 import model.Notification;
@@ -24,7 +26,20 @@ public class NotificationService {
         notification.setCreatedAt(LocalDateTime.now());
         
         notificationDAO.create(notification);
-        // Optional: Call NotificationManager UDP send here if implemented.
+        
+        // Push UDP si l'utilisateur est en ligne
+        ServeurUDP.getInstance().envoyerNotification(idUtilisateur, contenu);
+    }
+
+    public void notifierAdmins(String contenu) {
+        try {
+            List<Integer> adminIds = UtilisateurDAO.getAdminsIds();
+            for (int adminId : adminIds) {
+                creerNotification(adminId, contenu);
+            }
+        } catch (Exception e) {
+            System.err.println("[NotificationService] Erreur lors de la notification des admins : " + e.getMessage());
+        }
     }
 
     public Reponse getNotifications(Requete requete) {

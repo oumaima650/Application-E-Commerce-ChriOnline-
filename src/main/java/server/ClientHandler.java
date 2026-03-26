@@ -28,7 +28,7 @@ public class ClientHandler implements Runnable {
     private final Socket socket;
     private final AuthService authService;
     private final AdminService adminService;
-    private final ServiceUDP serviceUDP;
+    private final ServeurUDP serveurUDP;
     private final CarteBancaireService carteBancaireService;
     private final CategorieService categorieService;
     private final NotificationService notificationService;
@@ -48,7 +48,7 @@ public class ClientHandler implements Runnable {
         this.socket      = socket;
         this.authService = new AuthService();
         this.adminService = new AdminService();
-        this.serviceUDP = ServiceUDP.getInstance();
+        this.serveurUDP = ServeurUDP.getInstance();
         this.carteBancaireService = new CarteBancaireService();
         this.categorieService = new CategorieService();
         this.notificationService = new NotificationService();
@@ -161,7 +161,7 @@ public class ClientHandler implements Runnable {
                     int userId = AuthService.getUserIdFromToken(requete.getTokenSession());
                     String clientIp = socket.getInetAddress().getHostAddress();
                     
-                    serviceUDP.registerClient(userId, clientIp, udpPort);
+                    serveurUDP.registerClient(userId, clientIp, udpPort);
                     yield new Reponse(true, "Port UDP enregistré avec succès", null);
                 } else {
                     yield new Reponse(false, "Port UDP manquant dans la requête", null);

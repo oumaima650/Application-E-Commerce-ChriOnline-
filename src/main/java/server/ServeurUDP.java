@@ -6,27 +6,27 @@ import java.net.InetAddress;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Service UDP pour l'envoi de notifications aux clients
+ * Serveur UDP pour l'envoi de notifications aux clients
  */
-public class ServiceUDP {
-    private static ServiceUDP instance;
+public class ServeurUDP {
+    private static ServeurUDP instance;
     private final ConcurrentHashMap<Integer, ClientEndPoint> clientsUdp;
     private DatagramSocket socketUdp;
     
-    private ServiceUDP() {
+    private ServeurUDP() {
         this.clientsUdp = new ConcurrentHashMap<>();
         try {
-            // Socket UDP pour l'envoi (pas de bind spécifique nécessaire)
+            // Socket UDP pour l'envoi
             this.socketUdp = new DatagramSocket();
-            System.out.println("[ServiceUDP] Service UDP initialisé sur un port aléatoire");
+            System.out.println("[ServeurUDP] Serveur UDP initialisé sur un port aléatoire");
         } catch (Exception e) {
-            System.err.println("[ServiceUDP] Erreur d'initialisation: " + e.getMessage());
+            System.err.println("[ServeurUDP] Erreur d'initialisation: " + e.getMessage());
         }
     }
     
-    public static synchronized ServiceUDP getInstance() {
+    public static synchronized ServeurUDP getInstance() {
         if (instance == null) {
-            instance = new ServiceUDP();
+            instance = new ServeurUDP();
         }
         return instance;
     }
@@ -37,7 +37,7 @@ public class ServiceUDP {
     public void registerClient(int clientId, String ipAddress, int udpPort) {
         ClientEndPoint endPoint = new ClientEndPoint(ipAddress, udpPort, clientId);
         clientsUdp.put(clientId, endPoint);
-        System.out.println("[ServiceUDP] Client enregistré: " + endPoint);
+        System.out.println("[ServeurUDP] Client enregistré: " + endPoint);
     }
     
     /**
@@ -46,7 +46,7 @@ public class ServiceUDP {
     public void unregisterClient(int clientId) {
         ClientEndPoint removed = clientsUdp.remove(clientId);
         if (removed != null) {
-            System.out.println("[ServiceUDP] Client désenregistré: " + removed);
+            System.out.println("[ServeurUDP] Client désenregistré: " + removed);
         }
     }
     
@@ -56,7 +56,7 @@ public class ServiceUDP {
     public boolean envoyerNotification(int clientId, String message) {
         ClientEndPoint endPoint = clientsUdp.get(clientId);
         if (endPoint == null) {
-            System.err.println("[ServiceUDP] Client " + clientId + " non trouvé pour notification UDP");
+            System.err.println("[ServeurUDP] Client " + clientId + " non trouvé pour notification UDP");
             return false;
         }
         
@@ -66,11 +66,11 @@ public class ServiceUDP {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, endPoint.getUdpPort());
             
             socketUdp.send(packet);
-            System.out.println("[ServiceUDP] Notification envoyée à " + endPoint + ": " + message);
+            System.out.println("[ServeurUDP] Notification envoyée à " + endPoint + ": " + message);
             return true;
             
         } catch (Exception e) {
-            System.err.println("[ServiceUDP] Erreur envoi notification à " + clientId + ": " + e.getMessage());
+            System.err.println("[ServeurUDP] Erreur envoi notification à " + clientId + ": " + e.getMessage());
             return false;
         }
     }
@@ -79,7 +79,7 @@ public class ServiceUDP {
      * Envoie une notification à tous les clients connectés
      */
     public void envoyerNotificationGlobale(String message) {
-        System.out.println("[ServiceUDP] Envoi notification globale à " + clientsUdp.size() + " clients");
+        System.out.println("[ServeurUDP] Envoi notification globale à " + clientsUdp.size() + " clients");
         
         clientsUdp.forEach((clientId, endPoint) -> {
             envoyerNotification(clientId, message);
@@ -94,12 +94,12 @@ public class ServiceUDP {
     }
     
     /**
-     * Ferme le service UDP
+     * Ferme le serveur UDP
      */
     public void fermer() {
         if (socketUdp != null && !socketUdp.isClosed()) {
             socketUdp.close();
-            System.out.println("[ServiceUDP] Service UDP fermé");
+            System.out.println("[ServeurUDP] Serveur UDP fermé");
         }
     }
 }

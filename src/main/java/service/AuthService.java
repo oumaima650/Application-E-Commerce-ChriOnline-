@@ -2,6 +2,7 @@ package service;
 
 import dao.ClientDAO;
 import dao.UtilisateurDAO;
+import service.NotificationService;
 import model.Client;
 import model.Utilisateur;
 import model.enums.TypeEtulisateur;
@@ -103,6 +104,10 @@ public class AuthService {
             donnees.put("utilisateur", client);
 
             System.out.println("[AuthService] Signup OK — userId=" + client.getIdUtilisateur());
+            
+            // Notification aux admins
+            new NotificationService().notifierAdmins("Nouveau client inscrit : " + prenom + " " + nom + " (" + email + ")");
+            
             return new Reponse(true, "Compte créé avec succès.", donnees);
 
         } catch (SQLException e) {

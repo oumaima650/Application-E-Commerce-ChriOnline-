@@ -3,6 +3,7 @@ package service;
 import dao.CommandeDAO;
 import model.Commande;
 import model.enums.StatutCommande;
+import service.NotificationService;
 import java.sql.SQLException;
 
 import java.time.format.DateTimeFormatter;
@@ -363,6 +364,10 @@ public class CommandeService {
             result.put("total", total);
             result.put("dateLivraison", commande.getDateLivraisonPrevue().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")));
             result.put("items", itemsSummary);
+
+            if (statut == StatutCommande.VALIDEE) {
+                new NotificationService().notifierAdmins("Nouvelle commande validée ! Réf: " + reference + " - Client ID: " + idClient + " - Total: " + total + " MAD");
+            }
 
             return new shared.Reponse(true, "Commande " + reference + " créée avec succès !", result);
         } catch (Exception e) {
