@@ -56,7 +56,7 @@ public class AdminService {
                 } else {
                     try {
                         int idClient = Integer.parseInt(queryArg);
-                        commandes = commandeDAO.findWithFilters(idClient, null, null, null);
+                        commandes = commandeDAO.findWithFilters(idClient, null, null);
                     } catch (NumberFormatException e) {
                     }
                 }
@@ -124,7 +124,7 @@ public class AdminService {
                 } else {
                     try {
                         int idClient = Integer.parseInt(queryArg);
-                        commandes = commandeDAO.findWithFilters(idClient, null, null, null);
+                        commandes = commandeDAO.findWithFilters(idClient, null, null);
                     } catch (NumberFormatException e) {
                         // Pas un ID client valide, la liste restera vide
                     }
