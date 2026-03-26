@@ -71,8 +71,8 @@ public class CommandesController {
         try {
             // Envoyer la requête au serveur avec l'ID de session réel
             Requete req = new Requete(RequestType.GET_ORDERS, 
-                Map.of("idClient", SessionManager.getInstance().getUserId()), 
-                SessionManager.getInstance().getToken());
+                Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), 
+                SessionManager.getInstance().getSession().getToken());
 
             Reponse rep = ClientSocket.getInstance().envoyer(req);
             

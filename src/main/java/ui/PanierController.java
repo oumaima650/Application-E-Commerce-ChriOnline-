@@ -81,7 +81,7 @@ public class PanierController implements Initializable {
         Task<Reponse> fetchTask = new Task<>() {
             @Override
             protected Reponse call() throws Exception {
-                Requete req = new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getUserId()), SessionManager.getInstance().getToken());
+                Requete req = new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getToken());
                 return ClientSocket.getInstance().envoyer(req);
             }
 
@@ -161,11 +161,11 @@ public class PanierController implements Initializable {
         // --- BACKGROUND SYNC (to Server) ---
         dbExecutor.submit(() -> {
             Map<String, Object> p = new HashMap<>();
-            p.put("idClient", SessionManager.getInstance().getUserId());
+            p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
             p.put("sku", sku);
             p.put("quantite", nextQty);
             
-            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p, SessionManager.getInstance().getToken());
+            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p, SessionManager.getInstance().getSession().getToken());
 
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {
@@ -210,9 +210,9 @@ public class PanierController implements Initializable {
         // --- BACKGROUND SYNC (to Server) ---
         dbExecutor.submit(() -> {
             Map<String, Object> p = new HashMap<>();
-            p.put("idClient", SessionManager.getInstance().getUserId());
+            p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
             p.put("sku", sku);
-            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p, SessionManager.getInstance().getToken());
+            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p, SessionManager.getInstance().getSession().getToken());
 
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {

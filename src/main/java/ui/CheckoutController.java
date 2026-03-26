@@ -74,39 +74,44 @@ public class CheckoutController {
     // ──────────────────────────────────────────
     private void prefillUserData() {
         SessionManager sm = SessionManager.getInstance();
-        // If session already has the profile data, fill immediately
-        if (sm.getPrenom() != null) {
-            txtPrenom.setText(sm.getPrenom());
-            txtNom.setText(sm.getNom());
-            txtTelephone.setText(sm.getTelephone());
-        } else {
-            // Fetch from server in background
-            Task<Void> task = new Task<>() {
-                @Override
-                protected Void call() {
-                    shared.Requete req = new shared.Requete(
-                        shared.RequestType.GET_PROFILE,
-                        Map.of("idClient", sm.getUserId()),
-                        sm.getToken()
-                    );
-                    shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
-                    if (rep.isSucces() && rep.getDonnees() != null) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> data = (Map<String, Object>) rep.getDonnees();
-                        String prenom = (String) data.get("prenom");
-                        String nom = (String) data.get("nom");
-                        String telephone = (String) data.get("telephone");
-                        sm.setProfile(nom, prenom, telephone);
-                        javafx.application.Platform.runLater(() -> {
-                            txtPrenom.setText(prenom != null ? prenom : "");
-                            txtNom.setText(nom != null ? nom : "");
-                            txtTelephone.setText(telephone != null ? telephone : "");
-                        });
+        if (sm.getCurrentUser() instanceof model.Client clientUser) {
+            if (clientUser.getPrenom() != null && !clientUser.getPrenom().isEmpty()) {
+                txtPrenom.setText(clientUser.getPrenom());
+                txtNom.setText(clientUser.getNom());
+                txtTelephone.setText(clientUser.getTelephone());
+            } else {
+                // Fetch from server in background
+                Task<Void> task = new Task<>() {
+                    @Override
+                    protected Void call() {
+                        shared.Requete req = new shared.Requete(
+                            shared.RequestType.GET_PROFILE,
+                            Map.of("idClient", sm.getCurrentUser().getIdUtilisateur()),
+                            sm.getSession().getToken()
+                        );
+                        shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+                        if (rep.isSucces() && rep.getDonnees() != null) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> data = (Map<String, Object>) rep.getDonnees();
+                            String prenom = (String) data.get("prenom");
+                            String nom = (String) data.get("nom");
+                            String telephone = (String) data.get("telephone");
+                            
+                            clientUser.setPrenom(prenom);
+                            clientUser.setNom(nom);
+                            clientUser.setTelephone(telephone);
+
+                            javafx.application.Platform.runLater(() -> {
+                                txtPrenom.setText(prenom != null ? prenom : "");
+                                txtNom.setText(nom != null ? nom : "");
+                                txtTelephone.setText(telephone != null ? telephone : "");
+                            });
+                        }
+                        return null;
                     }
-                    return null;
-                }
-            };
-            executor.submit(task);
+                };
+                executor.submit(task);
+            }
         }
     }
 
@@ -119,8 +124,8 @@ public class CheckoutController {
             protected Void call() {
                 shared.Requete req = new shared.Requete(
                     shared.RequestType.GET_ADDRESSES,
-                    Map.of("idClient", SessionManager.getInstance().getUserId()),
-                    SessionManager.getInstance().getToken()
+                    Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
+                    SessionManager.getInstance().getSession().getToken()
                 );
                 shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                 if (rep.isSucces() && rep.getDonnees() != null) {
@@ -238,11 +243,11 @@ public class CheckoutController {
             if (!newAddr.isEmpty() && !ville.isEmpty() && !codePostal.isEmpty()) {
                 executor.submit(() -> {
                     java.util.Map<String, Object> p = new java.util.HashMap<>();
-                    p.put("idClient", SessionManager.getInstance().getUserId());
+                    p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
                     p.put("addresseComplete", newAddr);
                     p.put("ville", ville);
                     p.put("codePostal", codePostal);
-                    shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getToken());
+                    shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getToken());
                     client.ClientSocket.getInstance().envoyer(req);
                 });
             }
@@ -267,11 +272,11 @@ public class CheckoutController {
         step3Circle.getStyleClass().setAll("step-circle-done");
 
         java.util.Map<String, Object> params = new java.util.HashMap<>();
-        params.put("idClient", SessionManager.getInstance().getUserId());
+        params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
         params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
         params.put("statut", "VALIDEE");
 
-        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getToken());
+        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getToken());
         shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
 
         if (rep.isSucces() && rep.getDonnees() != null) {
@@ -312,11 +317,11 @@ public class CheckoutController {
             }
             if (result.get() == buttonDraft) {
                 java.util.Map<String, Object> params = new java.util.HashMap<>();
-                params.put("idClient", SessionManager.getInstance().getUserId());
+                params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
                 params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
                 params.put("statut", "EN_ATTENTE");
 
-                shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getToken());
+                shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getToken());
                 client.ClientSocket.getInstance().envoyer(req);
 
                 SceneManager.clearCache("panier.fxml");

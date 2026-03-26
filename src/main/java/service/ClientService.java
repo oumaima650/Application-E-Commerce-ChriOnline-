@@ -27,12 +27,20 @@ public class ClientService {
             return new Reponse(false, "Paramètre manquant : idClient.", null);
         }
 
-        Map<String, String> profile = clientDAO.findProfileById(idClient);
-        if (profile == null) {
-            return new Reponse(false, "Client non trouvé.", null);
+        try {
+            model.Client client = clientDAO.findById(idClient);
+            if (client == null) {
+                return new Reponse(false, "Client non trouvé.", null);
+            }
+            Map<String, Object> data = new HashMap<>();
+            data.put("nom", client.getNom());
+            data.put("prenom", client.getPrenom());
+            data.put("telephone", client.getTelephone());
+            return new Reponse(true, "Profil récupéré.", data);
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return new Reponse(false, "Erreur lors de la récupération du profil.", null);
         }
-        Map<String, Object> data = new HashMap<>(profile);
-        return new Reponse(true, "Profil récupéré.", data);
     }
 
     /**
