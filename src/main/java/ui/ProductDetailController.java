@@ -620,7 +620,7 @@ public class ProductDetailController implements Initializable {
                         // The server returns a model.SKU object. Let's convert it to a Map for compatibility with existing code
                         SKU s = (SKU) skuObj;
                         Map<String, Object> m = new HashMap<>();
-                        m.put("SKU", s.getSku());
+                        m.put("sku", s.getSku());
                         m.put("prix", s.getPrix());
                         m.put("quantite", s.getQuantite());
                         m.put("image", s.getImage());
@@ -752,10 +752,12 @@ public class ProductDetailController implements Initializable {
     }
 
     @FXML private void handleBack() { SceneManager.back(); }
-  @FXML private void handleCart() { 
+    @FXML 
+    private void handleCart() { 
         if (SessionManager.getInstance().isAuthenticated()) {
             SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
         } else {
+            SessionManager.getInstance().setPendingRedirect("product-detail.fxml", "Détail Produit - ChriOnline");
             SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
         }
     }    
@@ -788,7 +790,7 @@ public class ProductDetailController implements Initializable {
             return;
         }
 
-        String skuCode = (String) currentSku.get("SKU");
+        String skuCode = (String) currentSku.get("sku");
         if (skuCode == null) {
             showToast("SKU non disponible");
             return;

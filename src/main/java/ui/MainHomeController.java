@@ -827,7 +827,7 @@ public class MainHomeController implements Initializable {
                         @SuppressWarnings("unchecked")
                         List<Map<String, Object>> skus = (List<Map<String, Object>>) skuRep.getDonnees().get("skus");
                         if (skus != null && !skus.isEmpty()) {
-                            String firstSku = (String) skus.get(0).get("SKU");
+                            String firstSku = (String) skus.get(0).get("sku");
                             Map<String, Object> addParams = new HashMap<>();
                             addParams.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
                             addParams.put("sku", firstSku);
@@ -1010,6 +1010,7 @@ public class MainHomeController implements Initializable {
 
     @FXML
     private void handleCreateAccountClick() {
+        SessionManager.getInstance().setPendingRedirect("main-home.fxml", "ChriOnline - Accueil");
         SceneManager.switchTo("login.fxml", "Créer un compte - ChriOnline");
     }
     
@@ -1039,6 +1040,7 @@ public class MainHomeController implements Initializable {
 
     @FXML
     private void handleLoginClick() {
+        SessionManager.getInstance().setPendingRedirect("main-home.fxml", "ChriOnline - Accueil");
         SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
     }
 
