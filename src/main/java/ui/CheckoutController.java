@@ -499,7 +499,8 @@ public class CheckoutController {
                 }
             }
 
-            SceneManager.clearCache("panier.fxml");
+            // Le système de cache a été retiré de SceneManager pour plus de stabilité.
+            // Les vues sont rechargées à neuf automatiquement.
         } else {
             showAlertErreur("La création de la commande a échoué : " + rep.getMessage());
         }
