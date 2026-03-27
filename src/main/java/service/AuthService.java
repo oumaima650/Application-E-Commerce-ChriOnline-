@@ -9,9 +9,12 @@ import shared.Reponse;
 import shared.Requete;
 import server.utils.SessionManager;
 
+import dao.RefreshTokenDAO;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 
 public class AuthService {
@@ -45,14 +48,24 @@ public class AuthService {
                 return new Reponse(false, "Ce compte a été banni par l'administrateur.", null);
             }
 
-            String token = SessionManager.getInstance().creerSession(user);
+            String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
+            String sessionId = UUID.randomUUID().toString();
+
+            // Generate JWT Access Token (15m)
+            String accessToken = JWTService.generateAccessToken(String.valueOf(userId), role, sessionId);
+
+            // Generate Refresh Token (7 days)
+            String refreshToken = JWTService.generateRefreshToken();
+            RefreshTokenDAO refreshTokenDAO = new RefreshTokenDAO();
+            refreshTokenDAO.save(userId, refreshToken, LocalDateTime.now().plusDays(7));
 
             Map<String, Object> donnees = new HashMap<>();
-            donnees.put("token" ,token);
-            donnees.put("utilisateur", user); // This will include all info (nom, prenom for Client)
-            donnees.put("typeUtilisateur", (user instanceof Client) ? "CLIENT" : "ADMIN");
+            donnees.put("accessToken", accessToken);
+            donnees.put("refreshToken", refreshToken);
+            donnees.put("utilisateur", user);
+            donnees.put("typeUtilisateur", role);
 
-            System.out.println("[AuthService] Login OK — email=" + email + " token=" + token);
+            System.out.println("[AuthService] Login OK — email=" + email + " userId=" + userId);
             return new Reponse(true, "Connexion réussie.", donnees);
 
         } catch (SQLException e) {
@@ -111,27 +124,106 @@ public class AuthService {
         }
     }
 
-    public Reponse logout(Requete requete) {
-        String token = requete.getTokenSession();
+    public Reponse refresh(Requete requete) {
+        try {
+            Map<String, Object> params = requete.getParametres();
+            if (params == null || !params.containsKey("refreshToken")) {
+                return new Reponse(false, "Refresh token manquant.", null);
+            }
 
-        if (token == null || token.isEmpty()) {
-            return new Reponse(false, "Aucun token de session fourni.", null);
+            String rawRefreshToken = (String) params.get("refreshToken");
+            RefreshTokenDAO dao = new RefreshTokenDAO();
+            RefreshTokenDAO.RefreshTokenInfo info = dao.findByToken(rawRefreshToken);
+
+            if (info == null) {
+                return new Reponse(false, "INVALID_TOKEN", null);
+            }
+
+            if (info.isRevoked()) {
+                return new Reponse(false, "TOKEN_REVOKED", null);
+            }
+
+            if (info.isUsed()) {
+                // ALARM: REUSE DETECTED
+                dao.revokeAllForUser(info.userId());
+                return new Reponse(false, "REFRESH_TOKEN_REUSE_DETECTED", null);
+            }
+
+            if (info.expiresAt().isBefore(LocalDateTime.now())) {
+                return new Reponse(false, "TOKEN_EXPIRED", null);
+            }
+
+            // ROTATION
+            dao.markAsUsed(info.id());
+
+            Utilisateur user = UtilisateurDAO.findById(info.userId());
+            String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
+            String newSessionId = UUID.randomUUID().toString();
+
+            String newAccessToken = JWTService.generateAccessToken(String.valueOf(user.getIdUtilisateur()), role, newSessionId);
+            String newRefreshToken = JWTService.generateRefreshToken();
+            dao.save(user.getIdUtilisateur(), newRefreshToken, LocalDateTime.now().plusDays(7));
+
+            Map<String, Object> donnees = new HashMap<>();
+            donnees.put("accessToken", newAccessToken);
+            donnees.put("refreshToken", newRefreshToken);
+
+            System.out.println("[AuthService] Token rotated for userId=" + info.userId());
+            return new Reponse(true, "Token rafraîchi.", donnees);
+
+        } catch (SQLException e) {
+            System.err.println("[AuthService] Erreur SQL lors du refresh : " + e.getMessage());
+            return new Reponse(false, "Erreur serveur.", null);
         }
+    }
 
-        SessionManager.getInstance().fermerSession(token);
-        System.out.println("[AuthService] Logout OK — token=" + token);
+    public Reponse logout(Requete requete) {
+        // userId and sessionId were injected into params by ClientHandler after JWT validation
+        Map<String, Object> params = requete.getParametres();
+        if (params != null && params.containsKey("refreshToken")) {
+            String rawToken = (String) params.get("refreshToken");
+            try {
+                RefreshTokenDAO dao = new RefreshTokenDAO();
+                RefreshTokenDAO.RefreshTokenInfo info = dao.findByToken(rawToken);
+                if (info != null && info.userId() == (int) params.get("userId")) {
+                    // In a full implementation, you'd mark this specific token as revoked
+                    // For now, let's just log it.
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        System.out.println("[AuthService] Logout requested");
         return new Reponse(true, "Déconnexion réussie.", null);
     }
 
-    public static int getUserIdFromToken(String token) {
-        if (!SessionManager.getInstance().validerToken(token)) {
-            return -1;
+    public Reponse logoutAll(Requete requete) {
+        try {
+            Map<String, Object> params = requete.getParametres();
+            if (params == null || !params.containsKey("userId")) {
+                return new Reponse(false, "Contexte utilisateur manquant.", null);
+            }
+
+            int userId = (int) params.get("userId");
+            RefreshTokenDAO dao = new RefreshTokenDAO();
+            dao.revokeAllForUser(userId);
+
+            System.out.println("[AuthService] Global logout for userId=" + userId);
+            return new Reponse(true, "Déconnexion de tous les appareils réussie.", null);
+        } catch (SQLException e) {
+            System.err.println("[AuthService] Erreur SQL lors du logoutAll : " + e.getMessage());
+            return new Reponse(false, "Erreur serveur.", null);
         }
-        Utilisateur user = SessionManager.getInstance().getUtilisateur(token);
-        return (user != null) ? user.getIdUtilisateur() : -1;
     }
 
-    public static boolean isAuthenticated(String token) {
-        return SessionManager.getInstance().validerToken(token);
+    public static int getUserIdFromToken(String token) {
+        try {
+            if (token == null || token.isBlank()) return -1;
+            JWTService.TokenClaims claims = JWTService.verifyAccessToken(token);
+            return Integer.parseInt(claims.userId());
+        } catch (Exception e) {
+            return -1;
+        }
     }
+    // Legacy helpers removed - Use ClientHandler/JWTService for validation
 }

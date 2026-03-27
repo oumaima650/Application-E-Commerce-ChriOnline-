@@ -26,37 +26,63 @@ public class CheckoutController {
     }
 
     // --- Step panels ---
-    @FXML private VBox step1Form;
-    @FXML private VBox step2Form;
-    @FXML private VBox step3Form;
-    @FXML private VBox vboxOrderSummary;
+    @FXML
+    private VBox step1Form;
+    @FXML
+    private VBox step2Form;
+    @FXML
+    private VBox step3Form;
+    @FXML
+    private VBox vboxOrderSummary;
 
-    @FXML private Circle step1Circle;
-    @FXML private Circle step2Circle;
-    @FXML private Circle step3Circle;
+    @FXML
+    private Circle step1Circle;
+    @FXML
+    private Circle step2Circle;
+    @FXML
+    private Circle step3Circle;
 
     // --- Step 1 fields ---
-    @FXML private TextField txtPrenom;
-    @FXML private TextField txtNom;
-    @FXML private ComboBox<String> cmbAdresse;
-    @FXML private TextField txtNouvelleAdresse;
-    @FXML private TextField txtVille;
-    @FXML private TextField txtCodePostal;
-    @FXML private TextField txtTelephone;
+    @FXML
+    private TextField txtPrenom;
+    @FXML
+    private TextField txtNom;
+    @FXML
+    private ComboBox<String> cmbAdresse;
+    @FXML
+    private TextField txtNouvelleAdresse;
+    @FXML
+    private TextField txtVille;
+    @FXML
+    private TextField txtCodePostal;
+    @FXML
+    private TextField txtTelephone;
 
     // --- Step 2 fields ---
-    @FXML private VBox cardOption;
-    @FXML private VBox cashOption;
-    @FXML private Label lblOrderId;
-    @FXML private Label lblOrderTotal;
-    @FXML private Label lblDeliveryDate;
-    @FXML private RadioButton radioCard;
-    @FXML private RadioButton radioCash;
-    @FXML private VBox cardFormBox;
-    @FXML private TextField txtCardNumber;
-    @FXML private Label lblCardNumberPreview;
-    @FXML private TextField txtExpiry;
-    @FXML private Label lblExpiryPreview;
+    @FXML
+    private VBox cardOption;
+    @FXML
+    private VBox cashOption;
+    @FXML
+    private Label lblOrderId;
+    @FXML
+    private Label lblOrderTotal;
+    @FXML
+    private Label lblDeliveryDate;
+    @FXML
+    private RadioButton radioCard;
+    @FXML
+    private RadioButton radioCash;
+    @FXML
+    private VBox cardFormBox;
+    @FXML
+    private TextField txtCardNumber;
+    @FXML
+    private Label lblCardNumberPreview;
+    @FXML
+    private TextField txtExpiry;
+    @FXML
+    private Label lblExpiryPreview;
 
     // Stored addresses data
     private List<Map<String, Object>> savedAddresses = new ArrayList<>();
@@ -70,6 +96,10 @@ public class CheckoutController {
 
     @FXML
     public void initialize() {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            return;
+        }
         setupPaymentOptions();
         prefillUserData();
         loadAddresses();
@@ -91,9 +121,9 @@ public class CheckoutController {
                     @Override
                     protected Void call() {
                         shared.Requete req = new shared.Requete(
-                            shared.RequestType.GET_PROFILE,
-                            Map.of("idClient", sm.getCurrentUser().getIdUtilisateur()),
-                            sm.getSession().getToken()
+                                shared.RequestType.GET_PROFILE,
+                                Map.of("idClient", sm.getCurrentUser().getIdUtilisateur()),
+                                sm.getSession().getAccessToken()
                         );
                         shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                         if (rep.isSucces() && rep.getDonnees() != null) {
@@ -102,7 +132,7 @@ public class CheckoutController {
                             String prenom = (String) data.get("prenom");
                             String nom = (String) data.get("nom");
                             String telephone = (String) data.get("telephone");
-                            
+
                             clientUser.setPrenom(prenom);
                             clientUser.setNom(nom);
                             clientUser.setTelephone(telephone);
@@ -129,9 +159,9 @@ public class CheckoutController {
             @Override
             protected Void call() {
                 shared.Requete req = new shared.Requete(
-                    shared.RequestType.GET_ADDRESSES,
-                    Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
-                    SessionManager.getInstance().getSession().getToken()
+                        shared.RequestType.GET_ADDRESSES,
+                        Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
+                        SessionManager.getInstance().getSession().getAccessToken()
                 );
                 shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                 if (rep.isSucces() && rep.getDonnees() != null) {
@@ -143,6 +173,7 @@ public class CheckoutController {
                 }
                 return null;
             }
+
             @Override
             protected void succeeded() {
                 cmbAdresse.getItems().clear();
@@ -232,9 +263,12 @@ public class CheckoutController {
     // ──────────────────────────────────────────
     @FXML
     private void goToStep1() {
-        step1Form.setVisible(true);  step1Form.setManaged(true);
-        step2Form.setVisible(false); step2Form.setManaged(false);
-        step3Form.setVisible(false); step3Form.setManaged(false);
+        step1Form.setVisible(true);
+        step1Form.setManaged(true);
+        step2Form.setVisible(false);
+        step2Form.setManaged(false);
+        step3Form.setVisible(false);
+        step3Form.setManaged(false);
         step1Circle.getStyleClass().setAll("step-circle-active");
         step2Circle.getStyleClass().setAll("step-circle-done");
     }
@@ -275,14 +309,16 @@ public class CheckoutController {
                 p.put("addresseComplete", newAddr);
                 p.put("ville", ville);
                 p.put("codePostal", codePostal);
-                shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getToken());
+                shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getAccessToken());
                 client.ClientSocket.getInstance().envoyer(req);
             });
         }
-
-        step1Form.setVisible(false); step1Form.setManaged(false);
-        step2Form.setVisible(true);  step2Form.setManaged(true);
-        step3Form.setVisible(false); step3Form.setManaged(false);
+        step1Form.setVisible(false);
+        step1Form.setManaged(false);
+        step2Form.setVisible(true);
+        step2Form.setManaged(true);
+        step3Form.setVisible(false);
+        step3Form.setManaged(false);
         step1Circle.getStyleClass().setAll("step-circle-done");
         step2Circle.getStyleClass().setAll("step-circle-active");
         step3Circle.getStyleClass().setAll("step-circle-future");
@@ -291,9 +327,12 @@ public class CheckoutController {
     @FXML
     @SuppressWarnings("unchecked")
     private void goToStep3() {
-        step1Form.setVisible(false); step1Form.setManaged(false);
-        step2Form.setVisible(false); step2Form.setManaged(false);
-        step3Form.setVisible(true);  step3Form.setManaged(true);
+        step1Form.setVisible(false);
+        step1Form.setManaged(false);
+        step2Form.setVisible(false);
+        step2Form.setManaged(false);
+        step3Form.setVisible(true);
+        step3Form.setManaged(true);
         step1Circle.getStyleClass().setAll("step-circle-done");
         step2Circle.getStyleClass().setAll("step-circle-done");
         step3Circle.getStyleClass().setAll("step-circle-done");
@@ -303,16 +342,16 @@ public class CheckoutController {
         params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
         params.put("statut", "VALIDEE");
 
-        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getToken());
+        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
         shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
 
         if (rep.isSucces() && rep.getDonnees() != null) {
             Map<String, Object> data = (Map<String, Object>) rep.getDonnees();
-            String ref   = (String) data.get("reference");
+            String ref = (String) data.get("reference");
             double total = ((Number) data.get("total")).doubleValue();
             lblOrderId.setText("#" + ref);
             lblOrderTotal.setText("Montant : " + String.format("%,.2f MAD", total));
-            
+
             String dateLiv = (String) data.get("dateLivraison");
             if (dateLiv != null) {
                 lblDeliveryDate.setText("Livraison par ChriOnline prévue le : " + dateLiv);
@@ -337,29 +376,29 @@ public class CheckoutController {
                     if (imgPath != null && !imgPath.isEmpty() && (imgPath.startsWith("http") || imgPath.startsWith("https"))) {
                         try {
                             javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(new javafx.scene.image.Image(imgPath, true));
-                            iv.setFitWidth(45); 
+                            iv.setFitWidth(45);
                             iv.setFitHeight(45);
                             iv.setPreserveRatio(true);
-                            
+
                             // Rounded corners
                             javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(45, 45);
                             clip.setArcWidth(10);
                             clip.setArcHeight(10);
                             iv.setClip(clip);
-                            
+
                             visual = iv;
                         } catch (Exception ex) {
                             visual = ui.utils.IconLibrary.getIcon(ui.utils.IconLibrary.PHONE, 24, "#95A5A6");
                         }
                     } else {
                         // Fallback icone si pas de photo ou pas une URL
-                        String iconPath = (imgPath == null || imgPath.isEmpty() || imgPath.endsWith(".jpg") || imgPath.endsWith(".png")) 
-                                          ? ui.utils.IconLibrary.PHONE : imgPath;
+                        String iconPath = (imgPath == null || imgPath.isEmpty() || imgPath.endsWith(".jpg") || imgPath.endsWith(".png"))
+                                ? ui.utils.IconLibrary.PHONE : imgPath;
                         visual = ui.utils.IconLibrary.getIcon(iconPath, 24, "#95A5A6");
                     }
-                    
+
                     StackPane imgContainer = new StackPane(visual);
-                    imgContainer.setMinWidth(50); 
+                    imgContainer.setMinWidth(50);
                     imgContainer.setPrefSize(50, 50);
                     imgContainer.setAlignment(javafx.geometry.Pos.CENTER);
                     imgContainer.setStyle("-fx-background-color: #F8F9FA; -fx-background-radius: 8;");
@@ -371,7 +410,8 @@ public class CheckoutController {
                     lblQtyPrice.setStyle("-fx-font-size: 11; -fx-text-fill: #7F8C8D;");
                     details.getChildren().addAll(lblNom, lblQtyPrice);
 
-                    Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
+                    Region spacer = new Region();
+                    HBox.setHgrow(spacer, Priority.ALWAYS);
                     Label lblTotal = new Label(String.format("%.2f MAD", qty * prix));
                     lblTotal.setStyle("-fx-font-weight: bold; -fx-text-fill: #2C3E50;");
 
@@ -379,7 +419,7 @@ public class CheckoutController {
                     vboxOrderSummary.getChildren().add(row);
                 }
             }
-            
+
             // Forcer le rafraîchissement du panier lors du prochain accès
             SceneManager.clearCache("panier.fxml");
         } else {
@@ -402,9 +442,9 @@ public class CheckoutController {
             alert.setHeaderText("Voulez-vous enregistrer cette commande en brouillon ?");
             alert.setContentText("Choisissez 'Draft' pour sauvegarder en attente, ou 'Annuler la commande' pour retourner au panier sans rien sauvegarder.");
 
-            ButtonType buttonDraft   = new ButtonType("Draft");
+            ButtonType buttonDraft = new ButtonType("Draft");
             ButtonType buttonAnnuler = new ButtonType("Annuler la commande");
-            ButtonType buttonRester  = new ButtonType("Annuler", ButtonBar.ButtonData.CANCEL_CLOSE);
+            ButtonType buttonRester = new ButtonType("Annuler", ButtonBar.ButtonData.CANCEL_CLOSE);
 
             alert.getButtonTypes().setAll(buttonDraft, buttonAnnuler, buttonRester);
 
@@ -418,7 +458,7 @@ public class CheckoutController {
                 params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
                 params.put("statut", "EN_ATTENTE");
 
-                shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getToken());
+                shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
                 client.ClientSocket.getInstance().envoyer(req);
 
                 SceneManager.clearCache("panier.fxml");

@@ -74,11 +74,7 @@ public class ClientApp extends Application {
         udpListener.start();
         System.out.println("[ClientApp] Client UDP démarré sur le port " + UDP_PORT);
         
-        // Enregistrer le port UDP auprès du serveur (simulation pour admin)
-        // Dans un vrai cas, ce serait fait après un login réussi
-        registerUdpPort();
-        
-        // Démarrer directement sur la page d'accueil (MainHome)
+        // DEMARRER SUR LA PAGE D'ACCUEIL (Guest Mode)
         SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
         
         primaryStage.show();
@@ -87,25 +83,28 @@ public class ClientApp extends Application {
     /**
      * Enregistre le port UDP auprès du serveur pour recevoir les notifications
      */
-    private void registerUdpPort() {
+    public void registerUdpPort(String token) {
         try {
-            // Simuler l'enregistrement pour l'admin
-            // Dans un vrai cas, ce serait fait après authentification
             java.util.Map<String, Object> params = new java.util.HashMap<>();
             params.put("udpPort", UDP_PORT);
             
-            shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER_UDP_PORT, params, "ADMIN_TOKEN");
+            shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER_UDP_PORT, params, token);
             shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
             
-            if (reponse.isSucces()) {
+            if (reponse != null && reponse.isSucces()) {
                 System.out.println("[ClientApp] Port UDP " + UDP_PORT + " enregistré avec succès");
             } else {
-                System.err.println("[ClientApp] Erreur enregistrement port UDP: " + reponse.getMessage());
+                System.err.println("[ClientApp] Erreur enregistrement port UDP: " + (reponse != null ? reponse.getMessage() : "Pas de réponse"));
             }
         } catch (Exception e) {
             System.err.println("[ClientApp] Exception lors de l'enregistrement UDP: " + e.getMessage());
         }
     }
+
+    private static ClientApp instance;
+    public static ClientApp getInstance() { return instance; }
+
+    public ClientApp() { instance = this; }
 
     /**
      * Retourne le contrôleur Notifications pour qu'other pages puissent naviguer

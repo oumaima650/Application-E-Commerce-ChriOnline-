@@ -645,27 +645,19 @@ public class ProductDetailController implements Initializable {
         }
     }
 
-    @FXML
-    private void handleBack() {
-        SceneManager.back();
-    }
-
-    @FXML
-    private void handleCart() {
-        SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
-    }
-
+    @FXML private void handleBack() { SceneManager.back(); }
+  @FXML private void handleCart() { 
+        if (SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
+        } else {
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+        }
+    }    
     @FXML
     private void incrementQty() {
-        int maxStock = 0;
-        if (currentSku != null && currentSku.get("quantite") != null) {
-            maxStock = ((Number) currentSku.get("quantite")).intValue();
-        }
-        if (quantity < maxStock) {
-            quantity++;
-            if (quantityField != null)
-                quantityField.setText(String.valueOf(quantity));
-        }
+        quantity++;
+        if (quantityField != null)
+            quantityField.setText(String.valueOf(quantity));
     }
 
     @FXML
@@ -703,9 +695,8 @@ public class ProductDetailController implements Initializable {
                 params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
                 params.put("sku", skuCode);
                 params.put("quantite", quantity);
-
-                return sendRequest(new Requete(RequestType.ADD_TO_CART, params,
-                        SessionManager.getInstance().getSession().getToken()));
+                
+                return sendRequest(new Requete(RequestType.ADD_TO_CART, params, SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
         task.setOnSucceeded(e -> {
@@ -725,15 +716,14 @@ public class ProductDetailController implements Initializable {
 
     private void updateCartBadge() {
         Task<Reponse> task = new Task<>() {
-            @Override
-            protected Reponse call() {
-                if (!SessionManager.getInstance().isAuthenticated())
-                    return null;
+            @Override protected Reponse call() {
+                if (!SessionManager.getInstance().isAuthenticated()) return null;
+                int idClient = (SessionManager.getInstance().getCurrentUser() != null) ? SessionManager.getInstance().getCurrentUser().getIdUtilisateur() : -1;
+                if (idClient == -1) return null;
                 Map<String, Object> params = new HashMap<>();
-                params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
-
-                return sendRequest(new Requete(RequestType.GET_CART, params,
-                        SessionManager.getInstance().getSession().getToken()));
+                params.put("idClient", idClient);
+                
+                return sendRequest(new Requete(RequestType.GET_CART, params, SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
         task.setOnSucceeded(e -> {
@@ -842,7 +832,7 @@ public class ProductDetailController implements Initializable {
                 params.put("contenu", contenu.trim());
                 params.put("evaluation", finalEval);
                 return sendRequest(new Requete(RequestType.ADD_AVIS, params,
-                        SessionManager.getInstance().getSession().getToken()));
+                        SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
 

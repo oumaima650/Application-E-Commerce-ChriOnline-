@@ -258,12 +258,10 @@ public class MainHomeController implements Initializable {
             mainContent.getChildren().add(wrapper);
         }
     }
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
         setupNavbar();
-        setupFilterBar();
         setupHeroSlider();
         loadCategories();
         loadProducts();
@@ -301,41 +299,30 @@ public class MainHomeController implements Initializable {
         // Load Cart and Notif counts
         updateBadges();
 
-        // User Authentication State
-        boolean loggedIn = SessionManager.getInstance().isAuthenticated();
-        if (loginButton != null) {
-            loginButton.setVisible(!loggedIn);
-            loginButton.setManaged(!loggedIn);
-        }
-        if (userAvatarContainer != null) {
-            userAvatarContainer.setVisible(loggedIn);
-            userAvatarContainer.setManaged(loggedIn);
-        }
-
-        if (loggedIn) {
+        // User Avatar and Name from Session
+        if (SessionManager.getInstance().isAuthenticated()) {
             String email = SessionManager.getInstance().getCurrentUser().getEmail();
-            String name = email.split("@")[0].toUpperCase();
-            if (userInitial != null) {
-                userInitial.setText(name.substring(0, 1));
+            if (email != null && !email.isEmpty()) {
+                String name = email.split("@")[0].toUpperCase();
+                if (userInitial != null) userInitial.setText(name.substring(0, 1));
             }
+        } else {
+            if (userInitial != null) userInitial.setText("G"); // G for Guest
         }
 
         if (userAvatar != null) {
-            userAvatar.setFill(Color.web(CORAIL));
+            userAvatar.setFill(Color.web(SessionManager.getInstance().isAuthenticated() ? CORAIL : "#94a3b8"));
         }
     }
-
 
     private void updateBadges() {
         // GET_CART
         Task<Reponse> cartTask = new Task<>() {
-            @Override
-            protected Reponse call() {
-                if (!SessionManager.getInstance().isAuthenticated())
-                    return null;
-                return sendToServer(new Requete(RequestType.GET_CART,
-                        Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
-                        SessionManager.getInstance().getSession().getToken()));
+            @Override protected Reponse call() {
+                if (!SessionManager.getInstance().isAuthenticated()) return null;
+                int idClient = (SessionManager.getInstance().getCurrentUser() != null) ? SessionManager.getInstance().getCurrentUser().getIdUtilisateur() : -1;
+                if (idClient == -1) return null;
+                return sendToServer(new Requete(RequestType.GET_CART, Map.of("idClient", idClient), SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
         cartTask.setOnSucceeded(e -> {
@@ -357,13 +344,9 @@ public class MainHomeController implements Initializable {
 
         // GET_NOTIFICATIONS (Badge on icons if relevant)
         Task<Reponse> notifTask = new Task<>() {
-            @Override
-            protected Reponse call() {
-                if (!SessionManager.getInstance().isAuthenticated())
-                    return null;
-                return sendToServer(new Requete(RequestType.GET_NOTIFICATIONS,
-                        Map.of("idUtilisateur", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
-                        SessionManager.getInstance().getSession().getToken()));
+            @Override protected Reponse call() {
+                if (!SessionManager.getInstance().isAuthenticated()) return null;
+                return sendToServer(new Requete(RequestType.GET_NOTIFICATIONS, Map.of("idUtilisateur", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
         notifTask.setOnSucceeded(e -> {
@@ -500,11 +483,8 @@ public class MainHomeController implements Initializable {
     // ==========================================
     private void loadProducts() {
         Task<Reponse> pTask = new Task<>() {
-            @Override
-            protected Reponse call() {
-                String token = SessionManager.getInstance().isAuthenticated()
-                        ? SessionManager.getInstance().getSession().getToken()
-                        : "";
+            @Override protected Reponse call() {
+                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getAccessToken() : "";
                 return sendToServer(new Requete(RequestType.GET_ALL_PRODUITS_AFFICHABLES, new HashMap<>(), token));
             }
         };
@@ -741,7 +721,7 @@ public class MainHomeController implements Initializable {
                 protected Reponse call() {
                     Map<String, Object> reqP = new HashMap<>();
                     reqP.put("idProduit", idObj);
-                    String token = SessionManager.getInstance().getSession().getToken();
+                    String token = SessionManager.getInstance().getSession().getAccessToken();
                     Reponse skuRep = client.ClientSocket.getInstance()
                             .envoyer(new Requete(RequestType.GET_SKU_BY_PRODUIT, reqP, token));
 
@@ -920,28 +900,54 @@ public class MainHomeController implements Initializable {
         System.out.println("Hero Action: Click");
     }
 
-    @FXML
-    private void handleCartClick() {
-        SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
+    @FXML private void handleCartClick() { 
+        if (SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
+        } else {
+            // Optionnel: Alerte ou redirection login
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+        }
     }
 
     @FXML
-    private void handleUserClick() {
-        if (userAvatar == null)
-            return;
-
+    private void handleCreateAccountClick() {
+        SceneManager.switchTo("login.fxml", "Créer un compte - ChriOnline");
+    }
+    
+    @FXML private void handleUserClick() { 
+        if (userAvatar == null) return;
+        
         ContextMenu userMenu = new ContextMenu();
-        MenuItem miCompte = new MenuItem("Mon compte");
-        MenuItem miCommandes = new MenuItem("Mes commandes"); // Added missing item
-        MenuItem miDeconnexion = new MenuItem("Déconnexion");
-
-        miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
-        miDeconnexion.setOnAction(e -> {
-            SessionManager.getInstance().fermer();
-            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
-        });
-
-        userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
+        
+        if (SessionManager.getInstance().isAuthenticated()) {
+            MenuItem miCompte = new MenuItem("Mon compte");
+            MenuItem miCommandes = new MenuItem("Mes commandes");
+            MenuItem miDeconnexion = new MenuItem("Déconnexion");
+            
+            miCompte.setOnAction(e -> SceneManager.switchTo("profile.fxml", "Mon Profil - ChriOnline"));
+            miCommandes.setOnAction(e -> SceneManager.switchTo("commandes.fxml", "Mes Commandes - ChriOnline"));
+            
+            miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
+            miDeconnexion.setOnAction(e -> {
+                SessionManager.getInstance().fermer();
+                SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
+            });
+            
+            userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
+        } else {
+            MenuItem miConnexion = new MenuItem("Se connecter");
+            miConnexion.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + ";");
+            miConnexion.setOnAction(e -> SceneManager.switchTo("login.fxml", "Connexion - ChriOnline"));
+            
+            MenuItem miInscription = new MenuItem("Créer un compte");
+            miInscription.setOnAction(e -> {
+                // Not implemented yet but placeholder
+                System.out.println("Go to Register page");
+            });
+            
+            userMenu.getItems().addAll(miConnexion, miInscription);
+        }
+        
         userMenu.show(userAvatar, javafx.geometry.Side.BOTTOM, 0, 0);
     }
 
