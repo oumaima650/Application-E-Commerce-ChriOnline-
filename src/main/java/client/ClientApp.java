@@ -16,22 +16,59 @@ public class ClientApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        System.out.println("[ClientApp] Starting ChriOnline Client Application...");
+        primaryStage.setTitle("ChriOnline - Boutique en ligne");
+        primaryStage.setWidth(1200);
+        primaryStage.setHeight(800);
+        primaryStage.setMinWidth(1100);
+        primaryStage.setMinHeight(750);
 
+    public void start(Stage primaryStage) throws Exception {
+        primaryStage.setTitle("ChriOnline - E-Commerce");
+        primaryStage.setMinWidth(1100);
+        primaryStage.setMinHeight(750);
+        
         // INITIALISER LE SCENE MANAGER
         SceneManager.init(primaryStage);
 
-        // Démarrer le listener UDP
+        try {
+            // Charger la homepage premium
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-home.fxml"));
+            Parent root = loader.load();
+            
+            // Créer la scène avec les styles
+            javafx.scene.Scene scene = new javafx.scene.Scene(root);
+            String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
+            scene.getStylesheets().add(cssPath);
+            
+            primaryStage.setTitle("ChriOnline - Boutique en ligne");
+            primaryStage.setScene(scene);
+            primaryStage.show();
+            
+            System.out.println("✅ Homepage ChriOnline chargée avec succès !");
+            
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors du chargement de la homepage:");
+            e.printStackTrace();
+            
+            // Scène de secours en cas d'erreur
+            javafx.scene.layout.VBox errorBox = new javafx.scene.layout.VBox(20);
+            errorBox.setAlignment(javafx.geometry.Pos.CENTER);
+            errorBox.setStyle("-fx-padding: 40; -fx-alignment: center;");
+            
+            javafx.scene.control.Label errorLabel = new javafx.scene.control.Label("Erreur de chargement...");
+            errorBox.getChildren().add(errorLabel);
+            
+            javafx.scene.Scene errorScene = new javafx.scene.Scene(errorBox, 600, 400);
+            primaryStage.setScene(errorScene);
+            primaryStage.show();
+        }
+        
+        // Démarrer le listener UDP pour les notifications
         udpListener = new ClientUDP(UDP_PORT);
         udpListener.start();
-        
-        // DEMARRER SUR LA PAGE D'ACCUEIL (Guest Mode)
-        // SceneManager s'occupe de charger le FXML et d'appliquer le CSS
-        SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
-        
-        primaryStage.show();
     }
-    
+
+
     /**
      * Enregistre le port UDP auprès du serveur pour recevoir les notifications
      */
@@ -65,7 +102,7 @@ public class ClientApp extends Application {
     public static NotificationsController getNotificationsController() {
         return notificationsController;
     }
-    
+
     /**
      * Définit le contrôleur Notifications et le connecte au ClientUDP
      */
