@@ -43,6 +43,7 @@ public class ClientHandler implements Runnable {
     private final ProduitVarValeurService pvvService;
     private final SKUService skuService;
     private final service.ClientService clientService;
+    private final service.AvisService avisService;
 
     private ObjectOutputStream out;
     private ObjectInputStream  in;
@@ -63,6 +64,7 @@ public class ClientHandler implements Runnable {
         this.pvvService = new ProduitVarValeurService();
         this.skuService = new SKUService();
         this.clientService = new service.ClientService();
+        this.avisService = new service.AvisService();
     }
 
 
@@ -195,6 +197,7 @@ public class ClientHandler implements Runnable {
             case GET_PRODUIT_COMPLET_AVEC_VARIANTES -> produitService.getProduitCompletAvecVariantes(requete);
             case SEARCH_PRODUITS_BY_NOM -> produitService.rechercherParNom(requete);
             case COUNT_PRODUITS -> produitService.compter(requete);
+            case GET_AVIS_BY_PRODUIT -> avisService.getAvisByProduit(requete);
 
             case GET_ALL_CATEGORIES -> categorieService.getAll(requete);
             case GET_CATEGORIE_BY_ID -> categorieService.getById(requete);
@@ -292,6 +295,8 @@ public class ClientHandler implements Runnable {
                     case GET_PROFILE  -> clientService.getProfile(requete);
                     case GET_ADDRESSES -> clientService.getAdresses(requete);
                     case ADD_ADDRESS   -> clientService.addAdresse(requete);
+                    
+                    case ADD_AVIS      -> avisService.addAvis(requete);
 
 
                     
