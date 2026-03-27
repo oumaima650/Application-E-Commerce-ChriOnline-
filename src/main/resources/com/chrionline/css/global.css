@@ -404,3 +404,97 @@
     -fx-background-radius: 6;
     -fx-padding: 2 6 2 6;
 }
+/* ════════════════════════════════════════════════════════════════
+   WIZARD STEP INDICATORS
+   Used in product_add_wizard.fxml
+════════════════════════════════════════════════════════════════ */
+.step-active {
+    -fx-background-color: #FF724C;
+    -fx-background-radius: 20;
+    -fx-padding: 8 16;
+}
+.step-active .step-number {
+    -fx-background-color: white;
+    -fx-text-fill: #FF724C;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12;
+    -fx-min-width: 24;
+    -fx-alignment: CENTER;
+}
+.step-active .step-label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.step-inactive {
+    -fx-background-color: transparent;
+    -fx-padding: 8 16;
+}
+.step-inactive .step-number {
+    -fx-text-fill: #8892A4;
+    -fx-font-weight: bold;
+    -fx-border-color: #8892A4;
+    -fx-border-radius: 12;
+    -fx-min-width: 24;
+    -fx-alignment: CENTER;
+}
+.step-inactive .step-label {
+    -fx-text-fill: #8892A4;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TABLEVIEW — Premium Admin look
+════════════════════════════════════════════════════════════════ */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #E4E7F0;
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #2A2C41;
+    -fx-background-radius: 12 12 0 0;
+    -fx-padding: 8 0;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 40;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+.table-view .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: #F4F4F8;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 5 0;
+}
+
+.table-view .table-row-cell:odd {
+    -fx-background-color: #FCFDFF;
+}
+
+.table-view .table-row-cell:hover {
+    -fx-background-color: #F0F4FF;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #E0E7FF;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: #2A2C41;
+    -fx-padding: 10;
+}
+
+.table-view .placeholder .label {
+    -fx-text-fill: #8892A4;
+    -fx-font-style: italic;
+}
