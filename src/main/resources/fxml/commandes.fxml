@@ -13,6 +13,7 @@
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label text="Mes Commandes" styleClass="page-title"/>
                 <Region HBox.hgrow="ALWAYS"/>
+                <Button text="👤 Mon Profil" styleClass="btn-profile" onAction="#goToProfile"/>
                 <Button text="↻ Actualiser" styleClass="btn-refresh" onAction="#refreshOrders"/>
             </HBox>
         </VBox>

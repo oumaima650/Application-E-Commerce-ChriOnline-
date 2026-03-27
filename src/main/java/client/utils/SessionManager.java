@@ -9,6 +9,9 @@ import model.Utilisateur;
 public class SessionManager {
     private static SessionManager instance;
     private Session currentSession;
+    //c pour cree une sorte de memeoire pour se rappeler de la page ou on etait avant de se connecter 
+    private String pendingRedirect;
+    private String pendingRedirectTitle;
 
     private SessionManager() {}
 
@@ -22,8 +25,8 @@ public class SessionManager {
     /**
      * Initializes a new session after successful login.
      */
-    public void ouvrir(String token, Utilisateur user) {
-        this.currentSession = new Session(token, user);
+    public void ouvrir(String accessToken, String refreshToken, Utilisateur user) {
+        this.currentSession = new Session(accessToken, refreshToken, user);
         System.out.println("[Client Session] Session ouverte pour : " + user.getEmail());
     }
 
@@ -40,10 +43,28 @@ public class SessionManager {
     }
 
     public boolean isAuthenticated() {
-        return currentSession != null && currentSession.getToken() != null;
+        return currentSession != null && currentSession.getAccessToken() != null;
     }
 
     public Utilisateur getCurrentUser() {
         return (currentSession != null) ? currentSession.getUtilisateur() : null;
+    }
+
+    public void setPendingRedirect(String fxml, String title) {
+        this.pendingRedirect = fxml;
+        this.pendingRedirectTitle = title;
+    }
+
+    public String getPendingRedirect() {
+        return pendingRedirect;
+    }
+
+    public String getPendingRedirectTitle() {
+        return pendingRedirectTitle;
+    }
+
+    public void clearPendingRedirect() {
+        this.pendingRedirect = null;
+        this.pendingRedirectTitle = null;
     }
 }

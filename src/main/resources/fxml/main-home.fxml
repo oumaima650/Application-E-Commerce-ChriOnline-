@@ -21,7 +21,7 @@
             <HBox style="-fx-background-color: rgba(255,255,255,0.08); -fx-background-radius: 50px; -fx-alignment: CENTER_LEFT; -fx-padding: 0 16;" prefWidth="240">
                 <children>
                     <fx:include source="icons/search_icon.fxml"/>
-                    <TextField fx:id="searchField" promptText="Rechercher des produits..." style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: white; -fx-prompt-text-fill: rgba(255,255,255,0.6); -fx-font-size: 13px;" HBox.hgrow="ALWAYS" onAction="#handleSearch"/>
+                    <TextField fx:id="searchField" promptText="Rechercher des produits..." style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: white; -fx-prompt-text-fill: rgba(255,255,255,0.6); -fx-font-size: 13px;" HBox.hgrow="ALWAYS" onAction="#handleSearchAction"/>
                 </children>
             </HBox>
             
@@ -41,145 +41,80 @@
             <!-- Spacer -->
             <Region prefWidth="16"/>
             
-            <!-- User Avatar -->
-            <StackPane onMouseClicked="#handleUserClick" style="-fx-cursor: hand;">
-                <Circle fx:id="userAvatar" radius="17" fill="#FF724C"/>
-                <Label fx:id="userInitial" text="U" style="-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+            <!-- User Auth Section -->
+            <StackPane alignment="CENTER_RIGHT">
+                <children>
+                    <!-- Login Button -->
+                    <Button fx:id="loginButton" text="Connexion / Inscription" onAction="#handleLoginClick" 
+                            style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-background-radius: 8px; -fx-font-weight: bold; -fx-padding: 8 16; -fx-cursor: hand;"
+                            visible="true"/>
+                    
+                    <!-- User Avatar -->
+                    <StackPane fx:id="userAvatarContainer" onMouseClicked="#handleUserClick" style="-fx-cursor: hand;" visible="false">
+                        <Circle fx:id="userAvatar" radius="17" fill="#FF724C"/>
+                        <Label fx:id="userInitial" text="U" style="-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                    </StackPane>
+                </children>
             </StackPane>
         </HBox>
     </top>
     
     <!-- CENTER CONTENT -->
     <center>
-        <HBox>
-            <!-- LEFT SIDEBAR -->
-            <VBox fx:id="sidebar" style="-fx-background-color: #2A2C41; -fx-padding: 14;" prefWidth="200" spacing="4">
-                <children>
-                    <Button fx:id="btnTous" text="Tous les produits" onAction="#handleCategoryClick"/>
-                    <Button fx:id="btnSmartphones" text="Smartphones" onAction="#handleCategoryClick"/>
-                    <Button fx:id="btnAccessoires" text="Accessoires" onAction="#handleCategoryClick"/>
-                    <Button fx:id="btnOrdinateurs" text="Ordinateurs" onAction="#handleCategoryClick"/>
-                    <Button fx:id="btnMontres" text="Montres" onAction="#handleCategoryClick"/>
-                    <Button fx:id="btnPromotions" text="Promotions" onAction="#handleCategoryClick"/>
-                </children>
-            </VBox>
-            
-            <!-- MAIN CONTENT -->
-            <ScrollPane fx:id="mainScrollPane" style="-fx-background-color: #F4F4F8; -fx-border-width: 0;" fitToWidth="true" HBox.hgrow="ALWAYS">
-                <VBox fx:id="mainContent" style="-fx-padding: 24; -fx-spacing: 28;">
-                    
-                    <!-- HERO BANNER -->
-                    <StackPane fx:id="heroBanner" style="-fx-pref-height: 200px;">
-                        <children>
-                            <!-- Background -->
-                            <Rectangle fill="#2A2C41" arcWidth="20" arcHeight="20" width="600" height="200"/>
-                            
-                            <!-- Left Content -->
-                            <VBox alignment="CENTER_LEFT" style="-fx-padding: 32;" StackPane.alignment="CENTER_LEFT">
-                                <children>
-                                    <Label fx:id="heroBadge" text="NOUVELLE COLLECTION"/>
-                                    <Label fx:id="heroTitle" text="Smartphones&#10;Haut de Gamme"/>
-                                    <Label fx:id="heroSubtitle" text="Découvrez notre sélection des derniers modèles"/>
-                                    <Button fx:id="heroButton" text="Découvrir →" onAction="#handleHeroAction" style="-fx-translate-y: 10;"/>
-                                </children>
-                            </VBox>
-                            
-                            <!-- Right: Product Image from Cloudinary -->
-                            <StackPane StackPane.alignment="CENTER_RIGHT" style="-fx-padding: 20;">
-                                <children>
-                                    <ImageView fx:id="heroBannerImage"
-                                               fitHeight="160" fitWidth="160"
-                                               preserveRatio="true"
-                                               smooth="true"
-                                               StackPane.alignment="CENTER_RIGHT"/>
-                                </children>
-                            </StackPane>
-                        </children>
-                    </StackPane>
-                    
-                    <!-- QUICK CATEGORIES ROW -->
-                    <HBox style="-fx-spacing: 12;" alignment="CENTER_LEFT">
-                        <children>
-                            <!-- Category Cards -->
-                            <VBox style="-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1px; -fx-alignment: CENTER; -fx-padding: 12; -fx-pref-width: 120; -fx-pref-height: 80; -fx-cursor: hand;">
-                                <fx:include source="icons/phone_icon.fxml"/>
-                                <Label text="Smartphones" style="-fx-text-fill: #2A2C41; -fx-font-size: 11px; -fx-font-weight: bold;"/>
-                            </VBox>
-                            
-                            <VBox style="-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1px; -fx-alignment: CENTER; -fx-padding: 12; -fx-pref-width: 120; -fx-pref-height: 80; -fx-cursor: hand;">
-                                <fx:include source="icons/headphone_icon.fxml"/>
-                                <Label text="Accessoires" style="-fx-text-fill: #2A2C41; -fx-font-size: 11px; -fx-font-weight: bold;"/>
-                            </VBox>
-                            
-                            <VBox style="-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1px; -fx-alignment: CENTER; -fx-padding: 12; -fx-pref-width: 120; -fx-pref-height: 80; -fx-cursor: hand;">
-                                <fx:include source="icons/laptop_icon.fxml"/>
-                                <Label text="Ordinateurs" style="-fx-text-fill: #2A2C41; -fx-font-size: 11px; -fx-font-weight: bold;"/>
-                            </VBox>
-                            
-                            <VBox style="-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1px; -fx-alignment: CENTER; -fx-padding: 12; -fx-pref-width: 120; -fx-pref-height: 80; -fx-cursor: hand;">
-                                <fx:include source="icons/watch_icon.fxml"/>
-                                <Label text="Montres" style="-fx-text-fill: #2A2C41; -fx-font-size: 11px; -fx-font-weight: bold;"/>
-                            </VBox>
-                            
-                            <VBox style="-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: #f0f0f0; -fx-border-width: 1px; -fx-alignment: CENTER; -fx-padding: 12; -fx-pref-width: 120; -fx-pref-height: 80; -fx-cursor: hand;">
-                                <fx:include source="icons/tag_icon.fxml"/>
-                                <Label text="Promotions" style="-fx-text-fill: #2A2C41; -fx-font-size: 11px; -fx-font-weight: bold;"/>
-                            </VBox>
-                        </children>
-                    </HBox>
-                    
-                    <!-- PROMO CARDS ROW -->
-                    <HBox style="-fx-spacing: 12;" alignment="CENTER_LEFT">
-                        <children>
-                            <HBox style="-fx-background-color: #FFF0EB; -fx-background-radius: 14px; -fx-padding: 16; -fx-alignment: CENTER_LEFT; -fx-pref-height: 80;" HBox.hgrow="ALWAYS">
-                                <VBox>
-                                    <Label text="Nouveautés" style="-fx-text-fill: #2A2C41; -fx-font-size: 13px; -fx-font-weight: bold;"/>
-                                    <Label text="Découvrez les derniers produits" style="-fx-text-fill: #888; -fx-font-size: 11px;"/>
-                                </VBox>
-                                <Region HBox.hgrow="ALWAYS"/>
-                                <Button text="Voir plus →" style="-fx-text-fill: #FF724C; -fx-background-color: transparent; -fx-cursor: hand;"/>
-                            </HBox>
-                            
-                            <HBox style="-fx-background-color: #FFF8E7; -fx-background-radius: 14px; -fx-padding: 16; -fx-alignment: CENTER_LEFT; -fx-pref-height: 80;" HBox.hgrow="ALWAYS">
-                                <VBox>
-                                    <Label text="Meilleures ventes" style="-fx-text-fill: #2A2C41; -fx-font-size: 13px; -fx-font-weight: bold;"/>
-                                    <Label text="Les plus populaires" style="-fx-text-fill: #888; -fx-font-size: 11px;"/>
-                                </VBox>
-                                <Region HBox.hgrow="ALWAYS"/>
-                                <Button text="Voir plus →" style="-fx-text-fill: #FF724C; -fx-background-color: transparent; -fx-cursor: hand;"/>
-                            </HBox>
-                            
-                            <HBox style="-fx-background-color: #F4F4F8; -fx-background-radius: 14px; -fx-padding: 16; -fx-alignment: CENTER_LEFT; -fx-pref-height: 80;" HBox.hgrow="ALWAYS">
-                                <VBox>
-                                    <Label text="Flash Deals" style="-fx-text-fill: #2A2C41; -fx-font-size: 13px; -fx-font-weight: bold;"/>
-                                    <Label text="Offres limitées" style="-fx-text-fill: #888; -fx-font-size: 11px;"/>
-                                </VBox>
-                                <Region HBox.hgrow="ALWAYS"/>
-                                <Button text="Voir plus →" style="-fx-text-fill: #FF724C; -fx-background-color: transparent; -fx-cursor: hand;"/>
-                            </HBox>
-                        </children>
-                    </HBox>
-                    
-                    <!-- PRODUCTS SECTION -->
-                    <VBox style="-fx-spacing: 16;">
-                        <children>
-                            <!-- Section Header -->
-                            <HBox alignment="CENTER_LEFT" style="-fx-spacing: 12;">
-                                <Label fx:id="sectionTitle" text="Top Produits"/>
-                                <Region HBox.hgrow="ALWAYS"/>
-                                <Button fx:id="voirToutButton" text="Voir tout" style="-fx-text-fill: #FF724C; -fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
-                            </HBox>
-                            
-                            <!-- Product Grid -->
-                            <FlowPane fx:id="productGrid" style="-fx-hgap: 14; -fx-vgap: 14; -fx-pref-wrap-length: 680;">
-                                <!-- Products will be added dynamically -->
-                            </FlowPane>
-                        </children>
-                    </VBox>
-                    
+        <!-- MAIN CONTENT -->
+        <ScrollPane fx:id="mainScrollPane" style="-fx-background-color: #F4F4F8; -fx-border-width: 0;" fitToWidth="true">
+            <VBox fx:id="mainContent" style="-fx-padding: 24; -fx-spacing: 28;">
+                
+                <!-- HERO BANNER -->
+                <StackPane fx:id="heroBanner" style="-fx-background-color: #2A2C41; -fx-background-radius: 20px; -fx-pref-height: 200px; -fx-padding: 0 40;">
+                    <children>
+                        <!-- Left Content -->
+                        <VBox alignment="CENTER_LEFT" spacing="10" StackPane.alignment="CENTER_LEFT">
+                            <children>
+                                <Label fx:id="heroBadge" text="NOUVELLE COLLECTION" style="-fx-text-fill: #FF724C; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-color: rgba(255,114,76,0.1); -fx-padding: 4 8; -fx-background-radius: 6;"/>
+                                <Label fx:id="heroTitle" text="Smartphones&#10;Haut de Gamme" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 26px;"/>
+                                <Label fx:id="heroSubtitle" text="Découvrez notre sélection des derniers modèles" style="-fx-text-fill: white; -fx-font-size: 13px; -fx-opacity: 0.8;"/>
+                                <Button fx:id="heroButton" text="Découvrir →" onAction="#handleHeroAction" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 20px; -fx-cursor: hand; -fx-translate-y: 10;"/>
+                            </children>
+                        </VBox>
+                        
+                        <!-- Right: Product Image from Cloudinary -->
+                        <StackPane StackPane.alignment="CENTER_RIGHT" style="-fx-padding: 20;">
+                            <children>
+                                <ImageView fx:id="heroBannerImage"
+                                           fitHeight="160" fitWidth="160"
+                                           preserveRatio="true"
+                                           smooth="true"
+                                           StackPane.alignment="CENTER_RIGHT"/>
+                            </children>
+                        </StackPane>
+                    </children>
+                </StackPane>
+                
+                <!-- DYNAMIC CATEGORIES ROW -->
+                <HBox fx:id="categoriesContainer" style="-fx-spacing: 12;" alignment="CENTER_LEFT">
+                    <!-- Dynamic categories added by controller -->
+                </HBox>
+                
+                <!-- PRODUCTS SECTION -->
+                <VBox style="-fx-spacing: 16;">
+                    <children>
+                        <!-- Section Header -->
+                        <HBox alignment="CENTER_LEFT" style="-fx-spacing: 12;">
+                            <Label fx:id="sectionTitle" text="Top Produits"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="voirToutButton" text="Voir tout" style="-fx-text-fill: #FF724C; -fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
+                        </HBox>
+                        
+                        <!-- Product Grid -->
+                        <FlowPane fx:id="productGrid" style="-fx-hgap: 14; -fx-vgap: 14; -fx-pref-wrap-length: 680;">
+                            <!-- Products will be added dynamically -->
+                        </FlowPane>
+                    </children>
                 </VBox>
-            </ScrollPane>
-        </HBox>
+                
+            </VBox>
+        </ScrollPane>
     </center>
     
 </BorderPane>

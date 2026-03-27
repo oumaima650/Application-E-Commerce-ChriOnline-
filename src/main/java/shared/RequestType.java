@@ -4,7 +4,9 @@ public enum RequestType {
     LOGIN,
     REGISTER,
     LOGOUT,
+    LOGOUT_ALL,
     REGISTER_UDP_PORT,
+    REFRESH,
 
     
     //produits
@@ -87,4 +89,8 @@ public enum RequestType {
     GET_PROFILE,
     GET_ADDRESSES,
     ADD_ADDRESS,
+    
+    // Avis
+    GET_AVIS_BY_PRODUIT,
+    ADD_AVIS,
 }

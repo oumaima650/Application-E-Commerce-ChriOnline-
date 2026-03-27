@@ -256,7 +256,7 @@ public class AdminController {
         // Charger les commandes
         new Thread(() -> {
             try {
-                String adminToken = SessionManager.getInstance().getSession().getToken();
+                String adminToken = SessionManager.getInstance().getSession().getAccessToken();
                 
                 Requete requete;
                 if (searchText == null || searchText.trim().isEmpty()) {
@@ -325,17 +325,30 @@ public class AdminController {
         }).start();
     }
 
-    private void loadClients(String query) {
-        if (!SessionManager.getInstance().isAuthenticated()) return;
-        
-        String token = SessionManager.getInstance().getSession().getToken();
-        
-        javafx.concurrent.Task<Reponse> task = new javafx.concurrent.Task<>() {
-            @Override
-            protected Reponse call() {
-                Map<String, Object> params = new HashMap<>();
-                if (query != null && !query.isEmpty()) {
-                    params.put("query", query);
+    private void loadClients() {
+        // Charger les clients
+        new Thread(() -> {
+            try {
+                String adminToken = SessionManager.getInstance().getSession().getAccessToken();
+                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_USERS, null, adminToken);
+                shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
+                
+                if (reponse.isSucces() && reponse.getDonnees() != null) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> dataMap = (Map<String, Object>) reponse.getDonnees();
+                    @SuppressWarnings("unchecked")
+                    List<Client> utilisateurs = (List<Client>) dataMap.get("utilisateurs");
+                    
+                    ObservableList<Client> utilisateursList = FXCollections.observableArrayList(utilisateurs);
+                    javafx.application.Platform.runLater(() -> {
+                        tableClients.setItems(utilisateursList);
+                        System.out.println("[AdminController] " + utilisateursList.size() + " utilisateurs chargés.");
+                    });
+                } else {
+                    System.err.println("Erreur chargement utilisateurs: " + reponse.getMessage());
+                    javafx.application.Platform.runLater(() -> {
+                        tableClients.setItems(FXCollections.observableArrayList());
+                    });
                 }
                 return ClientSocket.getInstance().envoyer(new Requete(RequestType.ADMIN_GET_ALL_USERS, params, token));
             }
@@ -420,7 +433,7 @@ public class AdminController {
                                         params.put("orderId", item.getIdCommande());
                                         params.put("status", newVal);
                                         
-                                        String adminToken = SessionManager.getInstance().getSession().getToken();
+                                        String adminToken = SessionManager.getInstance().getSession().getAccessToken();
                                         Requete requete = new Requete(RequestType.ADMIN_UPDATE_ORDER_STATUS, params, adminToken);
                                         shared.Reponse reponse = client.ClientSocket.getInstance().envoyer(requete);
                                         
@@ -504,7 +517,7 @@ public class AdminController {
                                 java.util.Map<String, Object> params = new java.util.HashMap<>();
                                 params.put("userId", item.getId());
                                 
-                                String adminToken = SessionManager.getInstance().getSession().getToken();
+                                String adminToken = SessionManager.getInstance().getSession().getAccessToken();
                                 Requete req = new Requete(type, params, adminToken);
                                 shared.Reponse rep = ClientSocket.getInstance().envoyer(req);
                                 

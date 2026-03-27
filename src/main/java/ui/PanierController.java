@@ -27,7 +27,6 @@ import shared.Reponse;
 import client.utils.SessionManager;
 import ui.utils.IconLibrary;
 
-
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
@@ -38,12 +37,17 @@ import java.util.concurrent.Executors;
 
 public class PanierController implements Initializable {
 
-    @FXML private Label badgeArticles;
-    @FXML private VBox panierItemsBox;
-    @FXML private Label lblSousTotal;
-    @FXML private Label lblTotalTTC;
-    @FXML private Button btnValider;
-    
+    @FXML
+    private Label badgeArticles;
+    @FXML
+    private VBox panierItemsBox;
+    @FXML
+    private Label lblSousTotal;
+    @FXML
+    private Label lblTotalTTC;
+    @FXML
+    private Button btnValider;
+
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
     private final Map<String, Double> unitPrices = new HashMap<>();
     private final Map<String, Integer> currentQuantities = new HashMap<>();
@@ -51,31 +55,37 @@ public class PanierController implements Initializable {
     private final Map<String, Boolean> selectedItems = new HashMap<>();
     private final Map<String, CheckBox> checkBoxes = new HashMap<>();
 
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            return;
+        }
+
         // --- PERFORMANCE OPTIMIZATION: PRE-CHARGEMENT DU CHECKOUT ---
         // Démarrer immédiatement avant même de charger le panier
         SceneManager.loadAsync("checkout.fxml");
-        
+
         chargerPanier();
 
-        if(btnValider != null) {
+        if (btnValider != null) {
             btnValider.setOnAction(e -> {
                 List<String> skus = selectedItems.entrySet().stream()
-                    .filter(Map.Entry::getValue)
-                    .map(Map.Entry::getKey)
-                    .toList();
-                
+                        .filter(Map.Entry::getValue)
+                        .map(Map.Entry::getKey)
+                        .toList();
+
                 if (skus.isEmpty()) {
-                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                            javafx.scene.control.Alert.AlertType.ERROR);
                     alert.setTitle("Panier Vide");
                     alert.setHeaderText("Action impossible");
-                    alert.setContentText("Votre panier est vide ou aucun article n'est sélectionné. Veuillez ajouter des produits pour pouvoir passer une commande.");
+                    alert.setContentText(
+                            "Votre panier est vide ou aucun article n'est sélectionné. Veuillez ajouter des produits pour pouvoir passer une commande.");
                     alert.showAndWait();
                     return;
                 }
-                
+
                 System.out.println("Navigation vers le checkout avec " + skus.size() + " articles...");
                 CheckoutController.setSelectedSkus(skus);
                 SceneManager.switchTo("checkout.fxml", "ChriOnline - Paiement Sécurisé");
@@ -88,7 +98,7 @@ public class PanierController implements Initializable {
         Task<Reponse> fetchTask = new Task<>() {
             @Override
             protected Reponse call() throws Exception {
-                Requete req = new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getToken());
+                Requete req = new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getAccessToken());
                 return ClientSocket.getInstance().envoyer(req);
             }
 
@@ -99,7 +109,7 @@ public class PanierController implements Initializable {
     }
 
     private void updateUIWithCartData(Reponse rep) {
-        if(panierItemsBox != null) {
+        if (panierItemsBox != null) {
             panierItemsBox.getChildren().clear();
         }
         unitPrices.clear();
@@ -108,14 +118,13 @@ public class PanierController implements Initializable {
         selectedItems.clear();
         checkBoxes.clear();
 
-        
         int totalArticles = 0;
         double totalGlobal = 0.0;
-        
+
         if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
             Map<String, Object> donnees = rep.getDonnees();
             List<Map<String, Object>> lignes = (List<Map<String, Object>>) donnees.get("lignes");
-            
+
             if (lignes != null) {
                 for (int i = 0; i < lignes.size(); i++) {
                     Map<String, Object> ligne = lignes.get(i);
@@ -123,18 +132,18 @@ public class PanierController implements Initializable {
                     int qty = (Integer) ligne.get("quantite");
                     double sousTotal = ((Number) ligne.get("sousTotal")).doubleValue();
                     String icon = (String) ligne.get("image");
-                    
+
                     double unitPrice = (qty > 0) ? sousTotal / qty : 0;
                     unitPrices.put(sku, unitPrice);
                     currentQuantities.put(sku, qty);
                     selectedItems.put(sku, true); // Par défaut tout est coché
-                    
+
                     totalArticles += qty;
                     totalGlobal += sousTotal;
 
-                    
                     boolean isHighlighted = (i == 0);
-                    HBox row = createCartItemRow(sku, sku, "Ref: " + sku, qty, sousTotal, "cat-phone", icon, isHighlighted);
+                    HBox row = createCartItemRow(sku, sku, "Ref: " + sku, qty, sousTotal, "cat-phone", icon,
+                            isHighlighted);
                     itemRows.put(sku, row);
                     panierItemsBox.getChildren().add(row);
                 }
@@ -142,16 +151,20 @@ public class PanierController implements Initializable {
             updateSummaryLabels(totalArticles, totalGlobal);
         }
     }
-    
+
     private void updateSummaryLabels(int nbArticles, double total) {
-        if(badgeArticles != null) badgeArticles.setText(nbArticles + " article" + (nbArticles > 1 ? "s" : ""));
+        if (badgeArticles != null)
+            badgeArticles.setText(nbArticles + " article" + (nbArticles > 1 ? "s" : ""));
         String fmt = String.format("%.2f MAD", total).replace(",", " ");
-        if(lblSousTotal != null) lblSousTotal.setText(fmt);
-        if(lblTotalTTC != null) lblTotalTTC.setText(fmt);
+        if (lblSousTotal != null)
+            lblSousTotal.setText(fmt);
+        if (lblTotalTTC != null)
+            lblTotalTTC.setText(fmt);
     }
 
     private void updateQuantite(String sku, int nextQty, Label lblQty, Label lblPrice) {
-        if (nextQty < 0) return;
+        if (nextQty < 0)
+            return;
         if (nextQty == 0) {
             removeProduit(sku);
             return;
@@ -162,7 +175,7 @@ public class PanierController implements Initializable {
         double uPrice = unitPrices.getOrDefault(sku, 0.0);
         lblQty.setText(String.valueOf(nextQty));
         lblPrice.setText(String.format("%.2f MAD", nextQty * uPrice).replace(",", " "));
-        
+
         recalculateTotalsFromLocalData();
 
         // --- BACKGROUND SYNC (to Server) ---
@@ -172,7 +185,7 @@ public class PanierController implements Initializable {
             p.put("sku", sku);
             p.put("quantite", nextQty);
             
-            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p, SessionManager.getInstance().getSession().getToken());
+            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p, SessionManager.getInstance().getSession().getAccessToken());
 
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {
@@ -184,7 +197,7 @@ public class PanierController implements Initializable {
     private void recalculateTotalsFromLocalData() {
         int totalItems = 0;
         double totalSum = 0;
-        
+
         for (String sku : currentQuantities.keySet()) {
             if (selectedItems.getOrDefault(sku, false)) {
                 int qty = currentQuantities.get(sku);
@@ -193,13 +206,12 @@ public class PanierController implements Initializable {
             }
         }
         updateSummaryLabels(totalItems, totalSum);
-        
+
         if (btnValider != null) {
             btnValider.setDisable(totalItems == 0);
         }
     }
 
-    
     private void removeProduit(String sku) {
         // --- OPTIMISTIC UI REMOVE (Instant) ---
         HBox row = itemRows.get(sku);
@@ -211,7 +223,6 @@ public class PanierController implements Initializable {
         checkBoxes.remove(sku);
         itemRows.remove(sku);
 
-        
         recalculateTotalsFromLocalData();
 
         // --- BACKGROUND SYNC (to Server) ---
@@ -219,7 +230,7 @@ public class PanierController implements Initializable {
             Map<String, Object> p = new HashMap<>();
             p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
             p.put("sku", sku);
-            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p, SessionManager.getInstance().getSession().getToken());
+            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p, SessionManager.getInstance().getSession().getAccessToken());
 
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {
@@ -228,7 +239,8 @@ public class PanierController implements Initializable {
         });
     }
 
-    private HBox createCartItemRow(String sku, String name, String subText, int qty, double prix, String catClass, String svgPathStr, boolean highlighted) {
+    private HBox createCartItemRow(String sku, String name, String subText, int qty, double prix, String catClass,
+            String svgPathStr, boolean highlighted) {
         HBox row = new HBox(14);
         row.getStyleClass().add(highlighted ? "cart-item-highlighted" : "cart-item");
         row.setAlignment(Pos.CENTER_LEFT);
@@ -277,43 +289,58 @@ public class PanierController implements Initializable {
         
         VBox info = new VBox(2);
         info.setAlignment(Pos.CENTER_LEFT);
-        Label n = new Label(name); n.getStyleClass().add("item-name");
-        Label s = new Label(subText); s.getStyleClass().add("item-sub");
+        Label n = new Label(name);
+        n.getStyleClass().add("item-name");
+        Label s = new Label(subText);
+        s.getStyleClass().add("item-sub");
         info.getChildren().addAll(n, s);
-        
-        Region sp = new Region(); HBox.setHgrow(sp, Priority.ALWAYS);
-        
+
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
+
         Label lp = new Label(String.format("%.2f MAD", prix).replace(",", " "));
-        lp.getStyleClass().add("item-price"); lp.setMinWidth(90); lp.setAlignment(Pos.CENTER_RIGHT);
+        lp.getStyleClass().add("item-price");
+        lp.setMinWidth(90);
+        lp.setAlignment(Pos.CENTER_RIGHT);
 
         Label lq = new Label(String.valueOf(qty));
         lq.getStyleClass().add("qty-label");
 
         HBox qBox = new HBox(10);
-        qBox.getStyleClass().add("qty-box"); qBox.setAlignment(Pos.CENTER);
-        Button bm = new Button("−"); bm.getStyleClass().add("qty-btn");
+        qBox.getStyleClass().add("qty-box");
+        qBox.setAlignment(Pos.CENTER);
+        Button bm = new Button("−");
+        bm.getStyleClass().add("qty-btn");
         bm.setOnAction(e -> updateQuantite(sku, currentQuantities.get(sku) - 1, lq, lp));
-        Button bp = new Button("+"); bp.getStyleClass().add("qty-btn");
+        Button bp = new Button("+");
+        bp.getStyleClass().add("qty-btn");
         bp.setOnAction(e -> updateQuantite(sku, currentQuantities.get(sku) + 1, lq, lp));
         qBox.getChildren().addAll(bm, lq, bp);
-        
-        Button bd = new Button(); bd.getStyleClass().add("delete-btn");
+
+        Button bd = new Button();
+        bd.getStyleClass().add("delete-btn");
         SVGPath tr = IconLibrary.getIcon(IconLibrary.TRASH, 16, "#E74C3C");
-        tr.getStyleClass().add("icon-trash"); bd.setGraphic(tr);
+        tr.getStyleClass().add("icon-trash");
+        bd.setGraphic(tr);
         bd.setOnAction(e -> removeProduit(sku));
-        
+
         row.getChildren().addAll(cb, thumb, info, sp, qBox, lp, bd);
 
         return row;
     }
-    
+
     @FXML
-    private void goToCommandes() {
-        SceneManager.switchTo("commandes.fxml", "ChriOnline - Mes Commandes");
+    private void goToProfile() {
+        SceneManager.switchTo("profile.fxml", "ChriOnline - Mon Profil");
     }
-    
+
     @FXML
     private void goToHome() {
         SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
+    }
+
+    @FXML
+    private void goToCommandes() {
+        SceneManager.switchTo("commandes.fxml", "ChriOnline - Mes Commandes");
     }
 }

@@ -83,25 +83,28 @@ public class ClientApp extends Application {
     /**
      * Enregistre le port UDP auprès du serveur pour recevoir les notifications
      */
-    private void registerUdpPort() {
+    public void registerUdpPort(String token) {
         try {
-            // Simuler l'enregistrement pour l'admin
-            // Dans un vrai cas, ce serait fait après authentification
             java.util.Map<String, Object> params = new java.util.HashMap<>();
             params.put("udpPort", UDP_PORT);
             
-            shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER_UDP_PORT, params, "ADMIN_TOKEN");
+            shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER_UDP_PORT, params, token);
             shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
             
-            if (reponse.isSucces()) {
+            if (reponse != null && reponse.isSucces()) {
                 System.out.println("[ClientApp] Port UDP " + UDP_PORT + " enregistré avec succès");
             } else {
-                System.err.println("[ClientApp] Erreur enregistrement port UDP: " + reponse.getMessage());
+                System.err.println("[ClientApp] Erreur enregistrement port UDP: " + (reponse != null ? reponse.getMessage() : "Pas de réponse"));
             }
         } catch (Exception e) {
             System.err.println("[ClientApp] Exception lors de l'enregistrement UDP: " + e.getMessage());
         }
     }
+
+    private static ClientApp instance;
+    public static ClientApp getInstance() { return instance; }
+
+    public ClientApp() { instance = this; }
 
     /**
      * Retourne le contrôleur Notifications pour qu'other pages puissent naviguer

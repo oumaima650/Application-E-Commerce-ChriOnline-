@@ -8,13 +8,15 @@ import java.io.Serializable;
  * Contains the authentication token and the basic user information.
  */
 public class Session implements Serializable {
-    private String token;
+    private String accessToken;
+    private String refreshToken;
     private Utilisateur utilisateur;
 
     public Session() {}
 
-    public Session(String token, Utilisateur utilisateur) {
-        this.token = token;
+    public Session(String accessToken, String refreshToken, Utilisateur utilisateur) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
         // Security: Ensure password is not stored in the session object
         if (utilisateur != null) {
             utilisateur.setMotDePasse(null);
@@ -22,8 +24,11 @@ public class Session implements Serializable {
         this.utilisateur = utilisateur;
     }
 
-    public String getToken() { return token; }
-    public void setToken(String token) { this.token = token; }
+    public String getAccessToken() { return accessToken; }
+    public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
+
+    public String getRefreshToken() { return refreshToken; }
+    public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
 
     public Utilisateur getUtilisateur() { return utilisateur; }
     public void setUtilisateur(Utilisateur utilisateur) {
@@ -36,7 +41,8 @@ public class Session implements Serializable {
     @Override
     public String toString() {
         return "Session{" +
-                "token='" + token + '\'' +
+                "accessToken='" + (accessToken != null ? "exists" : "null") + '\'' +
+                ", refreshToken='" + (refreshToken != null ? "exists" : "null") + '\'' +
                 ", user=" + (utilisateur != null ? utilisateur.getEmail() : "null") +
                 '}';
     }

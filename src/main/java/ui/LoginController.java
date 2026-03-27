@@ -28,9 +28,6 @@ import java.util.regex.Pattern;
 
 public class LoginController implements Initializable {
 
-    private static final String SERVER_HOST = "127.0.0.1";
-    private static final int    SERVER_PORT = 8443;
-
     private static final int     PW_MIN       = 8;
     private static final int     PW_MAX       = 32;
     private static final Pattern HAS_UPPER    = Pattern.compile(".*[A-Z].*");
@@ -74,12 +71,27 @@ public class LoginController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Assurer que le CSS spécifique à Login est toujours chargé, même en cache
+        if (rootPane != null) {
+            try {
+                rootPane.getStylesheets().add(getClass().getResource("/css/global.css").toExternalForm());
+                rootPane.getStylesheets().add(getClass().getResource("/css/login.css").toExternalForm());
+            } catch (Exception e) {
+                System.err.println("[LoginController] Erreur de chargement du CSS : " + e.getMessage());
+            }
+        }
+
         setupTabSwitching();
         setupFocusEffects();
         setupLiveValidation();
         setupEnterNavigation();
         setupPasswordStrengthMeter();
         animateCardEntrance();
+    }
+
+    @FXML
+    private void handleBackToHome() {
+        SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
     }
 
     @FXML
@@ -114,25 +126,49 @@ public class LoginController implements Initializable {
         setLoginLoading(true);
         runAsync(requete, reponse -> {
             setLoginLoading(false);
-            if (reponse == null) {
-                showError(loginErrorLabel, "⚠ Impossible de joindre le serveur.");
-                return;
-            }
-            if (reponse.isSucces()) {
-                // Save token + user info in session
-                String token     = (String) reponse.getDonnees().get("token");
-                Utilisateur user = (Utilisateur) reponse.getDonnees().get("utilisateur");
-                String type      = (String) reponse.getDonnees().get("typeUtilisateur");
+            try {
+                if (reponse == null) {
+                    showError(loginErrorLabel, "⚠ Impossible de joindre le serveur.");
+                    return;
+                }
+                if (reponse.isSucces()) {
+                    Map<String, Object> donnees = reponse.getDonnees();
+                    if (donnees == null) {
+                        System.err.println("[Login] Erreur : donnees est null dans la réponse.");
+                        showError(loginErrorLabel, "⚠ Erreur de données serveur.");
+                        return;
+                    }
 
-                client.utils.SessionManager.getInstance().ouvrir(token, user);
+                    String accessToken  = (String) donnees.get("accessToken");
+                    String refreshToken = (String) donnees.get("refreshToken");
+                    Object userObj      = donnees.get("utilisateur");
+                    String type         = (String) donnees.get("typeUtilisateur");
 
-                System.out.println("[Login] Connecté — user=" + user.getEmail() + " type=" + type);
-                navigateToMain(type);
-            } else {
-                showError(loginErrorLabel, "⚠ " + reponse.getMessage());
-                shake(loginEmailWrapper);
-                shake(loginPasswordWrapper);
-                loginPasswordField.clear();
+                    System.out.println("[Login] Données reçues : userObj type=" + (userObj != null ? userObj.getClass().getName() : "null"));
+
+                    if (!(userObj instanceof Utilisateur user)) {
+                        System.err.println("[Login] Erreur de cast : l'objet utilisateur n'est pas une instance de model.Utilisateur");
+                        showError(loginErrorLabel, "⚠ Erreur de session client.");
+                        return;
+                    }
+
+                    client.utils.SessionManager.getInstance().ouvrir(accessToken, refreshToken, user);
+                    
+                    // Enregistrer le port UDP pour les notifications
+                    client.ClientApp.getInstance().registerUdpPort(accessToken);
+
+                    System.out.println("[Login] Connecté — email=" + user.getEmail() + " role=" + type);
+                    navigateToMain(type);
+                } else {
+                    showError(loginErrorLabel, "⚠ " + reponse.getMessage());
+                    shake(loginEmailWrapper);
+                    shake(loginPasswordWrapper);
+                    loginPasswordField.clear();
+                }
+            } catch (Exception e) {
+                System.err.println("[Login] Exception critique lors du traitement du login : " + e.getMessage());
+                e.printStackTrace();
+                showError(loginErrorLabel, "⚠ Erreur interne : " + e.getClass().getSimpleName());
             }
         });
     }
@@ -268,41 +304,6 @@ public class LoginController implements Initializable {
     }
 
 
-    // ══════════════════════════════════════════════════════════════════════
-    // TCP COMMUNICATION  (runs on background thread via runAsync)
-    // ══════════════════════════════════════════════════════════════════════
-
-    /**
-     * Sends a Requete to the server and returns the Reponse.
-     * Blocks — always call from a background thread (use runAsync).
-     */
-    private Reponse sendToServer(Requete requete) {
-        try {
-            SSLSocketFactory factory = client.utils.SSLSocketFactoryBuilder.build();
-            try (SSLSocket socket        = (SSLSocket) factory.createSocket(SERVER_HOST, SERVER_PORT);
-                 ObjectOutputStream out  = new ObjectOutputStream(socket.getOutputStream());
-                 ObjectInputStream  in   = new ObjectInputStream(socket.getInputStream())) {
-
-                // Enforce TLS 1.3 only
-                socket.setEnabledProtocols(new String[]{"TLSv1.3"});
-                socket.startHandshake();
-
-                out.writeObject(requete);
-                out.flush();
-                return (Reponse) in.readObject();
-            }
-        } catch (SSLHandshakeException e) {
-            System.err.println("[LoginController] Échec de la connexion sécurisée (Handshake) : " + e.getMessage());
-            return null;
-        } catch (IOException e) {
-            System.err.println("[LoginController] Serveur inaccessible ou erreur SSL : " + e.getMessage());
-            return null;
-        } catch (Exception e) {
-            System.err.println("[LoginController] Erreur de communication : " + e.getMessage());
-            return null;
-        }
-    }
-
     /**
      * Runs the network call on a daemon thread, then calls the callback
      * on the JavaFX Application Thread when done.
@@ -311,7 +312,7 @@ public class LoginController implements Initializable {
         Task<Reponse> task = new Task<>() {
             @Override
             protected Reponse call() {
-                return sendToServer(requete);
+                return client.ClientSocket.getInstance().envoyer(requete);
             }
         };
 
@@ -334,8 +335,14 @@ public class LoginController implements Initializable {
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
             System.out.println("[LoginController] Navigation vers la boutique...");
-            registerUdpPort(SessionManager.getInstance().getSession().getToken());
-            SceneManager.switchTo("produits.fxml", "ChriOnline - Produits");
+            String redirect = SessionManager.getInstance().getPendingRedirect();
+            if (redirect != null && !redirect.isEmpty()) {
+                String title = SessionManager.getInstance().getPendingRedirectTitle();
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo(redirect, title != null ? title : "ChriOnline");
+            } else {
+                SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
+            }
         }
     }
 

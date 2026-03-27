@@ -2,6 +2,11 @@ package client;
 
 import shared.Requete;
 import shared.Reponse;
+import shared.RequestType;
+import shared.Session;
+import client.utils.SessionManager;
+import java.util.Map;
+import java.util.HashMap;
 
 import client.utils.SSLSocketFactoryBuilder;
 import javax.net.ssl.SSLSocket;
@@ -58,26 +63,65 @@ public class ClientSocket {
      * Synchronized to avoid concurrent access to the same socket streams.
      */
     public synchronized Reponse envoyer(Requete req) {
+        // 1. ATTACH LATEST TOKEN if available
+        Session session = SessionManager.getInstance().getSession();
+        if (session != null && session.getAccessToken() != null) {
+            req.setTokenSession(session.getAccessToken());
+        }
+
         try {
-            if (socket == null || socket.isClosed() || out == null) {
-                connect();
-            }
-            
-            if (out != null) {
-                out.writeObject(req);
-                out.flush();
-                out.reset();
+            Reponse res = executeRequest(req);
+
+            // 2. HANDLE TOKEN EXPIRY
+            if (res != null && "TOKEN_EXPIRED".equals(res.getMessage())) {
+                System.out.println("[ClientSocket] Access token expiré. Tentative de rafraîchissement...");
                 
-                return (Reponse) in.readObject();
+                if (session != null && session.getRefreshToken() != null) {
+                    // Send Refresh Request
+                    Requete refreshReq = new Requete(RequestType.REFRESH, new HashMap<>(), session.getRefreshToken());
+                    Reponse refreshRes = executeRequest(refreshReq);
+                    
+                    if (refreshRes != null && refreshRes.isSucces()) {
+                        String newAccess = (String) refreshRes.getDonnees().get("accessToken");
+                        String newRefresh = (String) refreshRes.getDonnees().get("refreshToken");
+                        
+                        System.out.println("[ClientSocket] Rafraîchissement réussi.");
+                        SessionManager.getInstance().ouvrir(newAccess, newRefresh, session.getUtilisateur());
+                        
+                        // Retry original request
+                        req.setTokenSession(newAccess);
+                        return executeRequest(req);
+                    } else {
+                        System.err.println("[ClientSocket] Échec du rafraîchissement : " + (refreshRes != null ? refreshRes.getMessage() : "null"));
+                        SessionManager.getInstance().fermer();
+                    }
+                }
             }
+            return res;
         } catch (Exception e) {
-            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getName();
-            System.err.println("[ClientSocket] Erreur lors de l'envoi/réception : " + errorMsg);
-            e.printStackTrace();
-            // Attempt to reconnect for the next request
-            close();
+            handleError(e);
         }
         return new Reponse(false, "Erreur de communication avec le serveur.", null);
+    }
+
+    private Reponse executeRequest(Requete req) throws Exception {
+        if (socket == null || socket.isClosed() || out == null) {
+            connect();
+        }
+        if (out != null) {
+            out.writeObject(req);
+            out.flush();
+            out.reset();
+            return (Reponse) in.readObject();
+        }
+        throw new IOException("Socket non disponible");
+    }
+
+    private void handleError(Exception e) {
+        String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getName();
+        System.err.println("[ClientSocket] Erreur lors de l'envoi/réception : " + errorMsg);
+        e.printStackTrace();
+        close();
     }
 
     public void close() {
