@@ -1,187 +1,150 @@
-/* ORDERS HISTORY PAGE STYLES */
+/* 
+   COMMANDES HISTORY PAGE - Simplified & Premium
+   Palette: CORAIL (#FF724C), SAFRAN (#FDBF50), BLANC_CASSE (#F4F4F8), BLEU_NUIT (#2A2C41)
+*/
 
 .root {
-    -fx-background-color: #F8F9FA;
+    -fx-background-color: #F4F4F8; /* BLANC_CASSE */
+    -fx-font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 .page-title {
-    -fx-font-size: 28px;
-    -fx-font-weight: bold;
+    -fx-font-size: 24px;
+    -fx-font-weight: 800;
     -fx-text-fill: #2A2C41;
 }
 
+/* ── BUTTONS ── */
 .btn-back, .btn-refresh {
-    -fx-background-color: transparent;
-    -fx-text-fill: #666;
-    -fx-border-color: #e8e8ee;
+    -fx-background-color: white;
+    -fx-text-fill: #2A2C41;
+    -fx-border-color: #E2E8F0;
     -fx-border-width: 1px;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
-    -fx-font-size: 14px;
-    -fx-pref-height: 40px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16;
     -fx-cursor: hand;
-    -fx-padding: 0 16px;
 }
 
 .btn-back:hover, .btn-refresh:hover {
-    -fx-background-color: #f8f9fa;
-    -fx-text-fill: #2A2C41;
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: #FF724C;
 }
 
-/* Search and Filters */
+/* ── FILTERS ── */
 .search-field, .status-filter, .date-filter {
     -fx-background-color: white;
-    -fx-border-color: #e8e8ee;
-    -fx-border-width: 1px;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 1.5px;
     -fx-border-radius: 12px;
     -fx-background-radius: 12px;
-    -fx-padding: 12px 16px;
-    -fx-font-size: 14px;
-    -fx-pref-height: 44px;
+    -fx-padding: 10 16;
+    -fx-font-size: 13px;
+    -fx-text-fill: #2A2C41;
 }
 
 .search-field:focused, .status-filter:focused, .date-filter:focused {
     -fx-border-color: #FF724C;
-    -fx-border-width: 2px;
 }
 
-/* TableView Styles */
+/* ── TABLEVIEW ── */
 .orders-table {
     -fx-background-color: white;
     -fx-background-radius: 16px;
-    -fx-border-color: #e8e8ee;
+    -fx-border-color: #E2E8F0;
     -fx-border-width: 1px;
     -fx-border-radius: 16px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 10, 0, 0, 2);
-}
-
-.orders-table .column-header {
-    -fx-background-color: #F4F4F8;
-    -fx-font-weight: bold;
-    -fx-font-size: 13px;
-    -fx-text-fill: #2A2C41;
-    -fx-padding: 16px;
-    -fx-border-width: 0;
+    -fx-padding: 5;
 }
 
 .orders-table .column-header-background {
-    -fx-background-color: #F4F4F8;
-    -fx-border-width: 0;
+    -fx-background-color: #2A2C41;
+    -fx-background-radius: 12 12 0 0;
+}
+
+.orders-table .column-header {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 12;
 }
 
 .orders-table .table-row-cell {
     -fx-background-color: white;
-    -fx-border-width: 0;
-    -fx-padding: 12px 16px;
+    -fx-border-color: #F1F5F9;
+    -fx-border-width: 0 0 1 0;
 }
 
 .orders-table .table-row-cell:hover {
-    -fx-background-color: #FFF8E7;
-}
-
-.orders-table .table-row-cell:selected {
-    -fx-background-color: #FFF0EB;
+    -fx-background-color: #F8FAFC;
 }
 
 .orders-table .table-cell {
-    -fx-border-width: 0;
-    -fx-padding: 8px 0;
-    -fx-font-size: 13px;
+    -fx-alignment: CENTER_LEFT;
     -fx-text-fill: #2A2C41;
+    -fx-padding: 10;
 }
 
-/* Status Badges */
+/* ── STATUS BADGES ── */
 .status-badge {
-    -fx-background-radius: 20px;
-    -fx-padding: 6px 12px;
+    -fx-background-radius: 50;
+    -fx-padding: 4 12;
     -fx-alignment: center;
 }
 
 .status-text {
-    -fx-font-size: 11px;
-    -fx-font-weight: bold;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+    -fx-text-transform: uppercase;
 }
 
-.status-waiting {
-    -fx-background-color: #FFF8E7;
-}
+.status-waiting   { -fx-background-color: #FEF3C7; } .status-waiting .status-text   { -fx-text-fill: #92400E; }
+.status-validated { -fx-background-color: #DBEAFE; } .status-validated .status-text { -fx-text-fill: #1E40AF; }
+.status-shipped   { -fx-background-color: #E0E7FF; } .status-shipped .status-text   { -fx-text-fill: #3730A3; }
+.status-delivered { -fx-background-color: #D1FAE5; } .status-delivered .status-text { -fx-text-fill: #065F46; }
+.status-cancelled { -fx-background-color: #FEE2E2; } .status-cancelled .status-text { -fx-text-fill: #991B1B; }
 
-.status-waiting .status-text {
-    -fx-text-fill: #b45309;
-}
-
-.status-validated {
-    -fx-background-color: #FFF0EB;
-}
-
-.status-validated .status-text {
-    -fx-text-fill: #c2440a;
-}
-
-.status-shipped {
-    -fx-background-color: #EFF6FF;
-}
-
-.status-shipped .status-text {
-    -fx-text-fill: #1d4ed8;
-}
-
-.status-delivered {
-    -fx-background-color: #F0FDF4;
-}
-
-.status-delivered .status-text {
-    -fx-text-fill: #15803d;
-}
-
-.status-cancelled {
-    -fx-background-color: #FEF2F2;
-}
-
-.status-cancelled .status-text {
-    -fx-text-fill: #b91c1c;
-}
-
-/* Action Buttons */
+/* ── ACTIONS ── */
 .btn-action {
-    -fx-background-color: transparent;
-    -fx-text-fill: #24316B;
-    -fx-border-color: #e8e8ee;
-    -fx-border-width: 1px;
-    -fx-border-radius: 6px;
-    -fx-background-radius: 6px;
-    -fx-font-size: 12px;
-    -fx-pref-height: 32px;
+    -fx-background-color: #2A2C41;
+    -fx-text-fill: #FDBF50;
+    -fx-background-radius: 8;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
     -fx-cursor: hand;
-    -fx-padding: 0 12px;
+    -fx-padding: 5 12;
 }
 
 .btn-action:hover {
-    -fx-background-color: #f8f9fa;
-    -fx-border-color: #24316B;
+    -fx-background-color: #3D3F5A;
 }
 
-/* Pagination */
+/* ── PAGINATION ── */
 .pagination-btn {
     -fx-background-color: white;
-    -fx-text-fill: #666;
-    -fx-border-color: #e8e8ee;
-    -fx-border-width: 1px;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
-    -fx-font-size: 14px;
-    -fx-pref-height: 36px;
-    -fx-pref-width: 36px;
+    -fx-text-fill: #FF724C;
+    -fx-border-color: #FF724C;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 50;
+    -fx-background-radius: 50;
+    -fx-font-weight: bold;
     -fx-cursor: hand;
 }
 
 .pagination-btn:hover {
-    -fx-background-color: #f8f9fa;
-    -fx-text-fill: #2A2C41;
+    -fx-background-color: #FF724C;
+    -fx-text-fill: white;
+}
+
+.pagination-btn:disabled {
+    -fx-opacity: 0.3;
 }
 
 .pagination-info {
-    -fx-text-fill: #666;
-    -fx-font-size: 14px;
-    -fx-padding: 0 16px;
+    -fx-text-fill: #64748B;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
 }

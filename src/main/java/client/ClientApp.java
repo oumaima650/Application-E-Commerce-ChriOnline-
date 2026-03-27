@@ -21,11 +21,6 @@ public class ClientApp extends Application {
         primaryStage.setHeight(800);
         primaryStage.setMinWidth(1100);
         primaryStage.setMinHeight(750);
-
-    public void start(Stage primaryStage) throws Exception {
-        primaryStage.setTitle("ChriOnline - E-Commerce");
-        primaryStage.setMinWidth(1100);
-        primaryStage.setMinHeight(750);
         
         // INITIALISER LE SCENE MANAGER
         SceneManager.init(primaryStage);
