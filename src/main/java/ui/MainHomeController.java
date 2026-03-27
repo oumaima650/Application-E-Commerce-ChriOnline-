@@ -959,42 +959,70 @@ public class MainHomeController implements Initializable {
         System.out.println("Hero Action: Click");
     }
 
-    @FXML
+        @FXML
     private void handleCartClick() {
-        SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
+        if (SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
+        } else {
+            // Mémoriser pour revenir au panier après le login
+            SessionManager.getInstance().setPendingRedirect("panier.fxml", "Mon Panier - ChriOnline");
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+        }
     }
+
 
     @FXML
     private void handleCreateAccountClick() {
         SceneManager.switchTo("login.fxml", "Créer un compte - ChriOnline");
     }
     
-    @FXML
+        @FXML
     private void handleUserClick() {
-        if (userAvatar == null)
-            return;
+        if (userAvatar == null) return;
 
         ContextMenu userMenu = new ContextMenu();
-        MenuItem miCompte = new MenuItem("Mon compte");
-        MenuItem miCommandes = new MenuItem("Mes commandes");
-        MenuItem miDeconnexion = new MenuItem("Déconnexion");
-
-        miCompte.setOnAction(e -> SceneManager.switchTo("profile.fxml", "Mon Profil - ChriOnline"));
-        miCommandes.setOnAction(e -> SceneManager.switchTo("commandes.fxml", "Mes Commandes - ChriOnline"));
-
-        miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
-        miDeconnexion.setOnAction(e -> {
-            SessionManager.getInstance().fermer();
-            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
-        });
-
-        userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
+        
+        if (SessionManager.getInstance().isAuthenticated()) {
+            MenuItem miCompte = new MenuItem("Mon compte");
+            MenuItem miCommandes = new MenuItem("Mes commandes");
+            MenuItem miDeconnexion = new MenuItem("Déconnexion");
+            
+            miCompte.setOnAction(e -> SceneManager.switchTo("profile.fxml", "Mon Profil - ChriOnline"));
+            miCommandes.setOnAction(e -> SceneManager.switchTo("commandes.fxml", "Mes Commandes - ChriOnline"));
+            
+            miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
+            miDeconnexion.setOnAction(e -> {
+                SessionManager.getInstance().fermer();
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
+            });
+            
+            userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
+        } else {
+            MenuItem miConnexion = new MenuItem("Se connecter");
+            miConnexion.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + ";");
+            miConnexion.setOnAction(e -> {
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            });
+            
+            MenuItem miInscription = new MenuItem("Créer un compte");
+            miInscription.setOnAction(e -> {
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("login.fxml", "Inscription - ChriOnline");
+            });
+            
+            userMenu.getItems().addAll(miConnexion, miInscription);
+        }
+        
         userMenu.show(userAvatar, javafx.geometry.Side.BOTTOM, 0, 0);
     }
 
 
     @FXML
     private void handleLoginClick() {
+        // Optionnel: On peut aussi mettre le home en redirect par défaut si on veut
+        SessionManager.getInstance().clearPendingRedirect(); 
         SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
     }
 

@@ -214,7 +214,7 @@ public class PanierService {
         return panierDAO.getLignesParSkus(panier.getIdPanier(), skus);
     }
 
-    public void supprimerLignes(int idClient, java.util.List<String> skus) {
+    public void supprimerArticles(int idClient, java.util.List<String> skus) {
         Panier panier = recupererPanier(idClient);
         panierDAO.supprimerLignesParSkus(panier.getIdPanier(), skus);
     }
