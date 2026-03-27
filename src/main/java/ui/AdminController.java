@@ -35,6 +35,8 @@ public class AdminController {
     @FXML private TextField searchClientField;
     @FXML private javafx.scene.layout.StackPane notifBadge;
     @FXML private Label notifCount;
+    @FXML private javafx.scene.shape.Circle notifCircle;
+
 
     // Colonnes pour les commandes
     @FXML private TableColumn<Commande, String> colId;
@@ -54,6 +56,14 @@ public class AdminController {
     private void ouvrirNotifications() {
         SceneManager.clearCache("notifications.fxml");
         SceneManager.switchTo("notifications.fxml", "ChriOnline - Notifications");
+    }
+
+    @FXML
+    private void handleLogout() {
+        System.out.println("[AdminController] Déconnexion en cours...");
+        SessionManager.getInstance().fermer();
+        SceneManager.clearHistory();
+        SceneManager.switchTo("login.fxml", "ChriOnline - Connexion");
     }
 
     @FXML
@@ -89,7 +99,7 @@ public class AdminController {
         if (!SessionManager.getInstance().isAuthenticated()) return;
         
         int userId = SessionManager.getInstance().getCurrentUser().getIdUtilisateur();
-        String token = SessionManager.getInstance().getSession().getToken();
+        String token = SessionManager.getInstance().getSession().getAccessToken();
 
         javafx.concurrent.Task<Reponse> task = new javafx.concurrent.Task<>() {
             @Override
@@ -108,8 +118,14 @@ public class AdminController {
                 if (notifs != null) {
                     long unread = notifs.stream().filter(n -> n.getStatut() == Notification.StatutNotification.NON_LU).count();
                     javafx.application.Platform.runLater(() -> {
-                        if (notifCount != null) notifCount.setText(String.valueOf(unread));
-                        if (notifBadge != null) notifBadge.setVisible(unread > 0);
+                        if (notifCount != null) {
+                            notifCount.setText(String.valueOf(unread));
+                            notifCount.setVisible(unread > 0);
+                        }
+                        if (notifCircle != null) {
+                            notifCircle.setVisible(unread > 0);
+                        }
+                        // notifBadge (la cloche) reste toujours visible
                     });
                 }
             }
@@ -325,30 +341,17 @@ public class AdminController {
         }).start();
     }
 
-    private void loadClients() {
-        // Charger les clients
-        new Thread(() -> {
-            try {
-                String adminToken = SessionManager.getInstance().getSession().getAccessToken();
-                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_USERS, null, adminToken);
-                shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
-                
-                if (reponse.isSucces() && reponse.getDonnees() != null) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> dataMap = (Map<String, Object>) reponse.getDonnees();
-                    @SuppressWarnings("unchecked")
-                    List<Client> utilisateurs = (List<Client>) dataMap.get("utilisateurs");
-                    
-                    ObservableList<Client> utilisateursList = FXCollections.observableArrayList(utilisateurs);
-                    javafx.application.Platform.runLater(() -> {
-                        tableClients.setItems(utilisateursList);
-                        System.out.println("[AdminController] " + utilisateursList.size() + " utilisateurs chargés.");
-                    });
-                } else {
-                    System.err.println("Erreur chargement utilisateurs: " + reponse.getMessage());
-                    javafx.application.Platform.runLater(() -> {
-                        tableClients.setItems(FXCollections.observableArrayList());
-                    });
+    private void loadClients(String query) {
+        if (!SessionManager.getInstance().isAuthenticated()) return;
+        
+        String token = SessionManager.getInstance().getSession().getAccessToken();
+        
+        javafx.concurrent.Task<Reponse> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Reponse call() {
+                Map<String, Object> params = new HashMap<>();
+                if (query != null && !query.isEmpty()) {
+                    params.put("query", query);
                 }
                 return ClientSocket.getInstance().envoyer(new Requete(RequestType.ADMIN_GET_ALL_USERS, params, token));
             }

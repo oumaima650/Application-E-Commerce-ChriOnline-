@@ -329,9 +329,12 @@ public class LoginController implements Initializable {
 
 
     private void navigateToMain(String type) {
+        // Vider l'historique pour ne pas revenir au Login avec le bouton "Retour"
+        SceneManager.clearHistory();
+        
         if ("ADMIN".equals(type)) {
             System.out.println("[LoginController] Navigation vers le tableau de bord Admin...");
-            registerUdpPort(SessionManager.getInstance().getSession().getToken());
+            registerUdpPort(SessionManager.getInstance().getSession().getAccessToken());
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
             System.out.println("[LoginController] Navigation vers la boutique...");

@@ -99,9 +99,13 @@ public class SceneManager {
         try {
             FXMLLoader loader = new FXMLLoader(ClientApp.class.getResource("/fxml/" + fxmlFile));
             Parent root = loader.load();
-            sceneCache.put(fxmlFile, root); // Cache for next time
-
+            
+            // SAUVEGARDER L'HISTORIQUE AVANT DE CHANGER
             javafx.application.Platform.runLater(() -> {
+                if (primaryStage.getScene() != null) {
+                    history.push(primaryStage.getScene());
+                }
+                
                 Scene scene = new Scene(root);
                 String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
                 scene.getStylesheets().add(cssPath);
@@ -113,6 +117,8 @@ public class SceneManager {
                 ft.setFromValue(0.0);
                 ft.setToValue(1.0);
                 ft.play();
+                
+                sceneCache.put(fxmlFile, root); // Cache after successful display
             });
 
         } catch (IOException e) {
@@ -134,7 +140,7 @@ public class SceneManager {
                 // PRÉ-CRÉER LA SCÈNE AVEC LES CSS POUR ÉVITER LE RECHARGEMENT
                 javafx.application.Platform.runLater(() -> {
                     Scene scene = new Scene(root);
-                    String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
+                    String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
                     scene.getStylesheets().add(cssPath);
 
                     sceneCache.put(fxmlFile, root);

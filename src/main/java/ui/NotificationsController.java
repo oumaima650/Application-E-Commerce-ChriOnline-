@@ -46,7 +46,7 @@ public class NotificationsController {
         }
         
         int currentUserId = SessionManager.getInstance().getCurrentUser().getIdUtilisateur();
-        String token = SessionManager.getInstance().getSession().getToken();
+        String token = SessionManager.getInstance().getSession().getAccessToken();
         
         System.out.println("[NotificationsController] Chargement des notifications pour l'utilisateur ID: " + currentUserId);
         
@@ -179,7 +179,7 @@ public class NotificationsController {
         if (!SessionManager.getInstance().isAuthenticated()) return;
         
         int userId = SessionManager.getInstance().getCurrentUser().getIdUtilisateur();
-        String token = SessionManager.getInstance().getSession().getToken();
+        String token = SessionManager.getInstance().getSession().getAccessToken();
 
         Task<Reponse> task = new Task<>() {
             @Override
@@ -198,7 +198,7 @@ public class NotificationsController {
     }
 
     private void markSingleAsRead(int idNotif, VBox card) {
-        String token = SessionManager.getInstance().getSession().getToken();
+        String token = SessionManager.getInstance().getSession().getAccessToken();
         Task<Reponse> task = new Task<>() {
             @Override
             protected Reponse call() {
