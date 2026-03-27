@@ -267,7 +267,7 @@ public class CommandeService {
                 }
                 // Vider les articles du panier apres validation
                 if (selectedSkus != null && !selectedSkus.isEmpty()) {
-                    panierService.supprimerLignes(idClient, selectedSkus);
+                    panierService.supprimerArticles(idClient, selectedSkus);
                 } else {
                     panierService.viderPanier(idClient);
                 }
