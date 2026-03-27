@@ -345,9 +345,17 @@ public class CommandeService {
                 item.put("image", lp.getImage()); // Assuming LignePanier has getImage()
                 itemsSummary.add(item);
                 
-                // Réduire le stock uniquement si la commande est validée (pas pour les brouillons)
+                // Reduire le stock uniquement si la commande est validee (pas pour les brouillons)
                 if (statut == StatutCommande.VALIDEE) {
                     skuDAO.reduireStock(lp.getSku(), lp.getQuantite());
+                    // Verifier si le stock du SKU est maintenant a 0 et notifier l'admin
+                    model.SKU skuMajAJour = skuDAO.getBySku(lp.getSku());
+                    if (skuMajAJour != null && skuMajAJour.getQuantite() == 0) {
+                        new NotificationService().notifierAdmins(
+                            "⚠️ Rupture de stock ! Le SKU '" + lp.getSku() + "' est a 0 unite apres la commande " + nouvelleCommande.getReference() + "."
+                        );
+                        System.out.println("[CommandeService] Alerte stock: SKU " + lp.getSku() + " est en rupture.");
+                    }
                 }
             }
 
