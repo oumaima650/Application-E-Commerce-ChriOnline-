@@ -20,8 +20,16 @@ import shared.RequestType;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class AdminController {
+    private static AdminController instance;
+    
+    public static void refreshBadge() {
+        if (instance != null) {
+            instance.loadUnreadCount();
+        }
+    }
     
     // Stockage temporaire des données brutes pour les cellValueFactory
     private List<Map<String, Object>> rawCommandesData = new ArrayList<>();
@@ -57,6 +65,7 @@ public class AdminController {
 
     @FXML
     public void initialize() {
+        instance = this;
         // Configurer les colonnes
         setupColumns();
         

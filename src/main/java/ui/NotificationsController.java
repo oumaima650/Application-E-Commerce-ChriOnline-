@@ -75,6 +75,8 @@ public class NotificationsController {
                 System.out.println("[NotificationsController] " + (notifsData != null ? notifsData.size() : 0) + " notifications reçues du serveur.");
                 
                 Platform.runLater(() -> {
+                    if (notificationsBox != null) notificationsBox.getChildren().clear();
+                    
                     if (notifsData != null) {
                         int unreadCount = 0;
                         for (Notification n : notifsData) {
@@ -93,6 +95,9 @@ public class NotificationsController {
                         // Mettre à jour le badge (uniquement les non lues)
                         if (notifCount != null) notifCount.setText(String.valueOf(unreadCount));
                         if (notifBadge != null) notifBadge.setVisible(unreadCount > 0);
+                        
+                        // Synchroniser avec le dashboard global
+                        AdminController.refreshBadge();
                     }
                     
                     // Si aucune notification
@@ -188,6 +193,7 @@ public class NotificationsController {
         };
         
         task.setOnSucceeded(e -> {
+            AdminController.refreshBadge();
             Platform.runLater(this::loadNotifications); // Recharger la liste
         });
         new Thread(task).start();
@@ -204,6 +210,7 @@ public class NotificationsController {
             }
         };
         task.setOnSucceeded(e -> {
+            AdminController.refreshBadge();
             Platform.runLater(this::loadNotifications); // Recharger pour mettre à jour les styles et le badge
         });
         new Thread(task).start();
