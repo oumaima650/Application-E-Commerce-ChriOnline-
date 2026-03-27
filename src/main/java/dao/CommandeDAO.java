@@ -253,9 +253,14 @@ public class CommandeDAO {
      */
     public List<model.LigneCommande> findLignesByCommandeId(int idCommande) throws SQLException {
         List<model.LigneCommande> lignes = new ArrayList<>();
-        // Note: Jointure simplifiée pour récupérer au moins le SKU et le prix.
-        // Le nom du produit sera récupéré si possible selon la structure existante.
-        String query = "SELECT lc.* FROM LigneCommande lc WHERE lc.idCommande = ?";
+        // Jointure pour récupérer le nom du produit et l'image depuis la structure SKU -> Produit
+        String query = "SELECT lc.*, p.nom AS nom_produit FROM LigneCommande lc " +
+                       "LEFT JOIN SKU s ON lc.SKU = s.SKU " +
+                       "LEFT JOIN SKUVarValeur svv ON s.SKU = svv.SKU " +
+                       "LEFT JOIN ProduitVarValeur pvv ON svv.idPVV = pvv.idPVV " +
+                       "LEFT JOIN Produit p ON pvv.idProduit = p.idProduit " +
+                       "WHERE lc.idCommande = ? " +
+                       "GROUP BY lc.SKU, lc.idCommande";
         
         try (Connection connection = ConnexionBDD.getConnection();
              PreparedStatement stmt = connection.prepareStatement(query)) {
@@ -268,8 +273,9 @@ public class CommandeDAO {
                 ligne.setSku(rs.getString("SKU"));
                 ligne.setQuantite(rs.getInt("quantite"));
                 ligne.setPrixAchat(rs.getDouble("prixAchat"));
-                // Par défaut on remet le SKU comme nom si on n'a pas la jointure Produit
-                ligne.setNomProduit(rs.getString("SKU"));
+                
+                String nomProd = rs.getString("nom_produit");
+                ligne.setNomProduit(nomProd != null ? nomProd : rs.getString("SKU"));
                 lignes.add(ligne);
             }
         }
