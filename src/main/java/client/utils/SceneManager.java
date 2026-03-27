@@ -97,6 +97,10 @@ public class SceneManager {
             Parent root = loader.load();
             sceneCache.put(fxmlFile, root); // Cache for next time
 
+            if (primaryStage.getScene() != null) {
+                history.push(primaryStage.getScene());
+            }
+
             Scene scene = new Scene(root);
             String cssPath = ClientApp.class.getResource("/com/chrionline/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);

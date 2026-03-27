@@ -14,7 +14,7 @@ public class NotificationDAO {
             
             ps.setInt(1, notification.getIdUtilisateur());
             ps.setString(2, notification.getContenu());
-            ps.setString(3, notification.getStatut().name().toLowerCase());
+            ps.setString(3, notification.getStatut().name());
             ps.setTimestamp(4, notification.getCreatedAt() != null ? Timestamp.valueOf(notification.getCreatedAt()) : new Timestamp(System.currentTimeMillis()));
             
             int rowsAffected = ps.executeUpdate();
@@ -53,9 +53,27 @@ public class NotificationDAO {
         String sql = "UPDATE Notification SET statut = ? WHERE idNotification = ?";
         try (Connection con = ConnexionBDD.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, nouveauStatut.name().toLowerCase());
+            ps.setString(1, nouveauStatut.name());
             ps.setInt(2, idNotification);
             return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean markAsRead(int idNotification) {
+        return updateStatut(idNotification, Notification.StatutNotification.LU);
+    }
+
+    public boolean markAllAsRead(int idUtilisateur) {
+        String sql = "UPDATE Notification SET statut = ? WHERE IdUtilisateur = ? AND statut = ?";
+        try (Connection con = ConnexionBDD.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, Notification.StatutNotification.LU.name());
+            ps.setInt(2, idUtilisateur);
+            ps.setString(3, Notification.StatutNotification.NON_LU.name());
+            return ps.executeUpdate() >= 0;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -70,7 +88,11 @@ public class NotificationDAO {
         
         String statutFromDb = rs.getString("statut");
         if (statutFromDb != null) {
-            notification.setStatut(Notification.StatutNotification.valueOf(statutFromDb.toUpperCase()));
+            try {
+                notification.setStatut(Notification.StatutNotification.valueOf(statutFromDb.toUpperCase()));
+            } catch (Exception e) {
+                notification.setStatut(Notification.StatutNotification.NON_LU);
+            }
         }
 
         if (rs.getTimestamp("created_At") != null) {

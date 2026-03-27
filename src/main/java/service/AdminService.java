@@ -172,12 +172,14 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la recherche des commandes: " + e.getMessage(), null);
         }
     }
-    public Reponse getAllUsers(Requete requete) {
+    public Reponse getAllClients(Requete requete) {
+        Map<String, Object> params = requete.getParametres();
         try {
-            List<model.Utilisateur> utilisateurs = dao.UtilisateurDAO.getAllUsers();
-            return new Reponse(true, "Utilisateurs récupérés avec succès", java.util.Map.of("utilisateurs", utilisateurs));
+            String query = params != null ? (String) params.get("query") : null;
+            List<model.Client> clients = dao.ClientDAO.searchClients(query);
+            return new Reponse(true, "Clients récupérés avec succès", java.util.Map.of("clients", clients));
         } catch (SQLException e) {
-            return new Reponse(false, "Erreur lors de la récupération des utilisateurs: " + e.getMessage(), null);
+            return new Reponse(false, "Erreur lors de la récupération des clients: " + e.getMessage(), null);
         }
     }
 

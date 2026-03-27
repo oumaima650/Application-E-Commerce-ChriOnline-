@@ -4,6 +4,7 @@ import client.ClientSocket;
 import model.Commande;
 //import model.Produit;
 import model.Client;
+import model.Notification;
 import model.enums.StatutCommande;
 import client.utils.SceneManager;
 import client.utils.SessionManager;
@@ -30,6 +31,9 @@ public class AdminController {
     @FXML private TableView<Client> tableClients;
     
     @FXML private TextField searchCommandeField;
+    @FXML private TextField searchClientField;
+    @FXML private javafx.scene.layout.StackPane notifBadge;
+    @FXML private Label notifCount;
 
     // Colonnes pour les commandes
     @FXML private TableColumn<Commande, String> colId;
@@ -47,26 +51,19 @@ public class AdminController {
 
     @FXML
     private void ouvrirNotifications() {
-        SceneManager.switchToCached("notifications.fxml", "ChriOnline - Notifications");
+        SceneManager.clearCache("notifications.fxml");
+        SceneManager.switchTo("notifications.fxml", "ChriOnline - Notifications");
     }
 
     @FXML
     public void initialize() {
-        // Mettre en cache la vue notifications pour un accès rapide
-        try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/notifications.fxml"));
-            javafx.scene.Parent notificationsRoot = loader.load();
-            SceneManager.cacheScene("notifications.fxml", notificationsRoot);
-        } catch (Exception e) {
-            System.err.println("Erreur lors du chargement en cache de notifications.fxml (Path: /fxml/notifications.fxml): " + e.getMessage());
-        }
-        
         // Configurer les colonnes
         setupColumns();
         
         // Charger les données depuis le backend via TCP
         loadCommandes("");
-        loadClients();
+        loadClients("");
+        loadUnreadCount();
         
         // Configurer recherche
         if (searchCommandeField != null) {
@@ -74,11 +71,48 @@ public class AdminController {
                 loadCommandes(newValue);
             });
         }
+        if (searchClientField != null) {
+            searchClientField.textProperty().addListener((observable, oldValue, newValue) -> {
+                loadClients(newValue);
+            });
+        }
         
         // Configurer les colonnes interactives
         //setupProduitActions();
         setupCommandeActions();
         setupClientActions();
+    }
+
+    private void loadUnreadCount() {
+        if (!SessionManager.getInstance().isAuthenticated()) return;
+        
+        int userId = SessionManager.getInstance().getCurrentUser().getIdUtilisateur();
+        String token = SessionManager.getInstance().getSession().getToken();
+
+        javafx.concurrent.Task<Reponse> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Reponse call() {
+                Map<String, Object> params = new java.util.HashMap<>();
+                params.put("idUtilisateur", userId);
+                return ClientSocket.getInstance().envoyer(new Requete(RequestType.GET_NOTIFICATIONS, params, token));
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            Reponse rep = task.getValue();
+            if (rep != null && rep.isSucces()) {
+                @SuppressWarnings("unchecked")
+                List<Notification> notifs = (List<Notification>) rep.getDonnees().get("notifications");
+                if (notifs != null) {
+                    long unread = notifs.stream().filter(n -> n.getStatut() == Notification.StatutNotification.NON_LU).count();
+                    javafx.application.Platform.runLater(() -> {
+                        if (notifCount != null) notifCount.setText(String.valueOf(unread));
+                        if (notifBadge != null) notifBadge.setVisible(unread > 0);
+                    });
+                }
+            }
+        });
+        new Thread(task).start();
     }
 
     private void setupColumns() {
@@ -289,38 +323,35 @@ public class AdminController {
         }).start();
     }
 
-    private void loadClients() {
-        // Charger les clients
-        new Thread(() -> {
-            try {
-                String adminToken = SessionManager.getInstance().getSession().getToken();
-                Requete requete = new Requete(RequestType.ADMIN_GET_ALL_USERS, null, adminToken);
-                shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
-                
-                if (reponse.isSucces() && reponse.getDonnees() != null) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> dataMap = (Map<String, Object>) reponse.getDonnees();
-                    @SuppressWarnings("unchecked")
-                    List<Client> utilisateurs = (List<Client>) dataMap.get("utilisateurs");
-                    
-                    ObservableList<Client> utilisateursList = FXCollections.observableArrayList(utilisateurs);
-                    javafx.application.Platform.runLater(() -> {
-                        tableClients.setItems(utilisateursList);
-                        System.out.println("[AdminController] " + utilisateursList.size() + " utilisateurs chargés.");
-                    });
-                } else {
-                    System.err.println("Erreur chargement utilisateurs: " + reponse.getMessage());
-                    javafx.application.Platform.runLater(() -> {
-                        tableClients.setItems(FXCollections.observableArrayList());
-                    });
+    private void loadClients(String query) {
+        if (!SessionManager.getInstance().isAuthenticated()) return;
+        
+        String token = SessionManager.getInstance().getSession().getToken();
+        
+        javafx.concurrent.Task<Reponse> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Reponse call() {
+                Map<String, Object> params = new HashMap<>();
+                if (query != null && !query.isEmpty()) {
+                    params.put("query", query);
                 }
-            } catch (Exception e) {
-                System.err.println("Exception lors du chargement des utilisateurs: " + e.getMessage());
-                javafx.application.Platform.runLater(() -> {
-                    tableClients.setItems(FXCollections.observableArrayList());
-                });
+                return ClientSocket.getInstance().envoyer(new Requete(RequestType.ADMIN_GET_ALL_USERS, params, token));
             }
-        }).start();
+        };
+
+        task.setOnSucceeded(e -> {
+            Reponse rep = task.getValue();
+            if (rep != null && rep.isSucces()) {
+                @SuppressWarnings("unchecked")
+                List<Client> clients = (List<Client>) rep.getDonnees().get("clients");
+                javafx.application.Platform.runLater(() -> {
+                    tableClients.setItems(FXCollections.observableArrayList(clients));
+                });
+            } else {
+                System.err.println("[AdminController] Échec chargement clients: " + (rep != null ? rep.getMessage() : "Inconnu"));
+            }
+        });
+        new Thread(task).start();
     }
 /* 
     private void setupProduitActions() {
@@ -556,4 +587,3 @@ public class AdminController {
         }
     }
 }
-
