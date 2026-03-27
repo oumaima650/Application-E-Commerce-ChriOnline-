@@ -11,6 +11,7 @@ import javafx.util.Duration;
 import shared.Reponse;
 import shared.Requete;
 import shared.RequestType;
+import client.ClientSocket;
 import model.Utilisateur;
 import client.utils.SceneManager;
 import client.utils.SessionManager;
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
+import javafx.scene.control.TextInputDialog;
 
 
 public class LoginController implements Initializable {
@@ -66,6 +68,7 @@ public class LoginController implements Initializable {
 
     @FXML private HBox  strengthBarBox;
     @FXML private Label strengthLabel;
+    @FXML private Hyperlink forgotPasswordLink;
 
 
     @Override
@@ -91,6 +94,12 @@ public class LoginController implements Initializable {
     @FXML
     private void handleBackToHome() {
         SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
+    }
+
+    @FXML
+    private void handleForgotPassword() {
+        System.out.println("[LoginController] Mot de passe oublié cliqué.");
+        // Pour l'instant, on se contente d'un log. Une future implémentation pourrait ouvrir une popup.
     }
 
     @FXML
@@ -328,8 +337,12 @@ public class LoginController implements Initializable {
 
 
     private void navigateToMain(String type) {
+        // Vider l'historique pour ne pas revenir au Login avec le bouton "Retour"
+        SceneManager.clearHistory();
+        
         if ("ADMIN".equals(type)) {
             System.out.println("[LoginController] Navigation vers le tableau de bord Admin...");
+            registerUdpPort(SessionManager.getInstance().getSession().getAccessToken());
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
             System.out.println("[LoginController] Navigation vers la boutique...");
@@ -342,6 +355,33 @@ public class LoginController implements Initializable {
                 SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
             }
         }
+    }
+
+    private void registerUdpPort(String token) {
+        if (token == null) return;
+        
+        Task<Void> udpTask = new Task<>() {
+            @Override
+            protected Void call() {
+                try {
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("udpPort", client.ClientApp.UDP_PORT);
+                    
+                    Requete req = new Requete(RequestType.REGISTER_UDP_PORT, params, token);
+                    Reponse rep = ClientSocket.getInstance().envoyer(req);
+                    
+                    if (rep.isSucces()) {
+                        System.out.println("[LoginController] Port UDP " + client.ClientApp.UDP_PORT + " enregistré pour l'utilisateur.");
+                    } else {
+                        System.err.println("[LoginController] Échec enregistrement UDP: " + rep.getMessage());
+                    }
+                } catch (Exception e) {
+                    System.err.println("[LoginController] Erreur fatale enregistrement UDP: " + e.getMessage());
+                }
+                return null;
+            }
+        };
+        new Thread(udpTask).start();
     }
 
     private void setupTabSwitching() {

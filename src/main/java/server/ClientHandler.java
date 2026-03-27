@@ -1,7 +1,7 @@
 package server;
 
 import service.AuthService;
-import server.ServiceUDP;
+import server.ServeurUDP;
 import service.AdminService;
 import service.CarteBancaireService;
 import service.CategorieService;
@@ -31,7 +31,7 @@ public class ClientHandler implements Runnable {
     private final Socket socket;
     private final AuthService authService;
     private final AdminService adminService;
-    private final ServiceUDP serviceUDP;
+    private final ServeurUDP serveurUDP;
     private final CarteBancaireService carteBancaireService;
     private final CategorieService categorieService;
     private final NotificationService notificationService;
@@ -52,7 +52,7 @@ public class ClientHandler implements Runnable {
         this.socket      = socket;
         this.authService = new AuthService();
         this.adminService = new AdminService();
-        this.serviceUDP = ServiceUDP.getInstance();
+        this.serveurUDP = ServeurUDP.getInstance();
         this.carteBancaireService = new CarteBancaireService();
         this.categorieService = new CategorieService();
         this.notificationService = new NotificationService();
@@ -220,7 +220,7 @@ public class ClientHandler implements Runnable {
                     int udpPort = (Integer) params.get("udpPort");
                     String clientIp = socket.getInetAddress().getHostAddress();
                     
-                    serviceUDP.registerClient(  userId, clientIp, udpPort);
+                    serveurUDP.registerClient(userId, clientIp, udpPort);
                     yield new Reponse(true, "Port UDP enregistré avec succès", null);
                 } else {
                     yield new Reponse(false, "Port UDP manquant dans la requête", null);
@@ -270,7 +270,7 @@ public class ClientHandler implements Runnable {
                     // Admin operations
                     //case ADMIN_GET_ALL_PRODUCTS -> adminService.getAllProducts(requete);
                     case ADMIN_GET_ALL_ORDERS -> adminService.getAllOrders(requete);
-                    case ADMIN_GET_ALL_USERS -> adminService.getAllUsers(requete);
+                    case ADMIN_GET_ALL_USERS -> adminService.getAllClients(requete);
                     //case ADMIN_UPDATE_PRODUCT -> adminService.updateProduct(requete);
                     //case ADMIN_DELETE_PRODUCT -> adminService.deleteProduct(requete);
                     case ADMIN_UPDATE_ORDER_STATUS -> adminService.updateOrderStatus(requete);

@@ -29,6 +29,7 @@
     -fx-padding: 12 24;
     -fx-cursor: hand;
 }
+
 .btn-primary:hover {
     -fx-background-color: #e55a35;
 }
@@ -43,12 +44,23 @@
     -fx-padding: 12 24;
     -fx-cursor: hand;
 }
+
 .btn-night:hover {
     -fx-background-color: #3a3d58;
 }
 
-.btn-navy { -fx-background-color: #2A2C41; -fx-text-fill: #FDBF50; -fx-background-radius: 50px; -fx-padding: 12 24; -fx-cursor: hand; -fx-font-weight: bold; }
-.btn-navy:hover { -fx-background-color: #3a3d58; }
+.btn-navy {
+    -fx-background-color: #2A2C41;
+    -fx-text-fill: #FDBF50;
+    -fx-background-radius: 50px;
+    -fx-padding: 12 24;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.btn-navy:hover {
+    -fx-background-color: #3a3d58;
+}
 
 /* ── OUTLINE BUTTON ── */
 
@@ -75,22 +87,24 @@
     -fx-font-size: 13px;
     -fx-text-fill: #2A2C41;
 }
+
 .input-field:focused {
     -fx-border-color: #FF724C;
-    -fx-effect: dropshadow(gaussian, rgba(255,114,76,0.12), 8, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(255, 114, 76, 0.12), 8, 0, 0, 0);
 }
 
 /* ── PRODUCT CARD ── */
 .product-card {
     -fx-background-color: white;
     -fx-background-radius: 20px;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 12, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.06), 12, 0, 0, 4);
 }
+
 .product-card:hover {
     -fx-border-color: #FF724C;
     -fx-border-width: 1px;
     -fx-border-radius: 20px;
-    -fx-effect: dropshadow(gaussian, rgba(255,114,76,0.15), 20, 0, 0, 6);
+    -fx-effect: dropshadow(gaussian, rgba(255, 114, 76, 0.15), 20, 0, 0, 6);
 }
 
 .card {
@@ -101,9 +115,10 @@
     -fx-border-radius: 20px;
     -fx-padding: 24px;
 }
+
 .card:hover {
     -fx-border-color: #FF724C;
-    -fx-effect: dropshadow(gaussian, rgba(255,114,76,0.12), 32, 0, 0, 8);
+    -fx-effect: dropshadow(gaussian, rgba(255, 114, 76, 0.12), 32, 0, 0, 8);
 }
 
 .card-pink {
@@ -114,19 +129,24 @@
 
 /* ── SIDEBAR ── */
 
-.sidebar { -fx-background-color: #2A2C41; }
+.sidebar {
+    -fx-background-color: #2A2C41;
+}
+
 .sidebar-item {
     -fx-background-color: transparent;
-    -fx-text-fill: rgba(244,244,248,0.45);
+    -fx-text-fill: rgba(244, 244, 248, 0.45);
     -fx-padding: 11 14;
     -fx-background-radius: 12px;
     -fx-cursor: hand;
     -fx-font-size: 12px;
 }
+
 .sidebar-item:hover {
-    -fx-background-color: rgba(255,114,76,0.15);
-    -fx-text-fill: rgba(244,244,248,0.85);
+    -fx-background-color: rgba(255, 114, 76, 0.15);
+    -fx-text-fill: rgba(244, 244, 248, 0.85);
 }
+
 .sidebar-item-active {
     -fx-background-color: #FF724C;
     -fx-text-fill: white;
@@ -134,7 +154,10 @@
 }
 
 /* ── NAVBAR ── */
-.navbar { -fx-background-color: #2A2C41; }
+.navbar {
+    -fx-background-color: #2A2C41;
+}
+
 .navbar-logo {
     -fx-text-fill: #FDBF50;
     -fx-font-size: 18px;
@@ -142,54 +165,78 @@
 }
 
 /* ── PRICE LABELS ── */
-.price-sale { 
-    -fx-text-fill: #FF724C; 
-    -fx-font-weight: bold; 
-    -fx-font-family: "JetBrains Mono", "Courier New", monospace; 
+.price-sale {
+    -fx-text-fill: #FF724C;
+    -fx-font-weight: bold;
+    -fx-font-family: "JetBrains Mono", "Courier New", monospace;
 }
-.price-original { 
-    -fx-text-fill: #cccccc; 
-    -fx-strikethrough: true; 
-    -fx-font-size: 11px; 
+
+.price-original {
+    -fx-text-fill: #cccccc;
+    -fx-strikethrough: true;
+    -fx-font-size: 11px;
 }
 
 /* ── TABLE VIEW ── */
-.table-view { 
-    -fx-background-color: white; 
-    -fx-border-width: 0; 
-    -fx-background-radius: 16px; 
+.table-view {
+    -fx-background-color: white;
+    -fx-border-width: 0;
+    -fx-background-radius: 16px;
 }
-.table-view .column-header-background { -fx-background-color: #F4F4F8; }
-.table-view .column-header .label { 
-    -fx-text-fill: #888; 
-    -fx-font-size: 11px; 
-    -fx-font-weight: bold; 
+
+.table-view .column-header-background {
+    -fx-background-color: #F4F4F8;
 }
-.table-view .table-row-cell { -fx-border-color: transparent transparent #f0f0f0 transparent; }
-.table-view .table-row-cell:hover { -fx-background-color: #FFF8E7; }
-.table-view .table-row-cell:selected { -fx-background-color: #FFF0EB; }
+
+.table-view .column-header .label {
+    -fx-text-fill: #888;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.table-view .table-row-cell {
+    -fx-border-color: transparent transparent #f0f0f0 transparent;
+}
+
+.table-view .table-row-cell:hover {
+    -fx-background-color: #FFF8E7;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #FFF0EB;
+}
 
 /* ── SCROLL PANE ── */
-.scroll-pane { 
-    -fx-background-color: #F4F4F8; 
-    -fx-border-width: 0; 
+.scroll-pane {
+    -fx-background-color: #F4F4F8;
+    -fx-border-width: 0;
 }
-.scroll-pane .viewport { -fx-background-color: #F4F4F8; }
-.scroll-bar { -fx-background-color: transparent; }
-.scroll-bar .thumb { 
-    -fx-background-color: #e8e8ee; 
-    -fx-background-radius: 50px; 
+
+.scroll-pane .viewport {
+    -fx-background-color: #F4F4F8;
+}
+
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #e8e8ee;
+    -fx-background-radius: 50px;
 }
 
 /* ── SECTION TITLES ── */
-.section-title { 
-    -fx-text-fill: #2A2C41; 
-    -fx-font-size: 20px; 
-    -fx-font-weight: bold; 
+.section-title {
+    -fx-text-fill: #2A2C41;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
 }
 
 /* ── ERROR LABEL ── */
-.error-label { -fx-text-fill: #ef4444; -fx-font-size: 11px; }
+.error-label {
+    -fx-text-fill: #ef4444;
+    -fx-font-size: 11px;
+}
 
 /* ── CATEGORY BADGE ── */
 .category-badge {
@@ -238,17 +285,19 @@
     -fx-padding: 12 24;
     -fx-text-fill: white;
     -fx-font-weight: bold;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 16, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 16, 0, 0, 4);
 }
 
 /* ── DELETE BUTTON ── */
 .delete-btn {
     -fx-background-color: #FEF2F2;
     -fx-background-radius: 10px;
-    -fx-border-color: rgba(239,68,68,0.1);
+    -fx-border-color: rgba(239, 68, 68, 0.1);
     -fx-border-width: 1px;
     -fx-border-radius: 10px;
     -fx-cursor: hand;
 }
-.delete-btn:hover { -fx-background-color: #fee2e2; }
 
+.delete-btn:hover {
+    -fx-background-color: #fee2e2;
+}

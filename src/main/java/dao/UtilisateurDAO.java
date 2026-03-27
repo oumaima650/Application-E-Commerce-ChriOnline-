@@ -104,4 +104,16 @@ public class UtilisateurDAO {
         }
         return null;
     }
+    public static List<Integer> getAdminsIds() throws SQLException {
+        List<Integer> ids = new ArrayList<>();
+        String sql = "SELECT IdUtilisateur FROM Admin";
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                ids.add(rs.getInt(1));
+            }
+        }
+        return ids;
+    }
 }
