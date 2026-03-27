@@ -10,6 +10,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.shape.Circle;
+import javafx.scene.paint.Color;
 import javafx.scene.layout.HBox;
 
 import javafx.scene.layout.Priority;
@@ -52,6 +57,18 @@ public class PanierController implements Initializable {
     private ScrollPane panierScrollPane;
     @FXML
     private StackPane rootStackPane;
+    
+    // Navbar components
+    @FXML
+    private Button loginButton;
+    @FXML
+    private StackPane userAvatarContainer;
+    @FXML
+    private Circle userAvatar;
+    @FXML
+    private Label userInitial;
+
+    private static final String CORAIL = "#FF724C";
 
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
     private final Map<String, Double> unitPrices = new HashMap<>();
@@ -72,7 +89,73 @@ public class PanierController implements Initializable {
             panierScrollPane.setFitToWidth(true);
         }
 
+        setupNavbar();
         chargerPanier();
+    }
+
+    private void setupNavbar() {
+        boolean loggedIn = SessionManager.getInstance().isAuthenticated();
+        if (loginButton != null) {
+            loginButton.setVisible(!loggedIn);
+            loginButton.setManaged(!loggedIn);
+        }
+        if (userAvatarContainer != null) {
+            userAvatarContainer.setVisible(loggedIn);
+            userAvatarContainer.setManaged(loggedIn);
+        }
+
+        if (loggedIn && SessionManager.getInstance().getCurrentUser() != null) {
+            String email = SessionManager.getInstance().getCurrentUser().getEmail();
+            String name = email.split("@")[0].toUpperCase();
+            if (userInitial != null) {
+                userInitial.setText(name.substring(0, 1));
+            }
+        }
+
+        if (userAvatar != null) {
+            userAvatar.setFill(Color.web(CORAIL));
+        }
+    }
+
+    @FXML
+    private void handleLoginClick() {
+        SessionManager.getInstance().clearPendingRedirect();
+        SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+    }
+
+    @FXML
+    private void handleUserClick() {
+        if (userAvatar == null) return;
+
+        ContextMenu userMenu = new ContextMenu();
+        
+        if (SessionManager.getInstance().isAuthenticated()) {
+            MenuItem miCompte = new MenuItem("Mon compte");
+            MenuItem miCommandes = new MenuItem("Mes commandes");
+            MenuItem miDeconnexion = new MenuItem("Déconnexion");
+            
+            miCompte.setOnAction(e -> SceneManager.switchTo("profile.fxml", "Mon Profil - ChriOnline"));
+            miCommandes.setOnAction(e -> SceneManager.switchTo("commandes.fxml", "Mes Commandes - ChriOnline"));
+            
+            miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
+            miDeconnexion.setOnAction(e -> {
+                SessionManager.getInstance().fermer();
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
+            });
+            
+            userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
+        } else {
+            MenuItem miConnexion = new MenuItem("Se connecter");
+            miConnexion.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + ";");
+            miConnexion.setOnAction(e -> {
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            });
+            userMenu.getItems().add(miConnexion);
+        }
+        
+        userMenu.show(userAvatar, javafx.geometry.Side.BOTTOM, 0, 0);
     }
 
     @FXML
@@ -335,17 +418,7 @@ public class PanierController implements Initializable {
     }
 
     @FXML
-    private void goToProfile() {
-        SceneManager.switchTo("profile.fxml", "ChriOnline - Mon Profil");
-    }
-
-    @FXML
     private void goToHome() {
         SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
-    }
-
-    @FXML
-    private void goToCommandes() {
-        SceneManager.switchTo("commandes.fxml", "ChriOnline - Mes Commandes");
     }
 }

@@ -115,13 +115,15 @@ public class CheckoutController {
         if (resumingOrderReference != null && !resumingOrderReference.isEmpty()) {
             loadResumingOrderData();
         } else {
-            // S'assurer que les champs sont éditables pour une nouvelle commande
-            txtPrenom.setEditable(true);
-            txtNom.setEditable(true);
-            txtTelephone.setEditable(true);
-            txtPrenom.setStyle("");
-            txtNom.setStyle("");
-            txtTelephone.setStyle("");
+            // Personal info fields must NOT be modifiable (use Profile for that)
+            txtPrenom.setEditable(false);
+            txtNom.setEditable(false);
+            txtTelephone.setEditable(false);
+            
+            String lockedStyle = "-fx-background-color: #F0F2F5; -fx-opacity: 0.8;";
+            txtPrenom.setStyle(lockedStyle);
+            txtNom.setStyle(lockedStyle);
+            txtTelephone.setStyle(lockedStyle);
             
             prefillUserData();
             loadAddresses();
@@ -512,13 +514,15 @@ public class CheckoutController {
         imgContainer.setStyle("-fx-background-color: #F8F9FA; -fx-background-radius: 8;");
 
         VBox details = new VBox(2);
-        Label lblNom = new Label(nom); lblNom.setStyle("-fx-font-weight: bold;");
+        Label lblNom = new Label(nom); 
+        lblNom.setStyle("-fx-font-weight: bold; -fx-text-fill: #2A2C41; -fx-font-size: 13px;");
         Label lblQtyPrice = new Label(qty + " x " + String.format("%.2f", prix) + " MAD");
+        lblQtyPrice.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
         details.getChildren().addAll(lblNom, lblQtyPrice);
 
         Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
         Label lblTotal = new Label(String.format("%.2f MAD", qty * prix));
-        lblTotal.setStyle("-fx-font-weight: bold;");
+        lblTotal.setStyle("-fx-font-weight: bold; -fx-text-fill: #FF724C; -fx-font-size: 14px;");
 
         row.getChildren().addAll(imgContainer, details, spacer, lblTotal);
         return row;
@@ -529,9 +533,62 @@ public class CheckoutController {
     @FXML
     private void goBack() {
         if (step1Form.isVisible() || step2Form.isVisible()) {
-            // ... (votre code goBack existant est correct ici)
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Quitter le paiement");
+            alert.setHeaderText("Souhaitez-vous enregistrer cette commande en brouillon ?");
+            alert.setContentText("Vous pourrez la retrouver plus tard dans 'Mes Commandes'.");
+
+            ButtonType btnSave = new ButtonType("Enregistrer Brouillon");
+            ButtonType btnCancel = new ButtonType("Annuler Commande");
+            ButtonType btnStay = new ButtonType("Rester ici", ButtonBar.ButtonData.CANCEL_CLOSE);
+
+            alert.getButtonTypes().setAll(btnSave, btnCancel, btnStay);
+
+            var result = alert.showAndWait();
+            if (result.isPresent()) {
+                if (result.get() == btnSave) {
+                    saveAsDraftAndExit();
+                } else if (result.get() == btnCancel) {
+                    SceneManager.back();
+                }
+            }
+        } else {
+            SceneManager.back();
         }
-        SceneManager.back();
+    }
+
+    private void saveAsDraftAndExit() {
+        // Envoi au serveur avec statut EN_ATTENTE
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
+        params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
+        params.put("statut", "EN_ATTENTE");
+        
+        if (resumingOrderReference != null) {
+            params.put("reference", resumingOrderReference);
+            resumingOrderReference = null;
+        }
+
+        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
+        
+        Task<shared.Reponse> task = new Task<>() {
+            @Override
+            protected shared.Reponse call() {
+                return client.ClientSocket.getInstance().envoyer(req);
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            shared.Reponse rep = task.getValue();
+            if (rep != null && rep.isSucces()) {
+                SceneManager.clearCache("panier.fxml");
+                SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
+            } else {
+                showAlertErreur("Erreur lors de l'enregistrement du brouillon: " + (rep != null ? rep.getMessage() : "Serveur injoignable"));
+            }
+        });
+        
+        new Thread(task).start();
     }
 
     private void showAlertErreur(String message) {

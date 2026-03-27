@@ -48,7 +48,7 @@ public class CommandesController {
 
     private ObservableList<OrderRow> allOrders = FXCollections.observableArrayList();
     private ObservableList<OrderRow> filteredOrders = FXCollections.observableArrayList();
-    private final int PAGE_SIZE = 5;
+    private final int PAGE_SIZE = 28;
     private int currentPage = 0;
 
 
@@ -245,7 +245,7 @@ public class CommandesController {
             root.setPrefWidth(450);
 
             Label lblIntro = new Label("Voici les produits de votre commande en attente :");
-            lblIntro.setStyle("-fx-font-weight: bold;");
+            lblIntro.setStyle("-fx-font-weight: bold; -fx-text-fill: #2A2C41;");
 
             VBox productsBox = new VBox(10);
             ScrollPane scrollPane = new ScrollPane(productsBox);
@@ -269,7 +269,9 @@ public class CommandesController {
                     }
                 }
             } else {
-                productsBox.getChildren().add(new Label("Impossible de charger le récapitulatif."));
+                Label lblError = new Label("Impossible de charger le récapitulatif.");
+                lblError.setStyle("-fx-text-fill: #EF4444;");
+                productsBox.getChildren().add(lblError);
             }
 
             Label lblTotal = new Label("Total : " + order.getTotal());
@@ -299,6 +301,7 @@ public class CommandesController {
     }
 
     private VBox createStatusBadge(String status) {
+        // ... (preserving this method)
         VBox badge = new VBox();
         badge.getStyleClass().add("status-badge");
         Label label = new Label(status);
@@ -350,12 +353,14 @@ public class CommandesController {
             infoGrid.setVgap(10);
             
             Label lblPayTitle = new Label("Paiement :");
-            lblPayTitle.setStyle("-fx-font-weight: bold;");
+            lblPayTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #2A2C41;");
             Label lblPayVal = new Label(order.getMethodePaiement());
+            lblPayVal.setStyle("-fx-text-fill: #2A2C41;");
             
             Label lblAddrTitle = new Label("Adresse de livraison :");
-            lblAddrTitle.setStyle("-fx-font-weight: bold;");
+            lblAddrTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #2A2C41;");
             Label lblAddrVal = new Label(order.getAdresseComplete());
+            lblAddrVal.setStyle("-fx-text-fill: #2A2C41;");
             lblAddrVal.setWrapText(true);
             lblAddrVal.setMaxWidth(300);
 
@@ -396,7 +401,9 @@ public class CommandesController {
                     }
                 }
             } else {
-                productsBox.getChildren().add(new Label("Erreur lors du chargement des produits."));
+                Label lblError = new Label("Erreur lors du chargement des produits.");
+                lblError.setStyle("-fx-text-fill: #EF4444;");
+                productsBox.getChildren().add(lblError);
             }
 
             // Total Section
@@ -455,7 +462,7 @@ public class CommandesController {
         VBox details = new VBox(2);
         String productName = ligne != null ? (String) ligne.getOrDefault("nomProduit", "Produit inconnu") : "Produit inconnu";
         Label name = new Label(productName);
-        name.setStyle("-fx-font-weight: bold;");
+        name.setStyle("-fx-font-weight: bold; -fx-text-fill: #2A2C41;");
         
         int quantite = 0;
         double prixAchat = 0.0;

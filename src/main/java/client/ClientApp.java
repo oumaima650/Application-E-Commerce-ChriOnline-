@@ -21,9 +21,8 @@ public class ClientApp extends Application {
         primaryStage.setHeight(800);
         primaryStage.setMinWidth(1100);
         primaryStage.setMinHeight(750);
-
-        // Initialiser le gestionnaire de navigation entre les scenes
         
+        // Initialiser le gestionnaire de navigation entre les scenes
         // INITIALISER LE SCENE MANAGER
         SceneManager.init(primaryStage);
 

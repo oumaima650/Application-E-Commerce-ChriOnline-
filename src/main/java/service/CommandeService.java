@@ -265,7 +265,10 @@ public class CommandeService {
                         System.out.println("[CommandeService] Alerte stock: SKU " + lc.getSku() + " est en rupture.");
                     }
                 }
-                // Vider les articles du panier apres validation
+            }
+            
+            // Vider les articles du panier apres validation OU mise en brouillon
+            if (statutFinal == StatutCommande.VALIDEE || statutFinal == StatutCommande.EN_ATTENTE) {
                 if (selectedSkus != null && !selectedSkus.isEmpty()) {
                     panierService.supprimerArticles(idClient, selectedSkus);
                 } else {
@@ -279,13 +282,16 @@ public class CommandeService {
             SKUDAO skuDAO = new SKUDAO();
             for (model.LigneCommande lc : commandeDAO.findLignesByCommandeId(idCommande)) {
                 Map<String, Object> item = new HashMap<>();
-                item.put("nom", lc.getSku());
+                item.put("nom", lc.getNomProduit());
                 item.put("quantite", lc.getQuantite());
                 item.put("prixUnitaire", lc.getPrixAchat());
-                try {
-                    model.SKU s = skuDAO.getBySku(lc.getSku());
-                    if (s != null) item.put("image", s.getImage());
-                } catch (Exception ignored) {}
+                
+                // Récupérer l'image depuis le SKU
+                model.SKU sku = skuDAO.getBySku(lc.getSku());
+                if (sku != null) {
+                    item.put("image", sku.getImage());
+                }
+                
                 itemsSummary.add(item);
             }
 
