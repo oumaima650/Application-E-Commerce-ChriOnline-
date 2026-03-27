@@ -45,6 +45,10 @@ public class CheckoutController {
     private Circle step2Circle;
     @FXML
     private Circle step3Circle;
+    @FXML
+    private ScrollPane checkoutScrollPane;
+    @FXML
+    private StackPane rootStackPane;
 
     // --- Step 1 fields ---
     @FXML
@@ -176,6 +180,11 @@ public class CheckoutController {
         executor.submit(task);
         // On charge aussi les adresses habituelles au cas où il veut changer
         loadAddresses();
+        
+        if (checkoutScrollPane != null) {
+            checkoutScrollPane.setFitToHeight(false);
+            checkoutScrollPane.setFitToWidth(true);
+        }
     }
 
     // ──────────────────────────────────────────
@@ -477,12 +486,12 @@ public class CheckoutController {
         });
     }
 
-    private HBox createSummaryRow(String nom, int qty, double prix, String imgPath) {
+            private HBox createSummaryRow(String nom, int qty, double prix, String imgPath) {
         HBox row = new HBox(12);
         row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         row.setStyle("-fx-padding: 5; -fx-background-color: white; -fx-background-radius: 8;");
 
-        // Photo ou Icone
+        // --- Gestion de l'image ou de l'icône par défaut ---
         javafx.scene.Node visual;
         if (imgPath != null && !imgPath.isEmpty() && (imgPath.startsWith("http") || imgPath.startsWith("https"))) {
             try {
@@ -490,6 +499,7 @@ public class CheckoutController {
                 iv.setFitWidth(45);
                 iv.setFitHeight(45);
                 iv.setPreserveRatio(true);
+                // Bordures arrondies pour l'image
                 javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(45, 45);
                 clip.setArcWidth(10); clip.setArcHeight(10);
                 iv.setClip(clip);
@@ -498,9 +508,7 @@ public class CheckoutController {
                 visual = ui.utils.IconLibrary.getIcon(ui.utils.IconLibrary.PHONE, 24, "#95A5A6");
             }
         } else {
-            String iconPath = (imgPath == null || imgPath.isEmpty() || imgPath.endsWith(".jpg") || imgPath.endsWith(".png"))
-                    ? ui.utils.IconLibrary.PHONE : imgPath;
-            visual = ui.utils.IconLibrary.getIcon(iconPath, 24, "#95A5A6");
+            visual = ui.utils.IconLibrary.getIcon(ui.utils.IconLibrary.PHONE, 24, "#95A5A6");
         }
 
         StackPane imgContainer = new StackPane(visual);
@@ -524,6 +532,7 @@ public class CheckoutController {
         row.getChildren().addAll(imgContainer, details, spacer, lblTotal);
         return row;
     }
+
 
     @FXML
     private void goToHome() {
@@ -557,7 +566,6 @@ public class CheckoutController {
                 shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
                 client.ClientSocket.getInstance().envoyer(req);
 
-                SceneManager.clearCache("panier.fxml");
                 SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier");
                 return;
             }

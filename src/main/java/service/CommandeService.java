@@ -14,6 +14,7 @@ import model.SKU;
 import model.enums.StatutCommande;
 import model.enums.MethodePaiement;
 import model.enums.StatutPaiement;
+import service.NotificationService;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.math.BigDecimal;
@@ -177,12 +178,12 @@ public class CommandeService {
         }
     }
 
-    /**
+    /    /**
      * Passer une commande à partir du panier
-     * Paramètres attendus : "idClient" (Integer), "skus" (List<String>, optionnel)
+     * Gère la création de nouvelles commandes ou la validation de commandes existantes (Draft)
      */
     public shared.Reponse passerCommande(shared.Requete requete) {
-        System.out.println("[DEBUG_CS_1] CommandeService.passerCommande appelé");
+        System.out.println("[CommandeService] passerCommande appelé");
         Map<String, Object> params = requete.getParametres();
         Integer idClient = (Integer) params.get("idClient");
         @SuppressWarnings("unchecked")
@@ -195,7 +196,6 @@ public class CommandeService {
         }
 
         try {
-
             PanierService panierService = new PanierService();
             List<model.LignePanier> lignesPanier;
             
@@ -209,109 +209,80 @@ public class CommandeService {
                 return new shared.Reponse(false, "Aucun article sélectionné ou panier vide.", null);
             }
 
-            // Créer ou récupérer l'en-tête de la commande
             String reference;
             int idCommande;
             Commande commande;
+            StatutCommande statutFinal = StatutCommande.VALIDEE;
+            
+            if (statutParam != null) {
+                try { statutFinal = StatutCommande.valueOf(statutParam); } catch (Exception ignored) {}
+            }
 
             if (existingReference != null && !existingReference.isEmpty()) {
+                // --- REPRISE D'UNE COMMANDE EXISTANTE ---
                 reference = existingReference;
                 commande = commandeDAO.findByReference(reference);
-                if (commande == null) {
-                    return new shared.Reponse(false, "Commande existante introuvable : " + reference, null);
-                }
-                idCommande = commande.getIdCommande();
+                if (commande == null) return new shared.Reponse(false, "Commande introuvable.", null);
                 
-                // Mettre à jour le statut si fourni
-                if (statutParam != null) {
-                    try {
-                        commande.setStatut(StatutCommande.valueOf(statutParam));
-                    } catch (IllegalArgumentException e) {
-                        System.err.println("Statut invalide : " + statutParam);
-                    }
-                }
-                commandeDAO.updateStatus(idCommande, commande.getStatut());
+                idCommande = commande.getIdCommande();
+                commande.setStatut(statutFinal);
+                commandeDAO.updateStatus(idCommande, statutFinal);
             } else {
+                // --- CRÉATION D'UNE NOUVELLE COMMANDE ---
                 reference = "CHR-" + java.time.LocalDate.now().toString().replace("-", "") + "-" + 
                                  String.format("%04d", (int)(Math.random() * 9999));
                 
                 commande = new Commande();
                 commande.setIdClient(idClient);
                 commande.setReference(reference);
-                StatutCommande statut = StatutCommande.VALIDEE;
-                if (statutParam != null) {
-                    try {
-                        statut = StatutCommande.valueOf(statutParam);
-                    } catch (IllegalArgumentException e) {
-                        System.err.println("Statut invalide : " + statutParam);
-                    }
-                }
-                commande.setStatut(statut);
+                commande.setStatut(statutFinal);
                 commande.setDateLivraisonPrevue(java.time.LocalDateTime.now().plusDays(5));
                 
                 Commande nouvelleCommande = commandeDAO.create(commande);
                 idCommande = nouvelleCommande.getIdCommande();
-            }
-
-            List<Map<String, Object>> itemsSummary = new ArrayList<>();
-            dao.SKUDAO skuDAO = new dao.SKUDAO();
-
-            if (existingReference == null || existingReference.isEmpty()) {
-                // Nouvelle commande : on ajoute les lignes à partir du panier
+                
+                // Ajouter les lignes de commande
                 for (model.LignePanier lp : lignesPanier) {
                     double prixAchat = lp.getSousTotal().doubleValue() / lp.getQuantite();
                     commandeDAO.addLigneCommande(idCommande, lp.getSku(), lp.getQuantite(), prixAchat);
-                    
-                    if (commande.getStatut() == StatutCommande.VALIDEE) {
-                        skuDAO.reduireStock(lp.getSku(), lp.getQuantite());
-                    }
                 }
-                
-            } else if (commande.getStatut() == StatutCommande.VALIDEE) {
-                // Si on valide une commande existante, on réduit les stocks maintenant
+            }
+
+            // Gestion des stocks si la commande est validée
+            if (statutFinal == StatutCommande.VALIDEE) {
+                SKUDAO skuDAO = new SKUDAO();
                 List<model.LigneCommande> lignes = (List<model.LigneCommande>) commandeDAO.findLignesByCommandeId(idCommande);
                 for (model.LigneCommande lc : lignes) {
                     skuDAO.reduireStock(lc.getSku(), lc.getQuantite());
                 }
+                
+                // Vider le panier après validation
+                if (selectedSkus != null && !selectedSkus.isEmpty()) {
+                    panierService.supprimerArticles(idClient, selectedSkus);
+                } else {
+                    panierService.viderPanier(idClient);
+                }
             }
 
-            // Générer le résumé des produits pour la réponse (indispensable pour l'UI)
+            // Récupérer les données pour la réponse UI
+            double totalFinal = commandeDAO.getMontantTotal(idCommande);
+            List<Map<String, Object>> itemsSummary = new ArrayList<>();
             List<model.LigneCommande> toutesLesLignes = (List<model.LigneCommande>) commandeDAO.findLignesByCommandeId(idCommande);
+            SKUDAO skuDAO = new SKUDAO();
+            
             for (model.LigneCommande lc : toutesLesLignes) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("nom", lc.getSku());
                 item.put("quantite", lc.getQuantite());
                 item.put("prixUnitaire", lc.getPrixAchat());
-                // Pour l'image, on essaie de la récupérer via SKU
                 try {
                     model.SKU s = skuDAO.getBySku(lc.getSku());
                     if (s != null) item.put("image", s.getImage());
-                } catch (Exception e) {
-                    item.put("image", null);
-                }
+                } catch (Exception ignored) {}
                 itemsSummary.add(item);
             }
-            
-            // Calculer le total actuel pour le retour
-            double totalFinal = commandeDAO.getMontantTotal(idCommande);
 
-
-            // --- NOUVEAU : Créer un enregistrement de paiement type "Cash" par défaut ---
-            // On ne le recrée que si il n'existe pas déjà pour cette commande
-            PaiementDAO pDao = new PaiementDAO();
-            List<Paiement> existingPaiements = pDao.findByCommande(idCommande);
-            
-            if (existingPaiements == null || existingPaiements.isEmpty()) {
-                Paiement paiement = new Paiement();
-                paiement.setIdCommande(idCommande);
-                paiement.setMontant(BigDecimal.valueOf(totalFinal));
-                paiement.setMethodePaiement(MethodePaiement.CASH);
-                paiement.setStatutPaiement(model.enums.StatutPaiement.EN_ATTENTE);
-                pDao.create(paiement);
-            }
-            // --------------------------------------------------------------------------
-
-            Map<String, Object> result = new java.util.HashMap<>();
+            Map<String, Object> result = new HashMap<>();
             result.put("idCommande", idCommande);
             result.put("reference", reference);
             result.put("total", totalFinal);
@@ -319,11 +290,23 @@ public class CommandeService {
             result.put("dateLivraison", (commande.getDateLivraisonPrevue() != null ? 
                         commande.getDateLivraisonPrevue().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "N/A"));
 
-            return new shared.Reponse(true, "Commande " + reference + " créée avec succès !", result);
+            // --- NOTIFICATIONS ---
+            NotificationService notifService = new NotificationService();
+            if (statutFinal == StatutCommande.VALIDEE) {
+                notifService.notifierAdmins("Nouvelle commande validée ! Réf: " + reference + " - Total: " + totalFinal + " MAD");
+                notifService.creerNotification(idClient, "Votre commande " + reference + " a été validée avec succès !");
+            } else if (statutFinal == StatutCommande.EN_ATTENTE) {
+                notifService.creerNotification(idClient, "Votre commande " + reference + " est en brouillon.");
+            }
+
+            return new shared.Reponse(true, "Commande traitée avec succès.", result);
+
         } catch (Exception e) {
-            return new shared.Reponse(false, "Erreur lors de la validation de la commande: " + e.getMessage(), null);
+            e.printStackTrace();
+            return new shared.Reponse(false, "Erreur : " + e.getMessage(), null);
         }
     }
+
 
     private Map<String, Object> enrichCommandeMap(Commande commande, PaiementDAO paiementDAO, AdresseDAO adresseDAO) throws SQLException {
         Map<String, Object> commandeMap = new java.util.HashMap<>();

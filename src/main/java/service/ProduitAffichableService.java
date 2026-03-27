@@ -50,8 +50,8 @@ public class ProduitAffichableService {
                     SKU sku = skus.get(0); // Pour l'instant, on prend le premier
                     System.out.println("[ProduitAffichableService] SKU sélectionné: " + sku.getSku() + " (Prix: " + sku.getPrix() + ")");
                     
-                    // Récupérer la catégorie principale du produit
-                    Categorie categorie = getCategoriePrincipale(produit.getIdProduit());
+                    // Récupérer la catégorie du produit
+                    Categorie categorie = getCategorieParId(produit.getIdCategorie());
                     System.out.println("[ProduitAffichableService] Catégorie: " + (categorie != null ? categorie.getNom() : "NULL"));
                     
                     // Créer le produit affichable
@@ -97,43 +97,15 @@ public class ProduitAffichableService {
     }
 
     /**
-     * Récupère la catégorie principale d'un produit
-     * Pour simplifier, on prend la première catégorie trouvée
+     * Récupère la catégorie d'un produit par son ID
      */
-    private Categorie getCategoriePrincipale(int idProduit) {
+    private Categorie getCategorieParId(int idCategorie) {
+        if (idCategorie <= 0) return null;
         try {
-            // Récupérer toutes les catégories disponibles
-            List<Categorie> categories = categorieDAO.getAll();
-            
-            if (!categories.isEmpty()) {
-                // Pour la démo, on assigne une catégorie selon l'ID du produit
-                String[] nomsCategories = {"Smartphones", "Accessoires", "Ordinateurs", "Montres"};
-                int index = idProduit % nomsCategories.length;
-                
-                // Chercher une catégorie correspondante ou créer une virtuelle
-                for (Categorie cat : categories) {
-                    if (cat.getNom().equalsIgnoreCase(nomsCategories[index])) {
-                        return cat;
-                    }
-                }
-                
-                // Si pas trouvée, créer une catégorie virtuelle pour l'affichage
-                Categorie virtuelle = new Categorie();
-                virtuelle.setIdCategorie(index + 1);
-                virtuelle.setNom(nomsCategories[index]);
-                virtuelle.setDescription("Catégorie " + nomsCategories[index]);
-                return virtuelle;
-            }
-            
-            return null;
+            return categorieDAO.getById(idCategorie);
         } catch (Exception e) {
-            System.err.println("Erreur lors de la récupération de la catégorie: " + e.getMessage());
-            // Retourner une catégorie par défaut
-            Categorie defaut = new Categorie();
-            defaut.setIdCategorie(1);
-            defaut.setNom("Smartphones");
-            defaut.setDescription("Catégorie par défaut");
-            return defaut;
+            System.err.println("[ProduitAffichableService] Erreur lors de la récupération de la catégorie " + idCategorie + ": " + e.getMessage());
+            return null;
         }
     }
 
@@ -150,7 +122,7 @@ public class ProduitAffichableService {
                 
                 if (!skus.isEmpty()) {
                     SKU sku = skus.get(0);
-                    Categorie categorie = getCategoriePrincipale(produit.getIdProduit());
+                    Categorie categorie = getCategorieParId(produit.getIdCategorie());
                     
                     ProduitAffichable prodAff = new ProduitAffichable(
                         produit.getIdProduit(),

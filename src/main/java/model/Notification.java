@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.io.Serializable;
 
 public class Notification implements Serializable {
-    public enum StatutNotification { lu, non_lu }
+    public enum StatutNotification { LU, NON_LU }
 
     private int idNotification;
     private int idUtilisateur;

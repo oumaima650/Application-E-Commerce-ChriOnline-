@@ -486,7 +486,7 @@ public class CommandesController {
         return item;
     }
 
-    @FXML private void goBack() { SceneManager.clearCache("panier.fxml"); SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier"); }
+    @FXML private void goBack() { SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier"); }
     @FXML private void refreshOrders() { loadCommandes(); }
     @FXML private void goToProfile() { SceneManager.switchTo("profile.fxml", "ChriOnline - Mon Profil"); }
 

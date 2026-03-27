@@ -1,131 +1,140 @@
 /*
  * ═══════════════════════════════════════════════════════════════
- *   ChriOnline — Login Screen Stylesheet (login.css)
+ *   ChriOnline — Login Screen Stylesheet  (login.css)
+ *   Redesigned to match the home page's Navy + Lemon + Orange theme.
  *   Applied on top of global.css for Screen 1 only.
+ *
+ *   ⚠  THREE FXML CHANGES REQUIRED — see each section's comment
+ *   ─────────────────────────────────────────────────────────────
+ *   1. Logo section VBox.margin  → set all Insets to 0
+ *   2. Login  form VBox.margin   → set all Insets to 0
+ *   3. Register form VBox.margin → set all Insets to 0
+ *   (CSS now owns all padding/spacing — FXML margins conflict)
  * ═══════════════════════════════════════════════════════════════
  */
 
 /* ════════════════════════════════════════════════════════════════
    ROOT  &  BACKGROUND
+   — Navy gradient with orange + lemon radial glows that echo
+     the home page hero banner's depth and warmth
 ════════════════════════════════════════════════════════════════ */
 .login-root {
-    -fx-background-color: #F4F4F8;
-}
-
-/* Soft radial + linear gradient over pink base */
-.bg-pink {
+    /* Multi-layer: top-left orange glow + bottom-right lemon glow + navy base */
     -fx-background-color:
-        linear-gradient(from 0% 0% to 100% 100%, #ececf2, #F4F4F8 50%, #eeeef5);
+            radial-gradient(center 15% 12%, radius 42%, rgba(255,114,76,0.18) 0%, transparent 100%),
+            radial-gradient(center 88% 90%, radius 40%, rgba(253,191,80,0.14) 0%, transparent 100%),
+            linear-gradient(to bottom right, #1f2138 0%, #2A2C41 55%, #2e2c47 100%);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   DECORATIVE BLOBS (background circles)
-════════════════════════════════════════════════════════════════ */
-.deco-blob-1 {
-    -fx-fill: rgba(255, 114, 76, 0.18);
-    -fx-stroke: rgba(255, 114, 76, 0.30);
-    -fx-stroke-width: 2;
-}
-
-.deco-blob-2 {
-    -fx-fill: rgba(253, 191, 80, 0.25);
-    -fx-stroke: rgba(253, 191, 80, 0.45);
-    -fx-stroke-width: 2;
-}
-
-.deco-blob-3 {
-    -fx-fill: rgba(246, 213, 238, 0.60);
-    -fx-stroke: rgba(255, 114, 76, 0.20);
-    -fx-stroke-width: 1.5;
+.bg-theme {
+    -fx-background-color:
+            radial-gradient(center 15% 12%, radius 42%, rgba(255,114,76,0.18) 0%, transparent 100%),
+            radial-gradient(center 88% 90%, radius 40%, rgba(253,191,80,0.14) 0%, transparent 100%),
+            linear-gradient(to bottom right, #1f2138 0%, #2A2C41 55%, #2e2c47 100%);
 }
 
 /* ════════════════════════════════════════════════════════════════
    AUTH CARD
+   — Clean white card with a lemon-tinted border and soft glow
 ════════════════════════════════════════════════════════════════ */
 .login-card {
-    -fx-background-color: #FEFCFF;
-    -fx-background-radius: 24;
-    /* Drop shadow is set via <effect> in FXML */
+    -fx-background-color: white;
+    -fx-background-radius: 16;
+    -fx-border-color: rgba(253, 191, 80, 0.30);   /* Lemon subtle border */
+    -fx-border-width: 1.5;
+    -fx-border-radius: 16;
 }
 
 /* ════════════════════════════════════════════════════════════════
    LOGO SECTION
+   — Full navy header flush to card top edges.
+   FXML CHANGE REQUIRED: remove VBox.margin from logo-section
+   (set all Insets to 0), CSS handles the inner padding below.
 ════════════════════════════════════════════════════════════════ */
 .logo-section {
-    -fx-padding: 0 24 0 24;
+    -fx-background-color: #2A2C41;
+    /* Top radius matches card (16), bottom is 0 so it meets the form area cleanly */
+    -fx-background-radius: 14 14 0 0;
+    -fx-padding: 20 32 18 32;
     -fx-alignment: CENTER;
 }
 
-/* Brand icon pill (colored square with letter) */
+/* Orange brand pill — same accent color as the home "Découvrir →" button */
 .logo-icon-pill {
-    -fx-background-color: linear-gradient(to bottom right, #FF724C, #e8612e);
-    -fx-background-radius: 14;
-    -fx-effect: dropshadow(gaussian, rgba(255, 114, 76, 0.50), 10, 0, 0, 3);
+    -fx-background-color: #FF724C;
+    -fx-background-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(255,114,76,0.50), 14, 0, 0, 3);
 }
 
 .logo-icon-letter {
     -fx-text-fill: white;
     -fx-font-size: 22px;
     -fx-font-weight: bold;
-    -fx-font-family: "Poppins", "Nunito", "Segoe UI", sans-serif;
 }
 
-/* App name wordmark */
+/* Lemon wordmark — identical to "ChriOnline" on the home navbar */
 .logo-wordmark {
-    -fx-font-size: 26px;
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
-    -fx-text-fill: #2A2C41;
+    -fx-text-fill: #FDBF50;
     -fx-font-family: "Poppins", "Nunito", "Segoe UI", sans-serif;
 }
 
+/* Tagline — muted white on navy (was white, invisible on old white card) */
 .logo-tagline-small {
     -fx-font-size: 10px;
-    -fx-text-fill: #FF724C;
+    -fx-text-fill: rgba(255, 255, 255, 0.55);
     -fx-font-style: italic;
-    -fx-font-family: "Poppins", "Nunito", "Segoe UI", sans-serif;
 }
 
-/* Lemon accent bar below the wordmark */
+/* Lemon accent bar — now matches the wordmark color (was orange before) */
 .logo-accent-bar {
-    -fx-background-color: linear-gradient(to right, #FDBF50, rgba(253, 191, 80, 0.2));
+    -fx-background-color: #FDBF50;
     -fx-background-radius: 2;
-    -fx-max-width: 64;
+    -fx-max-width: 44;
 }
 
+/* Subtitle — soft white-on-navy, consistent with hero banner text */
 .logo-subtitle {
     -fx-font-size: 11.5px;
-    -fx-text-fill: #8892A4;
+    -fx-text-fill: rgba(255, 255, 255, 0.55);
     -fx-text-alignment: CENTER;
     -fx-alignment: CENTER;
     -fx-font-style: italic;
 }
 
 /* ════════════════════════════════════════════════════════════════
+   BACK TO BOUTIQUE BUTTON
+   — Style to feel like a nav link (matches home's subtle links)
+════════════════════════════════════════════════════════════════ */
+/* Applied inline in FXML; override here if a styleClass is added */
+
+/* ════════════════════════════════════════════════════════════════
    TAB PANE
+   — Warm tinted header strip acts as a visual separator between
+     the navy logo section and the white form area
 ════════════════════════════════════════════════════════════════ */
 .auth-tab-pane {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-tab-min-width: 100;
     -fx-tab-max-width: 200;
-    -fx-tab-min-height: 42;
+    -fx-tab-min-height: 44;
 }
 
-/* Header area (the row of tab buttons) */
-.auth-tab-pane>.tab-header-area {
+/* Tab header row — very light warm tint (not pure white) */
+.auth-tab-pane > .tab-header-area {
     -fx-background-color: transparent;
     -fx-padding: 0 20 0 20;
 }
 
-/* Strip behind tab buttons */
-.auth-tab-pane>.tab-header-area>.tab-header-background {
-    -fx-background-color: transparent;
-    -fx-border-color: transparent transparent #e8e8f0 transparent;
+.auth-tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: #f8f8fc;             /* Warm section break */
+    -fx-border-color: transparent transparent #e4e4ec transparent;
     -fx-border-width: 0 0 1.5 0;
 }
 
-/* Container for tabs */
-.auth-tab-pane>.tab-header-area>.headers-region {
+.auth-tab-pane > .tab-header-area > .headers-region {
     -fx-background-color: transparent;
 }
 
@@ -134,13 +143,13 @@
     -fx-background-color: transparent;
     -fx-background-radius: 0;
     -fx-border-color: transparent;
-    -fx-padding: 8 20 8 20;
+    -fx-padding: 10 28 10 28;
     -fx-cursor: hand;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
 
-/* Tab label — unselected */
+/* Unselected label */
 .auth-tab-pane .tab .tab-label {
     -fx-text-fill: #b0b8cc;
     -fx-font-size: 13px;
@@ -148,32 +157,31 @@
     -fx-font-family: "Poppins", "Nunito", "Segoe UI", sans-serif;
 }
 
-/* Tab — hover */
 .auth-tab-pane .tab:hover .tab-label {
-    -fx-text-fill: #8890b0;
+    -fx-text-fill: #8892a4;
 }
 
-/* Tab — selected */
+/* Selected tab — no background, just the underline */
 .auth-tab-pane .tab:selected {
     -fx-background-color: transparent;
     -fx-focus-color: transparent;
 }
 
-/* ★ Lemon (#FDBF50) underline on selected tab ★ */
-.auth-tab-pane .tab:selected>.tab-container {
-    -fx-border-color: #FDBF50;
+/* Orange (#FF724C) underline — matches primary button & home's active state */
+.auth-tab-pane .tab:selected > .tab-container {
+    -fx-border-color: #FF724C;
     -fx-border-width: 0 0 3 0;
     -fx-background-color: transparent;
 }
 
-/* Selected tab label — Navy, bold */
+/* Selected tab label — Orange, same as home's active filter border */
 .auth-tab-pane .tab:selected .tab-label {
-    -fx-text-fill: #2A2C41;
+    -fx-text-fill: #FF724C;
     -fx-font-weight: bold;
     -fx-font-size: 13px;
 }
 
-/* Remove default focus ring from tabs */
+/* Remove default focus ring */
 .auth-tab-pane .tab:focused {
     -fx-background-color: transparent;
 }
@@ -182,8 +190,8 @@
     -fx-border-color: transparent;
 }
 
-/* Content area behind the form boxes */
-.auth-tab-pane>.tab-content-area {
+/* Content area — transparent so white card shows through */
+.auth-tab-pane > .tab-content-area {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-padding: 0;
@@ -191,10 +199,17 @@
 
 /* ════════════════════════════════════════════════════════════════
    FORM BOXES
+   — Padding here is the source of truth for horizontal breathing
+     room. Inside a ScrollPane, VBox.margin is ignored by JavaFX,
+     so we MUST apply spacing via -fx-padding in CSS.
+   FXML: set BOTH form VBox.margin Insets to 0 (all four sides)
+   to avoid double-stacking with this CSS padding.
 ════════════════════════════════════════════════════════════════ */
 .form-box {
     -fx-background-color: transparent;
     -fx-alignment: TOP_CENTER;
+    /* 36px left/right = comfortable breathing room from card edges */
+    -fx-padding: 22 36 26 36;
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -213,7 +228,7 @@
 }
 
 /* ════════════════════════════════════════════════════════════════
-   STRENGTH BAR (password strength indicator)
+   PASSWORD STRENGTH BAR
 ════════════════════════════════════════════════════════════════ */
 .strength-seg {
     -fx-background-color: #e8e8ef;
