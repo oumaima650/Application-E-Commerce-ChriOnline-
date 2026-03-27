@@ -6,18 +6,23 @@ import ui.NotificationsController;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
+/**
+ * Classe gerant la reception des notifications en temps reel pour le client via le protocole UDP.
+ * Elle s'execute en arriere-plan (Thread) pour ecouter en permanence le serveur.
+ */
 public class ClientUDP extends Thread {
     private int portEcoute;
     private boolean running = true;
 
-    // Référence optionnelle au contrôleur de la page Notifications
+    // Reference optionnelle au controleur de la page Notifications
     // Si non null, les messages UDP alimentent directement la page de notifs
-    // Si null, on affiche juste dans la console
+    // Si null, on affiche une alerte contextuelle
     private NotificationsController notificationsController;
 
     public ClientUDP(int port) {
         this.portEcoute = port;
-        setDaemon(true); // S'arrête automatiquement quand le programme se ferme
+        // setDaemon(true) permet d'arreter le thread automatiquement quand le programme principal se ferme
+        setDaemon(true); 
     }
 
     public void setNotificationsController(NotificationsController controller) {
@@ -27,23 +32,24 @@ public class ClientUDP extends Thread {
     @Override
     public void run() {
         try (DatagramSocket socket = new DatagramSocket(portEcoute)) {
-            System.out.println("Écoute des notifications sur UDP " + portEcoute);
+            System.out.println("Ecoute des notifications sur UDP " + portEcoute);
             byte[] buffer = new byte[1024];
 
             while (running) {
+                // Creation d'un paquet pour recevoir les donnees
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                socket.receive(packet); // Bloquant
+                socket.receive(packet); // Attente bloquante : le thread se met en pause ici jusqu'a reception
 
                 String message = new String(packet.getData(), 0, packet.getLength());
                 System.out.println("\n[🔔 NOTIFICATION UDP] => " + message);
 
-                // Mettre à jour l'UI JavaFX depuis le thread JavaFX
+                // Obligatoire de passer par Platform.runLater() pour modifier l'interface graphique JavaFX
                 Platform.runLater(() -> {
                     if (notificationsController != null) {
-                        // Afficher dans la page Notifications dédiée
-                        notificationsController.addNotification("Notification reçue", message);
+                        // Si l'utilisateur est sur la page des notifications, on ajoute le message a la liste
+                        notificationsController.addNotification("Nouvelle mise a jour", message);
                     } else {
-                        // Fallback : afficher une Alert si la page n'est pas encore ouverte
+                        // Solution de repli : afficher une alerte flottante (popup) n'importe ou dans l'application
                         javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
                         alert.setTitle("Nouvelle Notification UDP");
                         alert.setHeaderText("ChriOnline - Nouvelle Info");
@@ -60,11 +66,11 @@ public class ClientUDP extends Thread {
 
     public void stopListening() {
         running = false;
-        interrupt();
+        interrupt(); // Force l'arret de la methode bloquante socket.receive()
     }
     
     /**
-     * Retourne le port d'écoute UDP pour l'envoyer au serveur
+     * Retourne le port d'ecoute UDP pour pouvoir l'envoyer au serveur principal (TCP)
      */
     public int getPortEcoute() {
         return portEcoute;

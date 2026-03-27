@@ -42,6 +42,17 @@
                     
                     <Region prefWidth="16"/>
                     
+                    <!-- Notification Bell -->
+                    <StackPane fx:id="notifBadge" visible="true" onMouseClicked="#ouvrirNotifications" style="-fx-cursor: hand; -fx-padding: 0 10;">
+                        <children>
+                            <Label text="🔔" style="-fx-text-fill: white; -fx-font-size: 16px;"/>
+                            <Circle fx:id="notifCircle" radius="7" fill="#FF724C" translateX="8" translateY="-8" visible="false"/>
+                            <Label fx:id="notifCount" text="0" style="-fx-text-fill: white; -fx-font-size: 9px; -fx-font-weight: bold;" translateX="8" translateY="-8" visible="false"/>
+                        </children>
+                    </StackPane>
+                    
+                    <Region prefWidth="16"/>
+                    
                     <!-- User Auth Section -->
                     <StackPane alignment="CENTER_RIGHT">
                         <children>
