@@ -352,7 +352,7 @@ public class CommandesController {
             infoGrid.setHgap(20);
             infoGrid.setVgap(10);
             
-            Label lblPayTitle = new Label("Paiement :");
+            Label lblPayTitle = new Label("Mode de paiement :");
             lblPayTitle.setStyle("-fx-font-weight: bold; -fx-text-fill: #2A2C41;");
             Label lblPayVal = new Label(order.getMethodePaiement());
             lblPayVal.setStyle("-fx-text-fill: #2A2C41;");

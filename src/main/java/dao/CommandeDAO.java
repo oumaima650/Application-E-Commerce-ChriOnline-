@@ -232,6 +232,21 @@ public class CommandeDAO {
 
 
     /**
+     * Mettre à jour l'adresse liée à une commande (utile lors de la reprise d'un brouillon)
+     */
+    public boolean updateAdresse(int idCommande, Integer idAdresse) throws SQLException {
+        String query = "UPDATE Commande SET idAdresse = ?, updated_At = ? WHERE idCommande = ?";
+        try (Connection connection = ConnexionBDD.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setObject(1, idAdresse);
+            stmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            stmt.setInt(3, idCommande);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+
+
+    /**
      * Ajouter une ligne à une commande
      */
     public void addLigneCommande(int idCommande, String sku, int quantite, double prixUnit) throws SQLException {
