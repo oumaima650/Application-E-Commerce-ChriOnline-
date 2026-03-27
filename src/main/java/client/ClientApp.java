@@ -16,7 +16,11 @@ public class ClientApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        System.out.println("[ClientApp] Starting ChriOnline Client Application...");
+        primaryStage.setTitle("ChriOnline - Boutique en ligne");
+        primaryStage.setWidth(1200);
+        primaryStage.setHeight(800);
+        primaryStage.setMinWidth(1100);
+        primaryStage.setMinHeight(750);
 
         // INITIALISER LE SCENE MANAGER
         SceneManager.init(primaryStage);
