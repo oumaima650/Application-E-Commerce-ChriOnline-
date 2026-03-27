@@ -65,7 +65,7 @@ public class PanierService {
 
             if (ligneExistante.isPresent()) {
                 ligneAEnregistrer = ligneExistante.get();
-                ligneAEnregistrer.setQuantite(quantite); // ✅ REMPLACER la quantité, pas additionner
+                ligneAEnregistrer.setQuantite(ligneAEnregistrer.getQuantite() + quantite); // ✅ ADD the quantity
             } else {
                 ligneAEnregistrer = new LignePanier(panier.getIdPanier(), sku, quantite, BigDecimal.ZERO);
                 panier.getLignes().add(ligneAEnregistrer);
