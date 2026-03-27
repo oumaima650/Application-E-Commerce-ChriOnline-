@@ -82,7 +82,9 @@ public class MainHomeController implements Initializable {
     @FXML
     private ScrollPane mainScrollPane;
     @FXML
-    private VBox mainContent;
+    private VBox mainContent;    // Fixed top area (hero, categories, filter bar)
+    @FXML
+    private VBox productContent; // Scrollable product area
 
     // Hero Banner Components
     @FXML
@@ -131,7 +133,6 @@ public class MainHomeController implements Initializable {
 
     // Filter State
     private String selectedCategory = "Toutes les catégories";
-    private boolean showOnlyPromo = false;
     private boolean showOnlyInStock = false;
     private int maxPrice = 50000;
     private String currentSort = "Nouveautés ✨";
@@ -191,13 +192,6 @@ public class MainHomeController implements Initializable {
         }
 
         HBox toggles = new HBox(12);
-        CheckBox cbPromo = new CheckBox("En solde 🏷️");
-        cbPromoFilter = cbPromo;
-        cbPromo.setSelected(showOnlyPromo);
-        cbPromo.setOnAction(e -> {
-            showOnlyPromo = cbPromo.isSelected();
-            applyFilters();
-        });
 
         CheckBox cbStock = new CheckBox("En stock 📦");
         cbStock.setSelected(showOnlyInStock);
@@ -209,9 +203,8 @@ public class MainHomeController implements Initializable {
         String cbStyle = "-fx-background-color: " + BLANC_CASSE
                 + "; -fx-background-radius: 50px; -fx-padding: 8 15; -fx-font-size: 11px; -fx-cursor: hand; -fx-text-fill: "
                 + BLEU_NUIT + ";";
-        cbPromo.setStyle(cbStyle);
         cbStock.setStyle(cbStyle);
-        toggles.getChildren().addAll(cbPromo, cbStock);
+        toggles.getChildren().addAll(cbStock);
 
         Separator sep = new Separator(Orientation.VERTICAL);
         sep.setPrefHeight(25);
@@ -259,15 +252,10 @@ public class MainHomeController implements Initializable {
 
             VBox wrapper = new VBox(bar);
             wrapper.setId("filter-bar-wrapper");
-            wrapper.setPadding(new Insets(10, 0, 30, 0));
+            wrapper.setPadding(new Insets(10, 0, 10, 0));
 
-            // Insert after Hero Banner if possible, otherwise at top
-            int bannerIdx = mainContent.getChildren().indexOf(heroBanner);
-            if (bannerIdx >= 0) {
-                mainContent.getChildren().add(bannerIdx + 1, wrapper);
-            } else {
-                mainContent.getChildren().add(0, wrapper);
-            }
+            // Add filter bar at bottom of fixed section (after categories)
+            mainContent.getChildren().add(wrapper);
         }
     }
 
@@ -561,16 +549,7 @@ public class MainHomeController implements Initializable {
             filtered.removeIf(p -> !selectedCategory.equals(p.get("categorie")));
         }
 
-        // 2. Promo Filter
-        if (showOnlyPromo) {
-            filtered.removeIf(p -> {
-                int prix = (int) p.get("prix");
-                int prixOrig = (int) p.get("prixOriginal");
-                return prix >= prixOrig;
-            });
-        }
-
-        // 3. Stock Filter
+        // 2. Stock Filter
         if (showOnlyInStock) {
             filtered.removeIf(p -> (int) p.get("stock") <= 0);
         }
@@ -657,7 +636,8 @@ public class MainHomeController implements Initializable {
     }
 
     private void setupMeilleuresVentes() {
-        mainContent.getChildren().removeIf(n -> n.getId() != null && n.getId().contains("best-sellers-section"));
+        if (productContent == null) return;
+        productContent.getChildren().removeIf(n -> n.getId() != null && n.getId().contains("best-sellers-section"));
         VBox sec = new VBox(15);
         sec.setId("best-sellers-section");
         Label h = new Label("Meilleures Ventes");
@@ -667,7 +647,7 @@ public class MainHomeController implements Initializable {
             grid.getChildren().add(createProductCard(productsList.get(i)));
         }
         sec.getChildren().addAll(h, grid);
-        mainContent.getChildren().add(sec);
+        productContent.getChildren().add(sec);
     }
 
 
@@ -872,9 +852,9 @@ public class MainHomeController implements Initializable {
 
         f.getChildren().addAll(cols, s, copy);
 
-        if (mainContent != null) {
+        if (productContent != null) {
             // Remove previous footer and spacer if any
-            mainContent.getChildren().removeIf(
+            productContent.getChildren().removeIf(
                     n -> n.getId() != null && (n.getId().equals("footer-box") || n.getId().equals("footer-spacer")));
 
             // Push footer to bottom
@@ -882,7 +862,7 @@ public class MainHomeController implements Initializable {
             spacer.setId("footer-spacer");
             VBox.setVgrow(spacer, Priority.ALWAYS);
 
-            mainContent.getChildren().addAll(spacer, f);
+            productContent.getChildren().addAll(spacer, f);
         }
     }
 
@@ -1022,11 +1002,7 @@ public class MainHomeController implements Initializable {
                             }
                         }
 
-                        // 3. Promotions Card
-                        VBox promoCard = createCategoryCard("Promotions", IconLibrary.TAG);
-                        promoCard.setUserData("PROMO");
-                        categoriesContainer.getChildren().add(promoCard);
-                        
+                        // No Promotions card
                         updateCategorySelectionVisuals();
                     }
                 });
@@ -1038,11 +1014,13 @@ public class MainHomeController implements Initializable {
     private String getIconForCategory(String name) {
         if (name == null) return IconLibrary.CATEGORY;
         String n = name.toLowerCase();
+        if (n.contains("vête") || n.contains("habit") || n.contains("mode") || n.contains("shirt")) return IconLibrary.SHIRT;
+        if (n.contains("chauss") || n.contains("sneaker") || n.contains("boot") || n.contains("shoe")) return IconLibrary.SHOE;
+        if (n.contains("maison") || n.contains("déco") || n.contains("mobilier") || n.contains("home")) return IconLibrary.SOFA;
         if (n.contains("phone") || n.contains("smart")) return IconLibrary.PHONE;
         if (n.contains("access")) return IconLibrary.HEADPHONE;
         if (n.contains("ordi") || n.contains("laptop") || n.contains("élec") || n.contains("info")) return IconLibrary.LAPTOP;
         if (n.contains("montre") || n.contains("watch")) return IconLibrary.WATCH;
-        if (n.contains("vête") || n.contains("mode") || n.contains("chauss") || n.contains("maison")) return IconLibrary.TAG;
         return IconLibrary.CATEGORY;
     }
 
@@ -1063,17 +1041,10 @@ public class MainHomeController implements Initializable {
         card.getChildren().addAll(icon, label);
 
         card.setOnMouseClicked(ev -> {
-            if ("PROMO".equals(card.getUserData())) {
-                selectedCategory = "Toutes les catégories";
-                showOnlyPromo = true;
-            } else {
-                selectedCategory = name;
-                showOnlyPromo = false;
-            }
+            selectedCategory = name;
             
             // Sync with top filter bar
             if (catsFilter != null) catsFilter.setText(selectedCategory);
-            if (cbPromoFilter != null) cbPromoFilter.setSelected(showOnlyPromo);
 
             updateCategorySelectionVisuals();
             applyFilters();
@@ -1087,13 +1058,8 @@ public class MainHomeController implements Initializable {
         for (VBox card : categoryCards) {
             Label label = (Label) card.getChildren().get(1);
             String cardName = label.getText();
-            
-            boolean isSelected = false;
-            if ("PROMO".equals(card.getUserData())) {
-                isSelected = showOnlyPromo;
-            } else {
-                isSelected = selectedCategory.equals(cardName) && !showOnlyPromo;
-            }
+
+            boolean isSelected = selectedCategory.equals(cardName);
 
             if (isSelected) {
                 card.setStyle("-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: " + CORAIL + "; -fx-border-width: 2px;");

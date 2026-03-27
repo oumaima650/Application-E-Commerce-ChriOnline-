@@ -5,6 +5,7 @@ SET NAMES utf8mb4;
 
 
 -- updates :
+ALTER TABLE Client  ADD COLUMN statut     ENUM('ACTIF', 'BANNI') DEFAULT 'ACTIF' AFTER telephone;
 ALTER TABLE Adresse ADD COLUMN codePostal VARCHAR(10) NULL AFTER ville;
 
 -- ------------------------------------------------------------
@@ -100,10 +101,12 @@ CREATE TABLE CategorieVariante (
 -- ------------------------------------------------------------
 CREATE TABLE Produit (
     idProduit       INT             NOT NULL AUTO_INCREMENT,
+    idCategorie     INT             NULL,
     nom             VARCHAR(150)    NOT NULL,
     description     TEXT,
     created_At      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (idProduit)
+    PRIMARY KEY (idProduit),
+    CONSTRAINT fk_produit_categorie FOREIGN KEY (idCategorie) REFERENCES Categorie(idCategorie) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ------------------------------------------------------------
