@@ -57,6 +57,11 @@ public class PanierController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            return;
+        }
+
         // --- PERFORMANCE OPTIMIZATION: PRE-CHARGEMENT DU CHECKOUT ---
         // Démarrer immédiatement avant même de charger le panier
         SceneManager.loadAsync("checkout.fxml");
@@ -93,9 +98,7 @@ public class PanierController implements Initializable {
         Task<Reponse> fetchTask = new Task<>() {
             @Override
             protected Reponse call() throws Exception {
-                Requete req = new Requete(RequestType.GET_CART,
-                        Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
-                        SessionManager.getInstance().getSession().getToken());
+                Requete req = new Requete(RequestType.GET_CART, Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getAccessToken());
                 return ClientSocket.getInstance().envoyer(req);
             }
 
@@ -181,9 +184,8 @@ public class PanierController implements Initializable {
             p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
             p.put("sku", sku);
             p.put("quantite", nextQty);
-
-            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p,
-                    SessionManager.getInstance().getSession().getToken());
+            
+            Requete req = new Requete(RequestType.UPDATE_QUANTITY_CART, p, SessionManager.getInstance().getSession().getAccessToken());
 
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {
@@ -228,8 +230,7 @@ public class PanierController implements Initializable {
             Map<String, Object> p = new HashMap<>();
             p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
             p.put("sku", sku);
-            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p,
-                    SessionManager.getInstance().getSession().getToken());
+            Requete req = new Requete(RequestType.REMOVE_FROM_CART, p, SessionManager.getInstance().getSession().getAccessToken());
 
             Reponse res = ClientSocket.getInstance().envoyer(req);
             if (!res.isSucces()) {
@@ -329,12 +330,17 @@ public class PanierController implements Initializable {
     }
 
     @FXML
-    private void goToCommandes() {
-        SceneManager.switchTo("commandes.fxml", "ChriOnline - Mes Commandes");
+    private void goToProfile() {
+        SceneManager.switchTo("profile.fxml", "ChriOnline - Mon Profil");
     }
 
     @FXML
     private void goToHome() {
         SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
+    }
+
+    @FXML
+    private void goToCommandes() {
+        SceneManager.switchTo("commandes.fxml", "ChriOnline - Mes Commandes");
     }
 }

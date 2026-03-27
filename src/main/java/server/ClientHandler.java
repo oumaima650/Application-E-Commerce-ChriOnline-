@@ -12,8 +12,11 @@ import service.ProduitService;
 import service.ProduitVarValeurService;
 import service.SKUService;
 import service.VarianteService;
+import io.jsonwebtoken.ExpiredJwtException;
+import service.JWTService;
 import shared.Reponse;
 import shared.Requete;
+import shared.RequestType;
 
 import java.util.Map;
 
@@ -114,10 +117,64 @@ public class ClientHandler implements Runnable {
 
 
     private Reponse dispatch(Requete requete) {
-        return switch (requete.getType()) {
-            case LOGIN  -> authService.login(requete);
-            case LOGOUT -> authService.logout(requete);
-            case REGISTER -> authService.signup(requete);
+        RequestType type = requete.getType();
+        int userId = -1;
+        String userRole = "GUEST";
+        String sessionId = null;
+
+        // 1. PUBLIC ENDPOINTS (No Auth)
+        if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH) {
+            return switch (type) {
+                case LOGIN    -> authService.login(requete);
+                case REGISTER -> authService.signup(requete);
+                case REFRESH  -> authService.refresh(requete);
+                default       -> new Reponse(false, "Internal Error", null);
+            };
+        }
+
+        // 2. JWT VALIDATION for secure endpoints
+        JWTService.TokenClaims claims = null;
+        boolean isPublic = isPublicEndpoint(type);
+
+        if (!isPublic) {
+            try {
+                String token = requete.getTokenSession();
+                if (token == null || token.isBlank()) {
+                    return new Reponse(false, "INVALID_TOKEN", null);
+                }
+                claims = JWTService.verifyAccessToken(token);
+            } catch (ExpiredJwtException e) {
+                return new Reponse(false, "TOKEN_EXPIRED", null);
+            } catch (Exception e) {
+                return new Reponse(false, "INVALID_TOKEN", null);
+            }
+        }
+
+        // 3. SECURE CONTEXT SETUP
+        if (requete.getParametres() == null) {
+            requete.setParametres(new java.util.HashMap<>());
+        } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
+            requete.setParametres(new java.util.HashMap<>(requete.getParametres()));
+        }
+        
+        if (claims != null) {
+            userId = Integer.parseInt(claims.userId());
+            userRole = claims.role();
+            sessionId = claims.sessionId();
+            
+            requete.getParametres().put("userId", userId);
+            requete.getParametres().put("userRole", userRole);
+            requete.getParametres().put("sessionId", sessionId);
+        } else {
+            // Guest mode
+            requete.getParametres().put("userId", -1);
+            requete.getParametres().put("userRole", "GUEST");
+        }
+
+        // 4. DISPATCH
+        return switch (type) {
+            case LOGOUT     -> authService.logout(requete);
+            case LOGOUT_ALL -> authService.logoutAll(requete);
 
             // ───────────────────────────────
             // PUBLIC OPERATIONS (No Auth)
@@ -161,25 +218,17 @@ public class ClientHandler implements Runnable {
                 Map<String, Object> params = requete.getParametres();
                 if (params != null && params.containsKey("udpPort")) {
                     int udpPort = (Integer) params.get("udpPort");
-                    int userId = AuthService.getUserIdFromToken(requete.getTokenSession());
                     String clientIp = socket.getInetAddress().getHostAddress();
                     
-                    serviceUDP.registerClient(userId, clientIp, udpPort);
+                    serviceUDP.registerClient(  userId, clientIp, udpPort);
                     yield new Reponse(true, "Port UDP enregistré avec succès", null);
                 } else {
                     yield new Reponse(false, "Port UDP manquant dans la requête", null);
                 }
             }
  
-            // Cart Operations
             case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART, UPDATE_QUANTITY_CART -> {
-                String token = requete.getTokenSession();
-                int userId = AuthService.getUserIdFromToken(token);
-                if ("DEBUG".equals(token)) userId = 7;
-                if (userId <= 0) {
-                    yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
-                }
-
+                // userId is already injected into requete.getParametres() in the JWT validation step above
                 if (requete.getParametres() == null) {
                     requete.setParametres(new java.util.HashMap<>());
                 } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
@@ -199,14 +248,7 @@ public class ClientHandler implements Runnable {
             }
 
             default -> {
-                String token = requete.getTokenSession();
-                int userId = -1;
-                if (token != null) userId = AuthService.getUserIdFromToken(token);
-
-                if (userId <= 0) {
-                    yield new Reponse(false, "Non authentifié. Veuillez vous connecter.", null);
-                }
-
+                // userId is already injected into requete.getParametres() in the JWT validation step above
                 if (requete.getParametres() == null) {
                     requete.setParametres(new java.util.HashMap<>());
                 } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
@@ -314,5 +356,24 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             System.err.println("[ClientHandler] Erreur lors de la fermeture : " + e.getMessage());
         }
+    }
+
+    private boolean isPublicEndpoint(RequestType type) {
+        return type == RequestType.GET_ALL_PRODUITS ||
+               type == RequestType.GET_ALL_PRODUITS_AFFICHABLES ||
+               type == RequestType.GET_PRODUIT_BY_ID ||
+               type == RequestType.GET_PRODUIT_COMPLET_AVEC_VARIANTES ||
+               type == RequestType.SEARCH_PRODUITS_BY_NOM ||
+               type == RequestType.COUNT_PRODUITS ||
+               type == RequestType.GET_ALL_CATEGORIES ||
+               type == RequestType.GET_CATEGORIE_BY_ID ||
+               type == RequestType.GET_ALL_VARIANTES ||
+               type == RequestType.GET_VARIANTES_BY_PRODUIT ||
+               type == RequestType.GET_PVV_BY_PRODUIT ||
+               type == RequestType.GET_ALL_SKUS ||
+               type == RequestType.GET_SKU_BY_PRODUIT ||
+               type == RequestType.GET_SKU_BY_CODE ||
+               type == RequestType.GET_SKU_BY_VARIANTS ||
+               type == RequestType.GET_PRODUCT_VARIANTS;
     }
 }

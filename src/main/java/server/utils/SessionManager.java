@@ -60,8 +60,8 @@ public class SessionManager {
         if (user == null) return null;
         
         String token = UUID.randomUUID().toString();
-        // Create a new session object (which nullifies the password internally)
-        Session session = new Session(token, user);
+        // Create a new session object (using null for refreshToken as this is legacy)
+        Session session = new Session(token, null, user);
         
         activeSessions.put(token, session);
         expirationTimes.put(token, System.currentTimeMillis() + SESSION_DURATION_MS);

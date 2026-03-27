@@ -4,7 +4,9 @@ public enum RequestType {
     LOGIN,
     REGISTER,
     LOGOUT,
+    LOGOUT_ALL,
     REGISTER_UDP_PORT,
+    REFRESH,
 
     
     //produits

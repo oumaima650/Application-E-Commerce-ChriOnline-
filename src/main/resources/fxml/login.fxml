@@ -59,9 +59,18 @@
                 blurType="GAUSSIAN"/>
         </effect>
 
+        <!-- ── Back to Boutique ── -->
+        <HBox alignment="CENTER_LEFT">
+            <VBox.margin><Insets top="12" left="24" right="24" bottom="0"/></VBox.margin>
+            <Button
+                text="← Boutique"
+                onAction="#handleBackToHome"
+                style="-fx-background-color: transparent; -fx-text-fill: #9CA3AF; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 5 0;"/>
+        </HBox>
+
         <!-- ── Logo / Header ────────────────────────────────── -->
         <VBox styleClass="logo-section" alignment="CENTER" spacing="6">
-            <VBox.margin><Insets top="32" bottom="16" left="24" right="24"/></VBox.margin>
+            <VBox.margin><Insets top="20" bottom="16" left="24" right="24"/></VBox.margin>
 
             <!-- Logo row: icon + wordmark -->
             <HBox alignment="CENTER" spacing="12">
