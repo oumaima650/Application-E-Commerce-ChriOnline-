@@ -21,44 +21,43 @@ public class ClientApp extends Application {
         primaryStage.setHeight(800);
         primaryStage.setMinWidth(1100);
         primaryStage.setMinHeight(750);
+
+        // Initialiser le gestionnaire de navigation entre les scenes
         
         // INITIALISER LE SCENE MANAGER
         SceneManager.init(primaryStage);
 
         try {
-            // Charger la homepage premium
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-home.fxml"));
             Parent root = loader.load();
-            
-            // Créer la scène avec les styles
+
             javafx.scene.Scene scene = new javafx.scene.Scene(root);
             String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);
-            
-            primaryStage.setTitle("ChriOnline - Boutique en ligne");
+
             primaryStage.setScene(scene);
             primaryStage.show();
-            
-            System.out.println("✅ Homepage ChriOnline chargée avec succès !");
-            
+
+            System.out.println("✅ Homepage ChriOnline chargee avec succes !");
+
         } catch (Exception e) {
             System.err.println("❌ Erreur lors du chargement de la homepage:");
             e.printStackTrace();
-            
-            // Scène de secours en cas d'erreur
+
+            // Scene de secours en cas d'erreur de chargement FXML
             javafx.scene.layout.VBox errorBox = new javafx.scene.layout.VBox(20);
             errorBox.setAlignment(javafx.geometry.Pos.CENTER);
             errorBox.setStyle("-fx-padding: 40; -fx-alignment: center;");
-            
+
             javafx.scene.control.Label errorLabel = new javafx.scene.control.Label("Erreur de chargement...");
             errorBox.getChildren().add(errorLabel);
-            
+
             javafx.scene.Scene errorScene = new javafx.scene.Scene(errorBox, 600, 400);
             primaryStage.setScene(errorScene);
             primaryStage.show();
         }
-        
-        // Démarrer le listener UDP pour les notifications
+
+        // Demarrer le listener UDP pour recevoir les notifications en temps reel
         udpListener = new ClientUDP(UDP_PORT);
         udpListener.start();
     }

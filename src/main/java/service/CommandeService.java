@@ -173,11 +173,11 @@ public class CommandeService {
     }
 
     /**
-     * Passer une commande à partir du panier
-     * Gère la création de nouvelles commandes ou la validation de commandes existantes (Draft)
+     * Passer une commande depuis le panier.
+     * Gere la creation de nouvelles commandes ou la validation de brouillons existants.
      */
     public shared.Reponse passerCommande(shared.Requete requete) {
-        System.out.println("[CommandeService] passerCommande appelé");
+        System.out.println("[CommandeService] passerCommande appele");
         Map<String, Object> params = requete.getParametres();
         Integer idClient = (Integer) params.get("idClient");
         @SuppressWarnings("unchecked")
@@ -186,13 +186,13 @@ public class CommandeService {
         String existingReference = (String) params.get("reference");
 
         if (idClient == null) {
-            return new shared.Reponse(false, "Paramètres manquants : idClient.", null);
+            return new shared.Reponse(false, "Parametres manquants : idClient.", null);
         }
 
         try {
             PanierService panierService = new PanierService();
             List<model.LignePanier> lignesPanier;
-            
+
             if (selectedSkus != null && !selectedSkus.isEmpty()) {
                 lignesPanier = panierService.getLignesPanier(idClient, selectedSkus);
             } else {
@@ -200,57 +200,72 @@ public class CommandeService {
             }
 
             if (lignesPanier == null || lignesPanier.isEmpty()) {
-                return new shared.Reponse(false, "Aucun article sélectionné ou panier vide.", null);
+                return new shared.Reponse(false, "Aucun article selectionne ou panier vide.", null);
+            }
+
+            // Determiner le statut final
+            StatutCommande statutFinal = StatutCommande.VALIDEE;
+            if (statutParam != null) {
+                try {
+                    statutFinal = StatutCommande.valueOf(statutParam);
+                } catch (IllegalArgumentException e) {
+                    System.err.println("[CommandeService] Statut invalide : " + statutParam);
+                }
             }
 
             String reference;
             int idCommande;
             Commande commande;
-            StatutCommande statutFinal = StatutCommande.VALIDEE;
-            
-            if (statutParam != null) {
-                try { statutFinal = StatutCommande.valueOf(statutParam); } catch (Exception ignored) {}
-            }
 
             if (existingReference != null && !existingReference.isEmpty()) {
-                // --- REPRISE D'UNE COMMANDE EXISTANTE ---
+                // --- REPRISE D'UN BROUILLON EXISTANT ---
                 reference = existingReference;
                 commande = commandeDAO.findByReference(reference);
-                if (commande == null) return new shared.Reponse(false, "Commande introuvable.", null);
-                
+                if (commande == null) {
+                    return new shared.Reponse(false, "Commande brouillon introuvable.", null);
+                }
                 idCommande = commande.getIdCommande();
                 commande.setStatut(statutFinal);
                 commandeDAO.updateStatus(idCommande, statutFinal);
             } else {
-                // --- CRÉATION D'UNE NOUVELLE COMMANDE ---
-                reference = "CHR-" + java.time.LocalDate.now().toString().replace("-", "") + "-" + 
-                                 String.format("%04d", (int)(Math.random() * 9999));
-                
+                // --- CREATION D'UNE NOUVELLE COMMANDE ---
+                reference = "CHR-" + java.time.LocalDate.now().toString().replace("-", "") + "-" +
+                            String.format("%04d", (int)(Math.random() * 9999));
+
                 commande = new Commande();
                 commande.setIdClient(idClient);
                 commande.setReference(reference);
                 commande.setStatut(statutFinal);
                 commande.setDateLivraisonPrevue(java.time.LocalDateTime.now().plusDays(5));
-                
+
                 Commande nouvelleCommande = commandeDAO.create(commande);
                 idCommande = nouvelleCommande.getIdCommande();
-                
-                // Ajouter les lignes de commande
+                commande = nouvelleCommande;
+
+                // Ajouter les lignes de commande (calcul du prix unitaire depuis le sous-total)
                 for (model.LignePanier lp : lignesPanier) {
                     double prixAchat = lp.getSousTotal().doubleValue() / lp.getQuantite();
                     commandeDAO.addLigneCommande(idCommande, lp.getSku(), lp.getQuantite(), prixAchat);
                 }
             }
 
-            // Gestion des stocks si la commande est validée
+            // Gestion des stocks uniquement si la commande est validee
             if (statutFinal == StatutCommande.VALIDEE) {
                 SKUDAO skuDAO = new SKUDAO();
-                List<model.LigneCommande> lignes = (List<model.LigneCommande>) commandeDAO.findLignesByCommandeId(idCommande);
+                List<model.LigneCommande> lignes = commandeDAO.findLignesByCommandeId(idCommande);
                 for (model.LigneCommande lc : lignes) {
                     skuDAO.reduireStock(lc.getSku(), lc.getQuantite());
+                    // Verifier la rupture de stock et notifier l'admin
+                    model.SKU skuMaj = skuDAO.getBySku(lc.getSku());
+                    if (skuMaj != null && skuMaj.getQuantite() == 0) {
+                        new NotificationService().notifierAdmins(
+                            "⚠️ Rupture de stock ! Le SKU '" + lc.getSku() +
+                            "' est a 0 unite apres la commande " + reference + "."
+                        );
+                        System.out.println("[CommandeService] Alerte stock: SKU " + lc.getSku() + " est en rupture.");
+                    }
                 }
-                
-                // Vider le panier après validation
+                // Vider les articles du panier apres validation
                 if (selectedSkus != null && !selectedSkus.isEmpty()) {
                     panierService.supprimerArticles(idClient, selectedSkus);
                 } else {
@@ -258,13 +273,11 @@ public class CommandeService {
                 }
             }
 
-            // Récupérer les données pour la réponse UI
+            // Construire le resume des articles pour la reponse UI
             double totalFinal = commandeDAO.getMontantTotal(idCommande);
             List<Map<String, Object>> itemsSummary = new ArrayList<>();
-            List<model.LigneCommande> toutesLesLignes = (List<model.LigneCommande>) commandeDAO.findLignesByCommandeId(idCommande);
             SKUDAO skuDAO = new SKUDAO();
-            
-            for (model.LigneCommande lc : toutesLesLignes) {
+            for (model.LigneCommande lc : commandeDAO.findLignesByCommandeId(idCommande)) {
                 Map<String, Object> item = new HashMap<>();
                 item.put("nom", lc.getSku());
                 item.put("quantite", lc.getQuantite());
@@ -281,19 +294,19 @@ public class CommandeService {
             result.put("reference", reference);
             result.put("total", totalFinal);
             result.put("items", itemsSummary);
-            result.put("dateLivraison", (commande.getDateLivraisonPrevue() != null ? 
-                        commande.getDateLivraisonPrevue().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "N/A"));
+            result.put("dateLivraison", commande.getDateLivraisonPrevue() != null ?
+                commande.getDateLivraisonPrevue().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "N/A");
 
-            // --- NOTIFICATIONS ---
+            // Notifications
             NotificationService notifService = new NotificationService();
             if (statutFinal == StatutCommande.VALIDEE) {
-                notifService.notifierAdmins("Nouvelle commande validée ! Réf: " + reference + " - Total: " + totalFinal + " MAD");
-                notifService.creerNotification(idClient, "Votre commande " + reference + " a été validée avec succès !");
+                notifService.notifierAdmins("Nouvelle commande validee ! Ref: " + reference + " - Total: " + totalFinal + " MAD");
+                notifService.creerNotification(idClient, "Votre commande " + reference + " a ete validee avec succes !");
             } else if (statutFinal == StatutCommande.EN_ATTENTE) {
-                notifService.creerNotification(idClient, "Votre commande " + reference + " est en brouillon.");
+                notifService.creerNotification(idClient, "Votre commande " + reference + " est enregistree en brouillon. N'oubliez pas de la valider !");
             }
 
-            return new shared.Reponse(true, "Commande traitée avec succès.", result);
+            return new shared.Reponse(true, "Commande traitee avec succes.", result);
 
         } catch (Exception e) {
             e.printStackTrace();
