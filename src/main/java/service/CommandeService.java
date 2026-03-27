@@ -366,7 +366,11 @@ public class CommandeService {
             result.put("items", itemsSummary);
 
             if (statut == StatutCommande.VALIDEE) {
-                new NotificationService().notifierAdmins("Nouvelle commande validée ! Réf: " + reference + " - Client ID: " + idClient + " - Total: " + total + " MAD");
+                NotificationService notifService = new NotificationService();
+                notifService.notifierAdmins("Nouvelle commande validée ! Réf: " + reference + " - Client ID: " + idClient + " - Total: " + total + " MAD");
+                notifService.creerNotification(idClient, "Votre commande " + reference + " a été validée avec succès !");
+            } else if (statut == StatutCommande.EN_ATTENTE) {
+                new NotificationService().creerNotification(idClient, "Votre commande " + reference + " est enregistrée en brouillon. N'oubliez pas de la valider !");
             }
 
             return new shared.Reponse(true, "Commande " + reference + " créée avec succès !", result);

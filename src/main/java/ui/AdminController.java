@@ -516,7 +516,7 @@ public class AdminController {
                             try {
                                 RequestType type = isBanned ? RequestType.ADMIN_UNBAN_USER : RequestType.ADMIN_BAN_USER;
                                 java.util.Map<String, Object> params = new java.util.HashMap<>();
-                                params.put("userId", item.getId());
+                                params.put("targetUserId", item.getId());
                                 
                                 String adminToken = SessionManager.getInstance().getSession().getAccessToken();
                                 Requete req = new Requete(type, params, adminToken);

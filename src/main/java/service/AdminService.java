@@ -267,9 +267,10 @@ public class AdminService {
                 // Envoyer notification UDP au client concerné
                 int clientId = commandeDAO.getClientIdFromOrder(orderId);
                 if (clientId > 0) {
+                    NotificationService notifService = new NotificationService();
                     String message = "Votre commande #" + orderId + " est maintenant : " + newStatusStr;
-                    serviceUDP.envoyerNotification(clientId, message);
-                    System.out.println("[AdminService] Notification UDP envoyée au client " + clientId + " pour commande #" + orderId);
+                    notifService.creerNotification(clientId, message);
+                    System.out.println("[AdminService] Notification udp envoyée au client " + clientId + " pour commande #" + orderId);
                 } else {
                     System.err.println("[AdminService] Impossible de trouver le client pour la commande #" + orderId);
                 }
@@ -285,32 +286,57 @@ public class AdminService {
 
     public Reponse banUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
+        int targetUserId = -1;
         try {
-            int userId = (Integer) params.get("userId");
-            boolean success = dao.ClientDAO.banUser(userId);
+            targetUserId = (Integer) params.get("targetUserId");
+            // DIAGNOSTIC: vérifier si le user existe dans Client
+            try (java.sql.Connection conn = dao.ConnexionBDD.getConnection();
+                 java.sql.PreparedStatement ps = conn.prepareStatement(
+                     "SELECT IdUtilisateur, statut FROM Client WHERE IdUtilisateur = ?")) {
+                ps.setInt(1, targetUserId);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        System.out.println("[AdminService] Client trouvé - ID:" + targetUserId + " statut actuel:" + rs.getString("statut"));
+                    } else {
+                        System.err.println("[AdminService] DIAGNOSTIC: Aucun Client avec IdUtilisateur=" + targetUserId + " trouvé dans la table Client !");
+                    }
+                }
+            }
+            boolean success = dao.ClientDAO.banUser(targetUserId);
             if (success) {
+                new NotificationService().creerNotification(targetUserId, "Votre compte a été suspendu par l'administration.");
                 return new Reponse(true, "Utilisateur banni avec succès", null);
             } else {
                 return new Reponse(false, "Échec du bannissement", null);
             }
+        } catch (SQLException e) {
+            System.err.println("[AdminService] SQL Error while banning user " + targetUserId + ": " + e.getMessage());
+            return new Reponse(false, "Erreur SQL: " + e.getMessage(), null);
         } catch (Exception e) {
             return new Reponse(false, "Erreur lors du bannissement: " + e.getMessage(), null);
         }
     }
 
+
     public Reponse unbanUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
+        int targetUserId = -1;
         try {
-            int userId = (Integer) params.get("userId");
-            boolean success = dao.ClientDAO.unbanUser(userId);
+            targetUserId = (Integer) params.get("targetUserId");
+            boolean success = dao.ClientDAO.unbanUser(targetUserId);
             if (success) {
+                new NotificationService().creerNotification(targetUserId, "Votre compte est de nouveau actif. Bon shopping !");
                 return new Reponse(true, "Utilisateur débanni avec succès", null);
             } else {
                 return new Reponse(false, "Échec du débannissement", null);
             }
+        } catch (SQLException e) {
+            System.err.println("[AdminService] SQL Error while unbanning user " + targetUserId + ": " + e.getMessage());
+            return new Reponse(false, "Erreur SQL: " + e.getMessage(), null);
         } catch (Exception e) {
             return new Reponse(false, "Erreur lors du débannissement: " + e.getMessage(), null);
         }
     }
+
     
 }

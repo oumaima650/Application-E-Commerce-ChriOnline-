@@ -75,6 +75,10 @@ public class MainHomeController implements Initializable {
     private Circle userAvatar;
     @FXML
     private Label userInitial;
+    @FXML private StackPane notifBadge;
+    @FXML private Circle notifCircle;
+    @FXML private Label notifCount;
+
     @FXML
     private StackPane rootStackPane;
 
@@ -370,11 +374,26 @@ public class MainHomeController implements Initializable {
             Reponse rep = notifTask.getValue();
             if (rep != null && rep.isSucces()) {
                 List<?> notifs = (List<?>) rep.getDonnees().get("notifications");
-                // For now just console log as badge might not exist in FXML yet
-                System.out.println("Non-read notifications: " + (notifs != null ? notifs.size() : 0));
+                int count = (notifs != null) ? notifs.size() : 0;
+                Platform.runLater(() -> {
+                    if (notifCount != null) {
+                        notifCount.setText(String.valueOf(count));
+                        notifCount.setVisible(count > 0);
+                        notifCircle.setVisible(count > 0);
+                    }
+                });
             }
         });
         new Thread(notifTask).start();
+    }
+
+    @FXML
+    private void ouvrirNotifications() {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            showToast("Veuillez vous connecter pour voir vos notifications.");
+            return;
+        }
+        SceneManager.switchTo("notifications.fxml", "ChriOnline - Mes Notifications");
     }
 
     // ==========================================
