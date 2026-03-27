@@ -341,8 +341,9 @@ public class LoginController implements Initializable {
                 SessionManager.getInstance().clearPendingRedirect(); // On nettoie après usage
                 SceneManager.switchTo(redirect, title != null ? title : "ChriOnline");
             } else {
-                // Sinon, direction le panier par défaut
-                SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
+            // Sinon, direction le panier par défaut
+            SceneManager.clearCache("main-home.fxml"); // Forcer le rafraîchissement si on y retourne plus tard
+            SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
             }
         }
     }

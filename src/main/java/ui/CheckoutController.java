@@ -17,12 +17,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 public class CheckoutController {
     private static List<String> selectedSkus;
+    private static String resumingOrderReference;
 
     public static void setSelectedSkus(List<String> skus) {
         selectedSkus = skus;
+    }
+
+    public static void setResumingOrderReference(String ref) {
+        resumingOrderReference = ref;
     }
 
     // --- Step panels ---
@@ -101,7 +105,76 @@ public class CheckoutController {
             return;
         }
         setupPaymentOptions();
-        prefillUserData();
+        
+        if (resumingOrderReference != null && !resumingOrderReference.isEmpty()) {
+            loadResumingOrderData();
+        } else {
+            // S'assurer que les champs sont éditables pour une nouvelle commande
+            txtPrenom.setEditable(true);
+            txtNom.setEditable(true);
+            txtTelephone.setEditable(true);
+            txtPrenom.setStyle("");
+            txtNom.setStyle("");
+            txtTelephone.setStyle("");
+            
+            prefillUserData();
+            loadAddresses();
+        }
+    }
+
+    private void loadResumingOrderData() {
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                shared.Requete req = new shared.Requete(
+                        shared.RequestType.GET_ORDER,
+                        Map.of("reference", resumingOrderReference),
+                        SessionManager.getInstance().getSession().getAccessToken()
+                );
+                shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+                if (rep.isSucces() && rep.getDonnees() != null) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> orderData = (Map<String, Object>) rep.getDonnees().get("commande");
+                    
+                    String adresse = (String) orderData.get("adresse_complete");
+                    String methode = (String) orderData.get("methode_paiement");
+                    String prenom = (String) orderData.get("prenom");
+                    String nom = (String) orderData.get("nom");
+                    String tel = (String) orderData.get("telephone");
+                    
+                    javafx.application.Platform.runLater(() -> {
+                        // Pré-remplir les infos personnelles et les rendre inchangeables
+                        if (prenom != null) txtPrenom.setText(prenom);
+                        if (nom != null) txtNom.setText(nom);
+                        if (tel != null) txtTelephone.setText(tel);
+                        
+                        txtPrenom.setEditable(false);
+                        txtNom.setEditable(false);
+                        txtTelephone.setEditable(false);
+                        // Style visuel pour indiquer que c'est verrouillé
+                        txtPrenom.setStyle("-fx-background-color: #F0F2F5; -fx-opacity: 0.8;");
+                        txtNom.setStyle("-fx-background-color: #F0F2F5; -fx-opacity: 0.8;");
+                        txtTelephone.setStyle("-fx-background-color: #F0F2F5; -fx-opacity: 0.8;");
+
+                        if (adresse != null && !adresse.equals("N/A") && !adresse.equals("Non spécifiée")) {
+                            cmbAdresse.setValue(NEW_ADDRESS_OPTION);
+                            txtNouvelleAdresse.setText(adresse);
+                        }
+                        
+                        if (methode != null) {
+                            if (methode.contains("CASH") || methode.contains("Cash")) {
+                                radioCash.setSelected(true);
+                            } else if (methode.contains("CARTE") || methode.contains("Carte")) {
+                                radioCard.setSelected(true);
+                            }
+                        }
+                    });
+                }
+                return null;
+            }
+        };
+        executor.submit(task);
+        // On charge aussi les adresses habituelles au cas où il veut changer
         loadAddresses();
     }
 
@@ -341,15 +414,36 @@ public class CheckoutController {
         params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
         params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
         params.put("statut", "VALIDEE");
+        
+        if (resumingOrderReference != null) {
+            params.put("reference", resumingOrderReference);
+            // On reset après usage pour les prochaines commandes normales
+            resumingOrderReference = null;
+        }
 
         shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
         shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
 
-        if (rep.isSucces() && rep.getDonnees() != null) {
+        if (!rep.isSucces() || rep.getDonnees() == null) {
+            lblOrderId.setText("Erreur");
+            lblOrderTotal.setText("Une erreur est survenue lors de la validation.");
+            return;
+        }
+
+        javafx.application.Platform.runLater(() -> {
             Map<String, Object> data = (Map<String, Object>) rep.getDonnees();
             String ref = (String) data.get("reference");
-            double total = ((Number) data.get("total")).doubleValue();
-            lblOrderId.setText("#" + ref);
+            
+            // Extraction sécurisée du total
+            double total = 0.0;
+            Object totalObj = data.get("total");
+            if (totalObj instanceof Number n) {
+                total = n.doubleValue();
+            } else if (totalObj instanceof String s) {
+                try { total = Double.parseDouble(s); } catch (Exception ignored) {}
+            }
+            
+            lblOrderId.setText("#" + (ref != null ? ref : "INC"));
             lblOrderTotal.setText("Montant : " + String.format("%,.2f MAD", total));
 
             String dateLiv = (String) data.get("dateLivraison");
@@ -362,71 +456,73 @@ public class CheckoutController {
             List<Map<String, Object>> items = (List<Map<String, Object>>) data.get("items");
             if (items != null) {
                 for (Map<String, Object> item : items) {
-                    String nom = (String) item.get("nom");
-                    int qty = (Integer) item.get("quantite");
-                    double prix = ((Number) item.get("prixUnitaire")).doubleValue();
-                    String imgPath = (String) item.get("image");
+                    try {
+                        String nom = (String) item.get("nom");
+                        Object qObj = item.get("quantite");
+                        int qty = (qObj instanceof Number n) ? n.intValue() : 1;
+                        
+                        Object pObj = item.get("prixUnitaire");
+                        double prix = (pObj instanceof Number n) ? n.doubleValue() : 0.0;
+                        
+                        String imgPath = (String) item.get("image");
 
-                    HBox row = new HBox(12);
-                    row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
-                    row.setStyle("-fx-padding: 5; -fx-background-color: white; -fx-background-radius: 8;");
-
-                    // Photo ou Icone (Support Cloudinary)
-                    javafx.scene.Node visual;
-                    if (imgPath != null && !imgPath.isEmpty() && (imgPath.startsWith("http") || imgPath.startsWith("https"))) {
-                        try {
-                            javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(new javafx.scene.image.Image(imgPath, true));
-                            iv.setFitWidth(45);
-                            iv.setFitHeight(45);
-                            iv.setPreserveRatio(true);
-
-                            // Rounded corners
-                            javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(45, 45);
-                            clip.setArcWidth(10);
-                            clip.setArcHeight(10);
-                            iv.setClip(clip);
-
-                            visual = iv;
-                        } catch (Exception ex) {
-                            visual = ui.utils.IconLibrary.getIcon(ui.utils.IconLibrary.PHONE, 24, "#95A5A6");
-                        }
-                    } else {
-                        // Fallback icone si pas de photo ou pas une URL
-                        String iconPath = (imgPath == null || imgPath.isEmpty() || imgPath.endsWith(".jpg") || imgPath.endsWith(".png"))
-                                ? ui.utils.IconLibrary.PHONE : imgPath;
-                        visual = ui.utils.IconLibrary.getIcon(iconPath, 24, "#95A5A6");
+                        vboxOrderSummary.getChildren().add(createSummaryRow(nom, qty, prix, imgPath));
+                    } catch (Exception e) {
+                        System.err.println("Erreur item summary: " + e.getMessage());
                     }
-
-                    StackPane imgContainer = new StackPane(visual);
-                    imgContainer.setMinWidth(50);
-                    imgContainer.setPrefSize(50, 50);
-                    imgContainer.setAlignment(javafx.geometry.Pos.CENTER);
-                    imgContainer.setStyle("-fx-background-color: #F8F9FA; -fx-background-radius: 8;");
-
-                    VBox details = new VBox(2);
-                    Label lblNom = new Label(nom);
-                    lblNom.setStyle("-fx-font-weight: bold; -fx-text-fill: #2F3640;");
-                    Label lblQtyPrice = new Label(qty + " x " + String.format("%.2f", prix) + " MAD");
-                    lblQtyPrice.setStyle("-fx-font-size: 11; -fx-text-fill: #7F8C8D;");
-                    details.getChildren().addAll(lblNom, lblQtyPrice);
-
-                    Region spacer = new Region();
-                    HBox.setHgrow(spacer, Priority.ALWAYS);
-                    Label lblTotal = new Label(String.format("%.2f MAD", qty * prix));
-                    lblTotal.setStyle("-fx-font-weight: bold; -fx-text-fill: #2C3E50;");
-
-                    row.getChildren().addAll(imgContainer, details, spacer, lblTotal);
-                    vboxOrderSummary.getChildren().add(row);
                 }
             }
-
             // Forcer le rafraîchissement du panier lors du prochain accès
             SceneManager.clearCache("panier.fxml");
+        });
+    }
+
+    private HBox createSummaryRow(String nom, int qty, double prix, String imgPath) {
+        HBox row = new HBox(12);
+        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        row.setStyle("-fx-padding: 5; -fx-background-color: white; -fx-background-radius: 8;");
+
+        // Photo ou Icone
+        javafx.scene.Node visual;
+        if (imgPath != null && !imgPath.isEmpty() && (imgPath.startsWith("http") || imgPath.startsWith("https"))) {
+            try {
+                javafx.scene.image.ImageView iv = new javafx.scene.image.ImageView(new javafx.scene.image.Image(imgPath, true));
+                iv.setFitWidth(45);
+                iv.setFitHeight(45);
+                iv.setPreserveRatio(true);
+                javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(45, 45);
+                clip.setArcWidth(10); clip.setArcHeight(10);
+                iv.setClip(clip);
+                visual = iv;
+            } catch (Exception ex) {
+                visual = ui.utils.IconLibrary.getIcon(ui.utils.IconLibrary.PHONE, 24, "#95A5A6");
+            }
         } else {
-            lblOrderId.setText("Erreur");
-            double baseTotal = (selectedSkus != null) ? selectedSkus.size() * 500.0 : 0.0;
-            lblOrderTotal.setText("Montant : " + String.format("%,.2f MAD", baseTotal));
+            String iconPath = (imgPath == null || imgPath.isEmpty() || imgPath.endsWith(".jpg") || imgPath.endsWith(".png"))
+                    ? ui.utils.IconLibrary.PHONE : imgPath;
+            visual = ui.utils.IconLibrary.getIcon(iconPath, 24, "#95A5A6");
         }
+
+        StackPane imgContainer = new StackPane(visual);
+        imgContainer.setMinWidth(50);
+        imgContainer.setPrefSize(50, 50);
+        imgContainer.setAlignment(javafx.geometry.Pos.CENTER);
+        imgContainer.setStyle("-fx-background-color: #F8F9FA; -fx-background-radius: 8;");
+
+        VBox details = new VBox(2);
+        Label lblNom = new Label(nom != null ? nom : "Produit");
+        lblNom.setStyle("-fx-font-weight: bold; -fx-text-fill: #2F3640;");
+        Label lblQtyPrice = new Label(qty + " x " + String.format("%.2f", prix) + " MAD");
+        lblQtyPrice.setStyle("-fx-font-size: 11; -fx-text-fill: #7F8C8D;");
+        details.getChildren().addAll(lblNom, lblQtyPrice);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        Label lblTotal = new Label(String.format("%.2f MAD", qty * prix));
+        lblTotal.setStyle("-fx-font-weight: bold; -fx-text-fill: #2C3E50;");
+
+        row.getChildren().addAll(imgContainer, details, spacer, lblTotal);
+        return row;
     }
 
     @FXML

@@ -1,15 +1,21 @@
 package ui;
 
 import client.utils.SceneManager;
+import javafx.concurrent.Task;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.shape.SVGPath;
+import javafx.geometry.Pos;
+import javafx.geometry.Insets;
+import java.util.HashMap;
 import ui.utils.IconLibrary;
 import client.utils.SessionManager;
 
@@ -79,18 +85,22 @@ public class CommandesController {
     }
 
     private void loadCommandes() {
-        try {
-            // Envoyer la requête au serveur avec l'ID de session réel
-            Requete req = new Requete(RequestType.GET_ORDERS, 
-                Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), 
-                SessionManager.getInstance().getSession().getAccessToken());
+        Task<Reponse> loadTask = new Task<>() {
+            @Override
+            protected Reponse call() throws Exception {
+                Requete req = new Requete(RequestType.GET_ORDERS,
+                        Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
+                        SessionManager.getInstance().getSession().getAccessToken());
+                return ClientSocket.getInstance().envoyer(req);
+            }
+        };
 
-            Reponse rep = ClientSocket.getInstance().envoyer(req);
-            
+        loadTask.setOnSucceeded(e -> {
+            Reponse rep = loadTask.getValue();
             if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> list = (List<Map<String, Object>>) rep.getDonnees().get("commandes");
-                
+
                 allOrders.clear();
                 if (list != null) {
                     for (Map<String, Object> map : list) {
@@ -99,13 +109,18 @@ public class CommandesController {
                 }
                 updateFilteredOrders();
             } else {
-                System.err.println("Erreur chargement commandes : " + (rep != null ? rep.getMessage() : "Pas de réponse"));
+                System.err.println(
+                        "Erreur chargement commandes : " + (rep != null ? rep.getMessage() : "Pas de rÃ©ponse"));
                 loadTestData();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        });
+
+        loadTask.setOnFailed(e -> {
+            loadTask.getException().printStackTrace();
             loadTestData();
-        }
+        });
+
+        new Thread(loadTask).start();
     }
 
     private void loadTestData() {
@@ -189,20 +204,98 @@ public class CommandesController {
 
     private void setupActionsColumn() {
         actionsColumn.setCellFactory(param -> new TableCell<>() {
-            private final Button viewButton = createIconButton(IconLibrary.ARROW_R, "Détail");
-            private final HBox pane = new HBox(8, viewButton);
-            {
-                viewButton.setOnAction(event -> {
-                    OrderRow order = getTableView().getItems().get(getIndex());
-                    viewOrderDetails(order);
-                });
-            }
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : pane);
+                if (empty || getIndex() >= getTableView().getItems().size()) {
+                    setGraphic(null);
+                } else {
+                    OrderRow order = getTableView().getItems().get(getIndex());
+                    
+                    Button actionButton;
+                    if ("EN_ATTENTE".equalsIgnoreCase(order.getStatusRaw())) {
+                        actionButton = createIconButton(IconLibrary.CART, "Commander");
+                        actionButton.getStyleClass().add("btn-pay");
+                        actionButton.setOnAction(event -> resumeOrder(order));
+                    } else {
+                        actionButton = createIconButton(IconLibrary.ARROW_R, "Détail");
+                        actionButton.setOnAction(event -> viewOrderDetails(order));
+                    }
+                    
+                    HBox pane = new HBox(8, actionButton);
+                    pane.setStyle("-fx-alignment: CENTER_LEFT;");
+                    setGraphic(pane);
+                }
             }
         });
+    }
+
+    private void resumeOrder(OrderRow order) {
+        try {
+            Dialog<Boolean> dialog = new Dialog<>();
+            dialog.setTitle("Reprise de la Commande");
+            dialog.setHeaderText("Récapitulatif de votre commande #" + order.getOrderId());
+            
+            ButtonType checkoutButton = new ButtonType("Procéder au paiement", ButtonBar.ButtonData.OK_DONE);
+            ButtonType cancelButton = new ButtonType("Annuler", ButtonBar.ButtonData.CANCEL_CLOSE);
+            dialog.getDialogPane().getButtonTypes().addAll(checkoutButton, cancelButton);
+
+            VBox root = new VBox(15);
+            root.setPadding(new Insets(20));
+            root.setPrefWidth(450);
+
+            Label lblIntro = new Label("Voici les produits de votre commande en attente :");
+            lblIntro.setStyle("-fx-font-weight: bold;");
+
+            VBox productsBox = new VBox(10);
+            ScrollPane scrollPane = new ScrollPane(productsBox);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setPrefHeight(200);
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+            // Fetch order lines for summary
+            ClientSocket client = ClientSocket.getInstance();
+            Requete req = new Requete(RequestType.GET_ORDER, Map.of("reference", order.getOrderId()), SessionManager.getInstance().getSession().getAccessToken());
+            Reponse rep = client.envoyer(req);
+
+            if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> orderData = (Map<String, Object>) rep.getDonnees().get("commande");
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> lignes = (List<Map<String, Object>>) orderData.get("lignes");
+                if (lignes != null) {
+                    for (Map<String, Object> line : lignes) {
+                        productsBox.getChildren().add(createOrderProductItem(line));
+                    }
+                }
+            } else {
+                productsBox.getChildren().add(new Label("Impossible de charger le récapitulatif."));
+            }
+
+            Label lblTotal = new Label("Total : " + order.getTotal());
+            lblTotal.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #24316B;");
+            
+            HBox totalContainer = new HBox(lblTotal);
+            totalContainer.setAlignment(Pos.CENTER_RIGHT);
+
+            root.getChildren().addAll(lblIntro, scrollPane, new Separator(), totalContainer);
+            dialog.getDialogPane().setContent(root);
+
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == checkoutButton) return true;
+                return false;
+            });
+
+            var result = dialog.showAndWait();
+            if (result.isPresent() && result.get()) {
+                // Set reference for CheckoutController and redirect
+                CheckoutController.setResumingOrderReference(order.getOrderId());
+                SceneManager.switchTo("checkout.fxml", "ChriOnline - Finaliser la commande");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            new Alert(Alert.AlertType.ERROR, "Erreur lors de la reprise de la commande : " + e.getMessage()).showAndWait();
+        }
     }
 
     private VBox createStatusBadge(String status) {
@@ -238,12 +331,159 @@ public class CommandesController {
     }
 
     private void viewOrderDetails(OrderRow order) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Détails de la commande");
-        alert.setHeaderText(order.getOrderId());
-        alert.setContentText(String.format("Date: %s\nLivraison Réelle: %s\nTotal: %s\nStatut: %s", 
-                            order.getDate(), order.getDateLivraisonReelle(), order.getTotal(), order.getStatus()));
-        alert.showAndWait();
+        try {
+            Dialog<Void> dialog = new Dialog<>();
+            dialog.setTitle("Détails de la Commande");
+            dialog.setHeaderText("Référence : " + order.getOrderId());
+            
+            ButtonType closeButton = new ButtonType("Fermer", ButtonBar.ButtonData.CANCEL_CLOSE);
+            dialog.getDialogPane().getButtonTypes().add(closeButton);
+
+            VBox root = new VBox(15);
+            root.setPadding(new Insets(20));
+            root.setPrefWidth(500);
+            root.getStyleClass().add("order-details-root");
+
+            // Info Section (Payment & Address)
+            GridPane infoGrid = new GridPane();
+            infoGrid.setHgap(20);
+            infoGrid.setVgap(10);
+            
+            Label lblPayTitle = new Label("Paiement :");
+            lblPayTitle.setStyle("-fx-font-weight: bold;");
+            Label lblPayVal = new Label(order.getMethodePaiement());
+            
+            Label lblAddrTitle = new Label("Adresse de livraison :");
+            lblAddrTitle.setStyle("-fx-font-weight: bold;");
+            Label lblAddrVal = new Label(order.getAdresseComplete());
+            lblAddrVal.setWrapText(true);
+            lblAddrVal.setMaxWidth(300);
+
+            infoGrid.add(lblPayTitle, 0, 0);
+            infoGrid.add(lblPayVal, 1, 0);
+            infoGrid.add(lblAddrTitle, 0, 1);
+            infoGrid.add(lblAddrVal, 1, 1);
+
+            // Products Section
+            Label lblProducts = new Label("Produits commandés :");
+            lblProducts.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #24316B;");
+            
+            VBox productsBox = new VBox(10);
+            ScrollPane scrollPane = new ScrollPane(productsBox);
+            scrollPane.setFitToWidth(true);
+            scrollPane.setPrefHeight(250);
+            scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+            // Request full details from server
+            ClientSocket client = ClientSocket.getInstance();
+            Requete req = new Requete();
+            req.setType(RequestType.GET_ORDER);
+            Map<String, Object> params = new HashMap<>();
+            params.put("reference", order.getOrderId());
+            req.setParametres(params);
+            
+            Reponse rep = client.envoyer(req);
+
+            if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> orderData = (Map<String, Object>) rep.getDonnees().get("commande");
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> lignes = (List<Map<String, Object>>) orderData.get("lignes");
+                
+                if (lignes != null) {
+                    for (Map<String, Object> ligne : lignes) {
+                        productsBox.getChildren().add(createOrderProductItem(ligne));
+                    }
+                }
+            } else {
+                productsBox.getChildren().add(new Label("Erreur lors du chargement des produits."));
+            }
+
+            // Total Section
+            Separator sep = new Separator();
+            HBox totalBox = new HBox();
+            totalBox.setAlignment(Pos.CENTER_RIGHT);
+            Label lblTotal = new Label("Total : " + order.getTotal());
+            lblTotal.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #24316B;");
+            totalBox.getChildren().add(lblTotal);
+
+            root.getChildren().addAll(infoGrid, new Separator(), lblProducts, scrollPane, sep, totalBox);
+            dialog.getDialogPane().setContent(root);
+            
+            // Add styles - checking for null to avoid NPE if resource missing
+            var cssResource = getClass().getResource("/css/styles.css");
+            if (cssResource != null) {
+                dialog.getDialogPane().getStylesheets().add(cssResource.toExternalForm());
+            } else {
+                System.err.println("[CommandesController] styles.css not found at /css/styles.css");
+            }
+            
+            dialog.showAndWait();
+        } catch (Exception e) {
+            System.err.println("[CommandesController] Error showing order details: " + e.getMessage());
+            e.printStackTrace();
+            Alert errorAlert = new Alert(Alert.AlertType.ERROR, "Impossible d'afficher les détails : " + e.getMessage());
+            errorAlert.showAndWait();
+        }
+    }
+
+    private HBox createOrderProductItem(Map<String, Object> ligne) {
+        HBox item = new HBox(15);
+        item.setAlignment(Pos.CENTER_LEFT);
+        item.setPadding(new Insets(10));
+        item.setStyle("-fx-background-color: #F8FAFC; -fx-background-radius: 8;");
+
+        // Image
+        ImageView imageView = new ImageView();
+        imageView.setFitWidth(50);
+        imageView.setFitHeight(50);
+        imageView.setPreserveRatio(true);
+        String imageUrl = ligne != null ? (String) ligne.get("image") : null;
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            try {
+                imageView.setImage(new Image(imageUrl, true));
+            } catch (Exception e) {
+                // Ignore and use placeholder
+                var placeholder = getClass().getResourceAsStream("/img/placeholder.png");
+                if (placeholder != null) imageView.setImage(new Image(placeholder));
+            }
+        } else {
+            var placeholder = getClass().getResourceAsStream("/img/placeholder.png");
+            if (placeholder != null) imageView.setImage(new Image(placeholder));
+        }
+
+        VBox details = new VBox(2);
+        String productName = ligne != null ? (String) ligne.getOrDefault("nomProduit", "Produit inconnu") : "Produit inconnu";
+        Label name = new Label(productName);
+        name.setStyle("-fx-font-weight: bold;");
+        
+        int quantite = 0;
+        double prixAchat = 0.0;
+        double lineTotal = 0.0;
+        
+        if (ligne != null) {
+            Object q = ligne.get("quantite");
+            if (q instanceof Number) quantite = ((Number) q).intValue();
+            
+            Object p = ligne.get("prixAchat");
+            if (p instanceof Number) prixAchat = ((Number) p).doubleValue();
+            
+            Object s = ligne.get("sousTotal");
+            if (s instanceof Number) lineTotal = ((Number) s).doubleValue();
+        }
+
+        Label qtyPrice = new Label(String.format("Quantité: %d x %.2f MAD", quantite, prixAchat));
+        qtyPrice.setStyle("-fx-text-fill: #64748B; -fx-font-size: 12px;");
+        details.getChildren().addAll(name, qtyPrice);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label subtotal = new Label(String.format("%.2f MAD", lineTotal));
+        subtotal.setStyle("-fx-font-weight: bold; -fx-text-fill: #24316B;");
+
+        item.getChildren().addAll(imageView, details, spacer, subtotal);
+        return item;
     }
 
     @FXML private void goBack() { SceneManager.clearCache("panier.fxml"); SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier"); }
@@ -260,6 +500,9 @@ public class CommandesController {
         private final StringProperty dateLivraisonReelle;
         private final StringProperty total;
         private final StringProperty status;
+        private final String statusRaw;
+        private final String methodePaiement;
+        private final String adresseComplete;
 
         public OrderRow(Map<String, Object> map) {
             this.orderId = new SimpleStringProperty((String) map.get("reference"));
@@ -267,6 +510,9 @@ public class CommandesController {
             this.dateLivraisonReelle = new SimpleStringProperty((String) map.getOrDefault("date_livraison_reelle", ""));
             this.total = new SimpleStringProperty((String) map.getOrDefault("total_formatted", "0.00 MAD"));
             this.status = new SimpleStringProperty((String) map.getOrDefault("status_display", "Inconnu"));
+            this.statusRaw = (String) map.getOrDefault("statut", "");
+            this.methodePaiement = (String) map.getOrDefault("methode_paiement", "N/A");
+            this.adresseComplete = (String) map.getOrDefault("adresse_complete", "N/A");
         }
 
         public OrderRow(String id, String date, String deliveryDate, String total, String status) {
@@ -275,6 +521,9 @@ public class CommandesController {
             this.dateLivraisonReelle = new SimpleStringProperty(deliveryDate);
             this.total = new SimpleStringProperty(total);
             this.status = new SimpleStringProperty(status);
+            this.statusRaw = "";
+            this.methodePaiement = "N/A";
+            this.adresseComplete = "N/A";
         }
 
         public String getOrderId() { return orderId.get(); }
@@ -287,6 +536,9 @@ public class CommandesController {
         public StringProperty totalProperty() { return total; }
         public String getStatus() { return status.get(); }
         public StringProperty statusProperty() { return status; }
+        public String getStatusRaw() { return statusRaw; }
+        public String getMethodePaiement() { return methodePaiement; }
+        public String getAdresseComplete() { return adresseComplete; }
     }
 }
 

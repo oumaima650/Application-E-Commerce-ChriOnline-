@@ -920,11 +920,13 @@ public class MainHomeController implements Initializable {
         System.out.println("Hero Action: Click");
     }
 
-    @FXML private void handleCartClick() { 
+    @FXML
+    private void handleCartClick() {
         if (SessionManager.getInstance().isAuthenticated()) {
             SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
         } else {
-            // Optionnel: Alerte ou redirection login
+            // Mémoriser la redirection vers le panier après login
+            SessionManager.getInstance().setPendingRedirect("panier.fxml", "Mon Panier - ChriOnline");
             SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
         }
     }
@@ -950,6 +952,7 @@ public class MainHomeController implements Initializable {
             miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
             miDeconnexion.setOnAction(e -> {
                 SessionManager.getInstance().fermer();
+                SessionManager.getInstance().clearPendingRedirect(); // Nettoyer en cas de déco
                 SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
             });
             
@@ -957,12 +960,16 @@ public class MainHomeController implements Initializable {
         } else {
             MenuItem miConnexion = new MenuItem("Se connecter");
             miConnexion.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + ";");
-            miConnexion.setOnAction(e -> SceneManager.switchTo("login.fxml", "Connexion - ChriOnline"));
+            miConnexion.setOnAction(e -> {
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            });
             
             MenuItem miInscription = new MenuItem("Créer un compte");
             miInscription.setOnAction(e -> {
-                // Not implemented yet but placeholder
-                System.out.println("Go to Register page");
+                SessionManager.getInstance().clearPendingRedirect();
+                // Redirection vers inscription si elle existe, sinon login par défaut
+                SceneManager.switchTo("login.fxml", "Inscription - ChriOnline");
             });
             
             userMenu.getItems().addAll(miConnexion, miInscription);
@@ -974,6 +981,8 @@ public class MainHomeController implements Initializable {
 
     @FXML
     private void handleLoginClick() {
+        // Optionnel: On peut aussi mettre le home en redirect par défaut si on veut
+        SessionManager.getInstance().clearPendingRedirect(); 
         SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
     }
 
