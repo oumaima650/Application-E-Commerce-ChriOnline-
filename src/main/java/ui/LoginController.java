@@ -332,9 +332,11 @@ public class LoginController implements Initializable {
         // Vider l'historique pour ne pas revenir au Login avec le bouton "Retour"
         SceneManager.clearHistory();
         
+        // Enregistrer le port UDP pour TOUS les types d'utilisateurs
+        registerUdpPort(SessionManager.getInstance().getSession().getAccessToken());
+
         if ("ADMIN".equals(type)) {
             System.out.println("[LoginController] Navigation vers le tableau de bord Admin...");
-            registerUdpPort(SessionManager.getInstance().getSession().getAccessToken());
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
             System.out.println("[LoginController] Navigation vers la boutique...");
@@ -344,7 +346,7 @@ public class LoginController implements Initializable {
                 SessionManager.getInstance().clearPendingRedirect();
                 SceneManager.switchTo(redirect, title != null ? title : "ChriOnline");
             } else {
-                SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
+                SceneManager.switchTo("main-home.fxml", "ChriOnline - Boutique");
             }
         }
     }

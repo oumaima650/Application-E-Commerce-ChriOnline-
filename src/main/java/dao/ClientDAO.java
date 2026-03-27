@@ -94,11 +94,13 @@ public class ClientDAO {
     }
 
     public static boolean banUser(int userId) throws SQLException {
-        String query = "UPDATE Client SET statut = 'BANNI', deletedAt = NOW() WHERE IdUtilisateur = ?";
+        String query = "UPDATE Client SET statut = 'BANNI', deletedAt = CURRENT_TIMESTAMP WHERE IdUtilisateur = ?";
         try (Connection conn = ConnexionBDD.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, userId);
-            return pstmt.executeUpdate() > 0;
+            int rows = pstmt.executeUpdate();
+            System.out.println("[ClientDAO] Ban result for user " + userId + ": " + rows + " rows affected");
+            return rows > 0;
         }
     }
 
@@ -107,7 +109,9 @@ public class ClientDAO {
         try (Connection conn = ConnexionBDD.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, userId);
-            return pstmt.executeUpdate() > 0;
+            int rows = pstmt.executeUpdate();
+            System.out.println("[ClientDAO] Unban result for user " + userId + ": " + rows + " rows affected");
+            return rows > 0;
         }
     }
 

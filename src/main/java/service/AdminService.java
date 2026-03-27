@@ -286,8 +286,9 @@ public class AdminService {
 
     public Reponse banUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
+        int userId = -1;
         try {
-            int userId = (Integer) params.get("userId");
+            userId = (Integer) params.get("userId");
             boolean success = dao.ClientDAO.banUser(userId);
             if (success) {
                 new NotificationService().creerNotification(userId, "Votre compte a été suspendu par l'administration.");
@@ -295,6 +296,9 @@ public class AdminService {
             } else {
                 return new Reponse(false, "Échec du bannissement", null);
             }
+        } catch (SQLException e) {
+            System.err.println("[AdminService] SQL Error while banning user " + userId + ": " + e.getMessage());
+            return new Reponse(false, "Erreur SQL: " + e.getMessage(), null);
         } catch (Exception e) {
             return new Reponse(false, "Erreur lors du bannissement: " + e.getMessage(), null);
         }
@@ -302,8 +306,9 @@ public class AdminService {
 
     public Reponse unbanUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
+        int userId = -1;
         try {
-            int userId = (Integer) params.get("userId");
+            userId = (Integer) params.get("userId");
             boolean success = dao.ClientDAO.unbanUser(userId);
             if (success) {
                 new NotificationService().creerNotification(userId, "Votre compte est de nouveau actif. Bon shopping !");
@@ -311,6 +316,9 @@ public class AdminService {
             } else {
                 return new Reponse(false, "Échec du débannissement", null);
             }
+        } catch (SQLException e) {
+            System.err.println("[AdminService] SQL Error while unbanning user " + userId + ": " + e.getMessage());
+            return new Reponse(false, "Erreur SQL: " + e.getMessage(), null);
         } catch (Exception e) {
             return new Reponse(false, "Erreur lors du débannissement: " + e.getMessage(), null);
         }
