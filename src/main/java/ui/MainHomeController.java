@@ -67,7 +67,6 @@ public class MainHomeController implements Initializable {
 
     // Filter Bar Components (promoted to fields for sync)
     private MenuButton catsFilter;
-    private CheckBox cbPromoFilter;
     @FXML
     private Label cartBadge;
     @FXML
@@ -76,13 +75,21 @@ public class MainHomeController implements Initializable {
     private Circle userAvatar;
     @FXML
     private Label userInitial;
+    @FXML private StackPane notifBadge;
+    @FXML private Circle notifCircle;
+    @FXML private Label notifCount;
+
+    @FXML
+    private StackPane rootStackPane;
 
 
     // Main Layout Components
     @FXML
     private ScrollPane mainScrollPane;
     @FXML
-    private VBox mainContent;
+    private VBox productContent; // Scrollable container for ALL content
+    @FXML
+    private VBox filterBarContainer; // Placeholder for the filter bar
 
     // Hero Banner Components
     @FXML
@@ -103,8 +110,6 @@ public class MainHomeController implements Initializable {
     private FlowPane productGrid;
     @FXML
     private Label sectionTitle;
-    @FXML
-    private Button voirToutButton;
 
     // Palette de couleurs
     private static final String CORAIL = "#FF724C";
@@ -112,9 +117,6 @@ public class MainHomeController implements Initializable {
     private static final String BLANC_CASSE = "#F4F4F8";
     private static final String BLEU_NUIT = "#2A2C41";
 
-    // Server Config
-    private static final String SERVER_HOST = "127.0.0.1";
-    private static final int SERVER_PORT = 5555;
 
     // Slider State
     private int currentBannerIndex = 0;
@@ -131,7 +133,6 @@ public class MainHomeController implements Initializable {
 
     // Filter State
     private String selectedCategory = "Toutes les catégories";
-    private boolean showOnlyPromo = false;
     private boolean showOnlyInStock = false;
     private int maxPrice = 50000;
     private String currentSort = "Nouveautés ✨";
@@ -145,25 +146,24 @@ public class MainHomeController implements Initializable {
      * allowing for real-time filtering of sellable SKUs by price, stock, and promo.
      */
     private void setupFilterBar() {
-        HBox bar = new HBox(20);
-        bar.setPadding(new Insets(15, 30, 15, 30));
+        HBox bar = new HBox(25);
+        bar.setPadding(new Insets(12, 30, 12, 30));
         bar.setAlignment(Pos.CENTER_LEFT);
-        bar.setStyle(
-                "-fx-background-color: white; -fx-background-radius: 20px; -fx-border-color: #F4F4F8; -fx-border-width: 1.5;");
+        bar.setStyle("-fx-background-color: white; -fx-background-radius: 18px; -fx-border-color: #EEE; -fx-border-width: 1;");
 
         // Add premium shadow
-        DropShadow ds = new DropShadow(20, Color.rgb(0, 0, 0, 0.08));
-        ds.setOffsetY(8);
+        DropShadow ds = new DropShadow(15, Color.rgb(0, 0, 0, 0.05));
+        ds.setOffsetY(5);
         bar.setEffect(ds);
 
         Label l = new Label("Filtrage Avancé :");
-        l.setStyle("-fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 15px;");
-        l.setGraphic(IconLibrary.getIcon(IconLibrary.SEARCH, 18, CORAIL));
+        l.setStyle("-fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 14px;");
+        l.setGraphic(IconLibrary.getIcon(IconLibrary.SEARCH, 16, CORAIL));
         l.setGraphicTextGap(10);
 
         catsFilter = new MenuButton(selectedCategory);
-        catsFilter.setStyle("-fx-background-color: " + BLANC_CASSE + "; -fx-background-radius: 50px; -fx-text-fill: "
-                + BLEU_NUIT + "; -fx-font-size: 12px; -fx-padding: 6 18; -fx-cursor: hand;");
+        catsFilter.setStyle("-fx-background-color: #F8F9FA; -fx-background-radius: 50px; -fx-text-fill: "
+                + BLEU_NUIT + "; -fx-font-size: 12px; -fx-padding: 6 20; -fx-border-color: #EEE; -fx-border-radius: 50px; -fx-cursor: hand;");
 
         // Populate Categories dynamically
         Set<String> categories = new TreeSet<>();
@@ -191,38 +191,41 @@ public class MainHomeController implements Initializable {
         }
 
         HBox toggles = new HBox(12);
-        CheckBox cbPromo = new CheckBox("En solde 🏷️");
-        cbPromoFilter = cbPromo;
-        cbPromo.setSelected(showOnlyPromo);
-        cbPromo.setOnAction(e -> {
-            showOnlyPromo = cbPromo.isSelected();
-            applyFilters();
-        });
+        toggles.setAlignment(Pos.CENTER_LEFT);
 
-        CheckBox cbStock = new CheckBox("En stock 📦");
+        CheckBox cbStock = new CheckBox("En stock");
         cbStock.setSelected(showOnlyInStock);
+        cbStock.setGraphic(IconLibrary.getIcon(IconLibrary.PACKAGE, 14, BLEU_NUIT));
+        cbStock.setGraphicTextGap(8);
         cbStock.setOnAction(e -> {
             showOnlyInStock = cbStock.isSelected();
             applyFilters();
         });
 
-        String cbStyle = "-fx-background-color: " + BLANC_CASSE
-                + "; -fx-background-radius: 50px; -fx-padding: 8 15; -fx-font-size: 11px; -fx-cursor: hand; -fx-text-fill: "
-                + BLEU_NUIT + ";";
-        cbPromo.setStyle(cbStyle);
+        String cbStyle = "-fx-background-color: #F8F9FA; -fx-background-radius: 50px; -fx-padding: 8 16; -fx-font-size: 11px; -fx-cursor: hand; -fx-text-fill: "
+                + BLEU_NUIT + "; -fx-border-color: #EEE; -fx-border-radius: 50px;";
         cbStock.setStyle(cbStyle);
-        toggles.getChildren().addAll(cbPromo, cbStock);
+        toggles.getChildren().addAll(cbStock);
 
         Separator sep = new Separator(Orientation.VERTICAL);
-        sep.setPrefHeight(25);
+        sep.setPrefHeight(20);
+        sep.setMaxHeight(20);
 
-        VBox pCont = new VBox(2);
+        VBox pCont = new VBox(4);
+        pCont.setAlignment(Pos.CENTER_LEFT);
         Label pLabel = new Label("Tranche de Prix (MAD)");
-        pLabel.setStyle("-fx-font-size: 10px; -fx-text-fill: #999; -fx-font-weight: bold; -fx-letter-spacing: 0.5;");
-        HBox pRow = new HBox(12);
+        pLabel.setStyle("-fx-font-size: 9px; -fx-text-fill: #AAA; -fx-font-weight: bold; -fx-text-transform: uppercase;");
+        
+        HBox pRow = new HBox(15);
         pRow.setAlignment(Pos.CENTER_LEFT);
+        
         Slider pSlider = new Slider(0, 50000, maxPrice);
-        pSlider.setPrefWidth(140);
+        pSlider.setPrefWidth(160);
+        pSlider.setStyle(
+            ".slider .track { -fx-background-color: #EEE; -fx-pref-height: 4px; } " +
+            ".slider .thumb { -fx-background-color: white; -fx-border-color: #DDD; -fx-pref-width: 16px; -fx-pref-height: 16px; }"
+        );
+        
         Label v = new Label("Max " + (maxPrice / 1000) + "k");
         v.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + "; -fx-font-size: 13px;");
 
@@ -245,7 +248,7 @@ public class MainHomeController implements Initializable {
                 "Prix décroissant 📉", "Mieux notés ⭐"));
         sort.setValue(currentSort);
         sort.setStyle("-fx-background-color: white; -fx-border-color: " + CORAIL
-                + "; -fx-border-radius: 50px; -fx-background-radius: 50px; -fx-font-size: 11px; -fx-padding: 3 10; -fx-font-weight: bold;");
+                + "; -fx-border-radius: 50px; -fx-background-radius: 50px; -fx-font-size: 11px; -fx-padding: 3 12; -fx-font-weight: bold; -fx-cursor: hand;");
         sort.setOnAction(e -> {
             currentSort = sort.getValue();
             applyFilters();
@@ -253,35 +256,28 @@ public class MainHomeController implements Initializable {
 
         bar.getChildren().addAll(l, catsFilter, toggles, sep, pCont, spacer, sort);
 
-        if (mainContent != null) {
-            // Remove previous filter if any to avoid duplicates
-            mainContent.getChildren().removeIf(n -> n.getId() != null && n.getId().equals("filter-bar-wrapper"));
-
+        if (filterBarContainer != null) {
+            filterBarContainer.getChildren().clear();
             VBox wrapper = new VBox(bar);
             wrapper.setId("filter-bar-wrapper");
-            wrapper.setPadding(new Insets(10, 0, 30, 0));
-
-            // Insert after Hero Banner if possible, otherwise at top
-            int bannerIdx = mainContent.getChildren().indexOf(heroBanner);
-            if (bannerIdx >= 0) {
-                mainContent.getChildren().add(bannerIdx + 1, wrapper);
-            } else {
-                mainContent.getChildren().add(0, wrapper);
-            }
+            wrapper.setPadding(new Insets(10, 40, 10, 40));
+            filterBarContainer.getChildren().add(wrapper);
         }
     }
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
         setupNavbar();
+        setupFilterBar();
         setupHeroSlider();
         loadCategories();
         loadProducts();
 
-        // Final UI tweaks
+        // Ensure vertical scrolling is natural
         if (mainScrollPane != null) {
-            mainScrollPane.setStyle("-fx-background-color: " + BLANC_CASSE + "; -fx-border-width: 0;");
-            mainScrollPane.setFitToHeight(true);
+            mainScrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent; -fx-border-width: 0;");
+            mainScrollPane.setFitToHeight(false);
+            mainScrollPane.setFitToWidth(true);
         }
     }
 
@@ -311,30 +307,39 @@ public class MainHomeController implements Initializable {
         // Load Cart and Notif counts
         updateBadges();
 
-        // User Avatar and Name from Session
-        if (SessionManager.getInstance().isAuthenticated()) {
+        // User Authentication State
+        boolean loggedIn = SessionManager.getInstance().isAuthenticated();
+        if (loginButton != null) {
+            loginButton.setVisible(!loggedIn);
+            loginButton.setManaged(!loggedIn);
+        }
+        if (userAvatarContainer != null) {
+            userAvatarContainer.setVisible(loggedIn);
+            userAvatarContainer.setManaged(loggedIn);
+        }
+
+        if (loggedIn) {
             String email = SessionManager.getInstance().getCurrentUser().getEmail();
-            if (email != null && !email.isEmpty()) {
-                String name = email.split("@")[0].toUpperCase();
-                if (userInitial != null) userInitial.setText(name.substring(0, 1));
+            String name = email.split("@")[0].toUpperCase();
+            if (userInitial != null) {
+                userInitial.setText(name.substring(0, 1));
             }
-        } else {
-            if (userInitial != null) userInitial.setText("G"); // G for Guest
         }
 
         if (userAvatar != null) {
-            userAvatar.setFill(Color.web(SessionManager.getInstance().isAuthenticated() ? CORAIL : "#94a3b8"));
+            userAvatar.setFill(Color.web(CORAIL));
         }
     }
-
     private void updateBadges() {
         // GET_CART
         Task<Reponse> cartTask = new Task<>() {
-            @Override protected Reponse call() {
-                if (!SessionManager.getInstance().isAuthenticated()) return null;
-                int idClient = (SessionManager.getInstance().getCurrentUser() != null) ? SessionManager.getInstance().getCurrentUser().getIdUtilisateur() : -1;
-                if (idClient == -1) return null;
-                return sendToServer(new Requete(RequestType.GET_CART, Map.of("idClient", idClient), SessionManager.getInstance().getSession().getAccessToken()));
+            @Override
+            protected shared.Reponse call() {
+                if (!SessionManager.getInstance().isAuthenticated())
+                    return null;
+                return sendToServer(new shared.Requete(shared.RequestType.GET_CART,
+                        Map.of("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
+                        SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
         cartTask.setOnSucceeded(e -> {
@@ -355,21 +360,40 @@ public class MainHomeController implements Initializable {
         new Thread(cartTask).start();
 
         // GET_NOTIFICATIONS (Badge on icons if relevant)
-        Task<Reponse> notifTask = new Task<>() {
-            @Override protected Reponse call() {
-                if (!SessionManager.getInstance().isAuthenticated()) return null;
-                return sendToServer(new Requete(RequestType.GET_NOTIFICATIONS, Map.of("idUtilisateur", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()), SessionManager.getInstance().getSession().getAccessToken()));
+        Task<shared.Reponse> notifTask = new Task<>() {
+            @Override
+            protected shared.Reponse call() {
+                if (!SessionManager.getInstance().isAuthenticated())
+                    return null;
+                return sendToServer(new shared.Requete(shared.RequestType.GET_NOTIFICATIONS,
+                        Map.of("idUtilisateur", SessionManager.getInstance().getCurrentUser().getIdUtilisateur()),
+                        SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
         notifTask.setOnSucceeded(e -> {
             Reponse rep = notifTask.getValue();
             if (rep != null && rep.isSucces()) {
                 List<?> notifs = (List<?>) rep.getDonnees().get("notifications");
-                // For now just console log as badge might not exist in FXML yet
-                System.out.println("Non-read notifications: " + (notifs != null ? notifs.size() : 0));
+                int count = (notifs != null) ? notifs.size() : 0;
+                Platform.runLater(() -> {
+                    if (notifCount != null) {
+                        notifCount.setText(String.valueOf(count));
+                        notifCount.setVisible(count > 0);
+                        notifCircle.setVisible(count > 0);
+                    }
+                });
             }
         });
         new Thread(notifTask).start();
+    }
+
+    @FXML
+    private void ouvrirNotifications() {
+        if (!SessionManager.getInstance().isAuthenticated()) {
+            showToast("Veuillez vous connecter pour voir vos notifications.");
+            return;
+        }
+        SceneManager.switchTo("notifications.fxml", "ChriOnline - Mes Notifications");
     }
 
     // ==========================================
@@ -494,10 +518,10 @@ public class MainHomeController implements Initializable {
     // 4. PRODUCTS & NEW SECTIONS
     // ==========================================
     private void loadProducts() {
-        Task<Reponse> pTask = new Task<>() {
-            @Override protected Reponse call() {
+        Task<shared.Reponse> pTask = new Task<>() {
+            @Override protected shared.Reponse call() {
                 String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getAccessToken() : "";
-                return sendToServer(new Requete(RequestType.GET_ALL_PRODUITS_AFFICHABLES, new HashMap<>(), token));
+                return sendToServer(new shared.Requete(shared.RequestType.GET_ALL_PRODUITS_AFFICHABLES, new HashMap<>(), token));
             }
         };
         pTask.setOnSucceeded(e -> {
@@ -508,6 +532,12 @@ public class MainHomeController implements Initializable {
             } else {
                 showError("Impossible de charger les produits", this::loadProducts);
             }
+        });
+        pTask.setOnFailed(e -> {
+            Throwable ex = pTask.getException();
+            System.err.println("[MainHome] Erreur critique chargement produits : " + (ex != null ? ex.getMessage() : "Inconnue"));
+            if (ex != null) ex.printStackTrace();
+            showError("Erreur réseau ou désérialisation", this::loadProducts);
         });
         new Thread(pTask).start();
     }
@@ -541,16 +571,7 @@ public class MainHomeController implements Initializable {
             filtered.removeIf(p -> !selectedCategory.equals(p.get("categorie")));
         }
 
-        // 2. Promo Filter
-        if (showOnlyPromo) {
-            filtered.removeIf(p -> {
-                int prix = (int) p.get("prix");
-                int prixOrig = (int) p.get("prixOriginal");
-                return prix >= prixOrig;
-            });
-        }
-
-        // 3. Stock Filter
+        // 2. Stock Filter
         if (showOnlyInStock) {
             filtered.removeIf(p -> (int) p.get("stock") <= 0);
         }
@@ -623,31 +644,44 @@ public class MainHomeController implements Initializable {
             return;
         productGrid.getChildren().clear();
 
-        HBox hBox = new HBox(15);
-        hBox.setPadding(new Insets(10, 0, 10, 0));
-        for (int i = 0; i < Math.min(6, productsList.size()); i++) {
-            hBox.getChildren().add(createProductCard(productsList.get(i)));
+        if (productsList.isEmpty()) {
+            Label placeholder = new Label("Aucun produit ne correspond à votre recherche ou catégorie.");
+            placeholder.setStyle("-fx-text-fill: #aaa; -fx-padding: 40; -fx-font-style: italic;");
+            productGrid.getChildren().add(placeholder);
+            return;
         }
 
-        ScrollPane sp = new ScrollPane(hBox);
-        sp.setFitToHeight(true);
-        sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent; -fx-border-width: 0;");
-        productGrid.getChildren().add(sp);
+        // Ajout direct au FlowPane au lieu d'imbriquer un ScrollPane inutile
+        // (car tout le produitContent est déjà dans un ScrollPane au niveau FXML)
+        for (int i = 0; i < Math.min(8, productsList.size()); i++) {
+            productGrid.getChildren().add(createProductCard(productsList.get(i)));
+        }
     }
 
     private void setupMeilleuresVentes() {
-        mainContent.getChildren().removeIf(n -> n.getId() != null && n.getId().contains("best-sellers-section"));
+        if (productContent == null) return;
+        
+        // Supprimer l'ancienne section si elle existe
+        productContent.getChildren().removeIf(n -> n.getId() != null && n.getId().equals("best-sellers-section"));
+        
+        if (productsList.size() < 4) return; // Pas assez de produits pour cette section
+
         VBox sec = new VBox(15);
         sec.setId("best-sellers-section");
+        sec.setPadding(new Insets(20, 0, 0, 0));
+        
         Label h = new Label("Meilleures Ventes");
         h.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + ";");
+        
         FlowPane grid = new FlowPane(15, 15);
-        for (int i = 0; i < Math.min(4, productsList.size()); i++) {
+        grid.setPrefWrapLength(750); // Ajuster selon le besoin
+        
+        for (int i = 4; i < Math.min(12, productsList.size()); i++) {
             grid.getChildren().add(createProductCard(productsList.get(i)));
         }
+        
         sec.getChildren().addAll(h, grid);
-        mainContent.getChildren().add(sec);
+        productContent.getChildren().add(sec);
     }
 
 
@@ -736,14 +770,14 @@ public class MainHomeController implements Initializable {
                 return;
             }
 
-            Task<Reponse> task = new Task<>() {
+            Task<shared.Reponse> task = new Task<>() {
                 @Override
-                protected Reponse call() {
+                protected shared.Reponse call() {
                     Map<String, Object> reqP = new HashMap<>();
                     reqP.put("idProduit", idObj);
                     String token = SessionManager.getInstance().getSession().getAccessToken();
-                    Reponse skuRep = client.ClientSocket.getInstance()
-                            .envoyer(new Requete(RequestType.GET_SKU_BY_PRODUIT, reqP, token));
+                    shared.Reponse skuRep = client.ClientSocket.getInstance()
+                            .envoyer(new shared.Requete(shared.RequestType.GET_SKU_BY_PRODUIT, reqP, token));
 
                     if (skuRep != null && skuRep.isSucces() && skuRep.getDonnees() != null) {
                         @SuppressWarnings("unchecked")
@@ -755,10 +789,10 @@ public class MainHomeController implements Initializable {
                             addParams.put("sku", firstSku);
                             addParams.put("quantite", 1);
                             return client.ClientSocket.getInstance()
-                                    .envoyer(new Requete(RequestType.ADD_TO_CART, addParams, token));
+                                    .envoyer(new shared.Requete(shared.RequestType.ADD_TO_CART, addParams, token));
                         }
                     }
-                    return new Reponse(false, "Produit sans SKU disponible.", null);
+                    return new shared.Reponse(false, "Produit sans SKU disponible.", null);
                 }
             };
 
@@ -784,8 +818,6 @@ public class MainHomeController implements Initializable {
                 int id = ((Number) objId).intValue();
                 // Navigate to product detail
                 ProductDetailController.setSelectedProductId(id);
-                // Force cache clear for detail page to ensure fresh data
-                SceneManager.clearCache("product-detail.fxml");
                 SceneManager.switchTo("product-detail.fxml", (String) p.get("nom"));
             } else {
                 System.err.println("[MainHome] ERROR: Product ID is not a Number for " + p.get("nom"));
@@ -852,9 +884,9 @@ public class MainHomeController implements Initializable {
 
         f.getChildren().addAll(cols, s, copy);
 
-        if (mainContent != null) {
+        if (productContent != null) {
             // Remove previous footer and spacer if any
-            mainContent.getChildren().removeIf(
+            productContent.getChildren().removeIf(
                     n -> n.getId() != null && (n.getId().equals("footer-box") || n.getId().equals("footer-spacer")));
 
             // Push footer to bottom
@@ -862,7 +894,7 @@ public class MainHomeController implements Initializable {
             spacer.setId("footer-spacer");
             VBox.setVgrow(spacer, Priority.ALWAYS);
 
-            mainContent.getChildren().addAll(spacer, f);
+            productContent.getChildren().addAll(spacer, f);
         }
     }
 
@@ -875,7 +907,7 @@ public class MainHomeController implements Initializable {
         return l;
     }
 
-    private Reponse sendToServer(Requete req) {
+    private shared.Reponse sendToServer(shared.Requete req) {
         try {
             return client.ClientSocket.getInstance().envoyer(req);
         } catch (Exception e) {
@@ -893,11 +925,11 @@ public class MainHomeController implements Initializable {
         l.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
         Button r = new Button("Réessayer");
         r.setOnAction(e -> {
-            mainContent.getChildren().remove(b);
+            productContent.getChildren().remove(b);
             retry.run();
         });
         b.getChildren().addAll(l, r);
-        mainContent.getChildren().add(b);
+        productContent.getChildren().add(0, b); // Add at top of scrollable area
     }
 
     private void showToast(String msg) {
@@ -908,8 +940,15 @@ public class MainHomeController implements Initializable {
         p.setAlignment(Pos.BOTTOM_RIGHT);
         StackPane.setMargin(t, new Insets(20));
         p.setMouseTransparent(true); // Make the toast not block clicks
-        if (mainContent.getScene() != null) {
-            StackPane root = (StackPane) mainContent.getScene().getRoot();
+        if (productContent.getScene() != null) {
+            StackPane root;
+            if (productContent.getScene().getRoot() instanceof StackPane sp) {
+                root = sp;
+            } else {
+                // Fallback: If root is not StackPane, we can't easily overlay but we won't crash
+                System.out.println("[Toast] No StackPane root found: " + msg);
+                return;
+            }
             root.getChildren().add(p);
             new Timeline(new KeyFrame(Duration.seconds(3), ev -> root.getChildren().remove(p))).play();
         }
@@ -920,23 +959,27 @@ public class MainHomeController implements Initializable {
         System.out.println("Hero Action: Click");
     }
 
-    @FXML private void handleCartClick() { 
+        @FXML
+    private void handleCartClick() {
         if (SessionManager.getInstance().isAuthenticated()) {
             SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
         } else {
-            // Optionnel: Alerte ou redirection login
+            // Mémoriser pour revenir au panier après le login
+            SessionManager.getInstance().setPendingRedirect("panier.fxml", "Mon Panier - ChriOnline");
             SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
         }
     }
+
 
     @FXML
     private void handleCreateAccountClick() {
         SceneManager.switchTo("login.fxml", "Créer un compte - ChriOnline");
     }
     
-    @FXML private void handleUserClick() { 
+        @FXML
+    private void handleUserClick() {
         if (userAvatar == null) return;
-        
+
         ContextMenu userMenu = new ContextMenu();
         
         if (SessionManager.getInstance().isAuthenticated()) {
@@ -950,6 +993,7 @@ public class MainHomeController implements Initializable {
             miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
             miDeconnexion.setOnAction(e -> {
                 SessionManager.getInstance().fermer();
+                SessionManager.getInstance().clearPendingRedirect();
                 SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
             });
             
@@ -957,12 +1001,15 @@ public class MainHomeController implements Initializable {
         } else {
             MenuItem miConnexion = new MenuItem("Se connecter");
             miConnexion.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + ";");
-            miConnexion.setOnAction(e -> SceneManager.switchTo("login.fxml", "Connexion - ChriOnline"));
+            miConnexion.setOnAction(e -> {
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            });
             
             MenuItem miInscription = new MenuItem("Créer un compte");
             miInscription.setOnAction(e -> {
-                // Not implemented yet but placeholder
-                System.out.println("Go to Register page");
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("login.fxml", "Inscription - ChriOnline");
             });
             
             userMenu.getItems().addAll(miConnexion, miInscription);
@@ -974,6 +1021,8 @@ public class MainHomeController implements Initializable {
 
     @FXML
     private void handleLoginClick() {
+        // Optionnel: On peut aussi mettre le home en redirect par défaut si on veut
+        SessionManager.getInstance().clearPendingRedirect(); 
         SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
     }
 
@@ -989,10 +1038,10 @@ public class MainHomeController implements Initializable {
     }
 
     private void loadCategories() {
-        Task<Reponse> task = new Task<>() {
+        Task<shared.Reponse> task = new Task<>() {
             @Override
-            protected Reponse call() {
-                return sendToServer(new Requete(RequestType.GET_ALL_CATEGORIES, null, null));
+            protected shared.Reponse call() {
+                return sendToServer(new shared.Requete(shared.RequestType.GET_ALL_CATEGORIES, null, null));
             }
         };
 
@@ -1028,11 +1077,7 @@ public class MainHomeController implements Initializable {
                             }
                         }
 
-                        // 3. Promotions Card
-                        VBox promoCard = createCategoryCard("Promotions", IconLibrary.TAG);
-                        promoCard.setUserData("PROMO");
-                        categoriesContainer.getChildren().add(promoCard);
-                        
+                        // No Promotions card
                         updateCategorySelectionVisuals();
                     }
                 });
@@ -1044,11 +1089,13 @@ public class MainHomeController implements Initializable {
     private String getIconForCategory(String name) {
         if (name == null) return IconLibrary.CATEGORY;
         String n = name.toLowerCase();
+        if (n.contains("vête") || n.contains("habit") || n.contains("mode") || n.contains("shirt")) return IconLibrary.SHIRT;
+        if (n.contains("chauss") || n.contains("sneaker") || n.contains("boot") || n.contains("shoe")) return IconLibrary.SHOE;
+        if (n.contains("maison") || n.contains("déco") || n.contains("mobilier") || n.contains("home")) return IconLibrary.SOFA;
         if (n.contains("phone") || n.contains("smart")) return IconLibrary.PHONE;
         if (n.contains("access")) return IconLibrary.HEADPHONE;
         if (n.contains("ordi") || n.contains("laptop") || n.contains("élec") || n.contains("info")) return IconLibrary.LAPTOP;
         if (n.contains("montre") || n.contains("watch")) return IconLibrary.WATCH;
-        if (n.contains("vête") || n.contains("mode") || n.contains("chauss") || n.contains("maison")) return IconLibrary.TAG;
         return IconLibrary.CATEGORY;
     }
 
@@ -1069,17 +1116,10 @@ public class MainHomeController implements Initializable {
         card.getChildren().addAll(icon, label);
 
         card.setOnMouseClicked(ev -> {
-            if ("PROMO".equals(card.getUserData())) {
-                selectedCategory = "Toutes les catégories";
-                showOnlyPromo = true;
-            } else {
-                selectedCategory = name;
-                showOnlyPromo = false;
-            }
+            selectedCategory = name;
             
             // Sync with top filter bar
             if (catsFilter != null) catsFilter.setText(selectedCategory);
-            if (cbPromoFilter != null) cbPromoFilter.setSelected(showOnlyPromo);
 
             updateCategorySelectionVisuals();
             applyFilters();
@@ -1093,13 +1133,8 @@ public class MainHomeController implements Initializable {
         for (VBox card : categoryCards) {
             Label label = (Label) card.getChildren().get(1);
             String cardName = label.getText();
-            
-            boolean isSelected = false;
-            if ("PROMO".equals(card.getUserData())) {
-                isSelected = showOnlyPromo;
-            } else {
-                isSelected = selectedCategory.equals(cardName) && !showOnlyPromo;
-            }
+
+            boolean isSelected = selectedCategory.equals(cardName);
 
             if (isSelected) {
                 card.setStyle("-fx-background-color: white; -fx-background-radius: 16px; -fx-border-color: " + CORAIL + "; -fx-border-width: 2px;");

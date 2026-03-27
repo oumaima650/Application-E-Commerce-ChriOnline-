@@ -95,5 +95,7 @@ public enum RequestType {
     
     // Avis
     GET_AVIS_BY_PRODUIT,
+    GET_USER_AVIS_FOR_PRODUCT,
     ADD_AVIS,
+    UPDATE_AVIS,
 }

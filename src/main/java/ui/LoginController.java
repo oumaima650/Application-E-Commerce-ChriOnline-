@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
-import javafx.scene.control.TextInputDialog;
 
 
 public class LoginController implements Initializable {
@@ -97,6 +96,12 @@ public class LoginController implements Initializable {
     }
 
     @FXML
+    private void handleForgotPassword() {
+        System.out.println("[LoginController] Mot de passe oublié cliqué.");
+        // Pour l'instant, on se contente d'un log. Une future implémentation pourrait ouvrir une popup.
+    }
+
+    @FXML
     private void handleLogin() {
         String email    = trim(loginEmailField);
         String password = loginPasswordField.getText();
@@ -123,7 +128,7 @@ public class LoginController implements Initializable {
         params.put("email",      email);
         params.put("motDePasse", password);
 
-        Requete requete = new Requete(RequestType.LOGIN, params, null);
+        shared.Requete requete = new shared.Requete(shared.RequestType.LOGIN, params, null);
 
         setLoginLoading(true);
         runAsync(requete, reponse -> {
@@ -226,7 +231,7 @@ public class LoginController implements Initializable {
         params.put("prenom",     prenom);
         params.put("telephone",  phone);
 
-        Requete requete = new Requete(RequestType.REGISTER, params, null);
+        shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER, params, null);
 
         setRegisterLoading(true);
         runAsync(requete, reponse -> {
@@ -310,10 +315,10 @@ public class LoginController implements Initializable {
      * Runs the network call on a daemon thread, then calls the callback
      * on the JavaFX Application Thread when done.
      */
-    private void runAsync(Requete requete, java.util.function.Consumer<Reponse> onDone) {
-        Task<Reponse> task = new Task<>() {
+    private void runAsync(shared.Requete requete, java.util.function.Consumer<shared.Reponse> onDone) {
+        Task<shared.Reponse> task = new Task<>() {
             @Override
-            protected Reponse call() {
+            protected shared.Reponse call() {
                 return client.ClientSocket.getInstance().envoyer(requete);
             }
         };
@@ -330,27 +335,32 @@ public class LoginController implements Initializable {
     }
 
 
-    private void navigateToMain(String type) {
+        private void navigateToMain(String type) {
         // Vider l'historique pour ne pas revenir au Login avec le bouton "Retour"
         SceneManager.clearHistory();
         
+        // --- IMPORTANT : Enregistrer le port UDP pour les notifications ---
+        registerUdpPort(SessionManager.getInstance().getSession().getAccessToken());
+
         if ("ADMIN".equals(type)) {
-            System.out.println("[LoginController] Navigation vers le tableau de bord Admin...");
-            registerUdpPort(SessionManager.getInstance().getSession().getAccessToken());
             SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
         } else {
-            System.out.println("[LoginController] Navigation vers la boutique...");
+            // Vérifier si une redirection était prévue (ex: vers Checkout)
             String redirect = SessionManager.getInstance().getPendingRedirect();
             if (redirect != null && !redirect.isEmpty()) {
                 String title = SessionManager.getInstance().getPendingRedirectTitle();
                 SessionManager.getInstance().clearPendingRedirect();
                 SceneManager.switchTo(redirect, title != null ? title : "ChriOnline");
             } else {
+                SceneManager.clearCache("main-home.fxml"); // Forcer le rafraîchissement
                 SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
             }
         }
     }
 
+    /**
+     * Enregistre le port UDP du client auprès du serveur pour activer les notifications
+     */
     private void registerUdpPort(String token) {
         if (token == null) return;
         
@@ -361,22 +371,23 @@ public class LoginController implements Initializable {
                     Map<String, Object> params = new HashMap<>();
                     params.put("udpPort", client.ClientApp.UDP_PORT);
                     
-                    Requete req = new Requete(RequestType.REGISTER_UDP_PORT, params, token);
-                    Reponse rep = ClientSocket.getInstance().envoyer(req);
+                    shared.Requete req = new shared.Requete(shared.RequestType.REGISTER_UDP_PORT, params, token);
+                    shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                     
-                    if (rep.isSucces()) {
-                        System.out.println("[LoginController] Port UDP " + client.ClientApp.UDP_PORT + " enregistré pour l'utilisateur.");
-                    } else {
-                        System.err.println("[LoginController] Échec enregistrement UDP: " + rep.getMessage());
+                    if (rep != null && rep.isSucces()) {
+                        System.out.println("[LoginController] Port UDP " + client.ClientApp.UDP_PORT + " enregistré.");
                     }
                 } catch (Exception e) {
-                    System.err.println("[LoginController] Erreur fatale enregistrement UDP: " + e.getMessage());
+                    System.err.println("[LoginController] Erreur UDP: " + e.getMessage());
                 }
                 return null;
             }
         };
-        new Thread(udpTask).start();
+        Thread t = new Thread(udpTask);
+        t.setDaemon(true);
+        t.start();
     }
+
 
     private void setupTabSwitching() {
         mainTabPane.getSelectionModel().selectedItemProperty().addListener(

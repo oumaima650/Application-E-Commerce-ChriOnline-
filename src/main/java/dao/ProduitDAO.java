@@ -101,11 +101,14 @@ public class ProduitDAO {
 
     // Ajoute un nouveau produit
     public boolean save(Produit produit) {
-        String query = "INSERT INTO Produit (nom, description) VALUES (?, ?)";
-        Connection conn = ConnexionBDD.getConnection();
-        try (PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
-            pstmt.setString(1, produit.getNom());
-            pstmt.setString(2, produit.getDescription());
+
+        String query = "INSERT INTO Produit (idCategorie, nom, description) VALUES (?, ?, ?)";
+
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, produit.getIdCategorie());
+            pstmt.setString(2, produit.getNom());
+            pstmt.setString(3, produit.getDescription());
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
                 try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
@@ -123,12 +126,17 @@ public class ProduitDAO {
 
     // Met à jour un produit
     public boolean update(Produit produit) {
-        String query = "UPDATE Produit SET nom = ?, description = ? WHERE idProduit = ?";
-        Connection conn = ConnexionBDD.getConnection();
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, produit.getNom());
-            pstmt.setString(2, produit.getDescription());
-            pstmt.setInt(3, produit.getIdProduit());
+
+        String query = "UPDATE Produit SET idCategorie = ?, nom = ?, description = ? WHERE idProduit = ?";
+
+
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, produit.getIdCategorie());
+            pstmt.setString(2, produit.getNom());        
+            pstmt.setString(3, produit.getDescription()); 
+            pstmt.setInt(4, produit.getIdProduit());      
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Erreur lors de la mise à jour du produit id=" + produit.getIdProduit(), e);
@@ -251,6 +259,7 @@ public class ProduitDAO {
     private Produit mapResultSetToProduit(ResultSet rs) throws SQLException {
         Produit prod = new Produit();
         prod.setIdProduit(rs.getInt("idProduit"));
+        prod.setIdCategorie(rs.getInt("idCategorie"));
         prod.setNom(rs.getString("nom"));
         prod.setDescription(rs.getString("description"));
         

@@ -21,7 +21,14 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-
+/**
+ * Service gérant la logique métier côté Administrateur.
+ * Il traite les requêtes envoyées par le tableau de bord admin pour :
+ * - Lister/rechercher les commandes et les clients
+ * - Modifier les statuts des commandes
+ * - Gérer les bannissements (Bannir/Débannir) des utilisateurs
+ * Envoie également des notifications UDP en temps réel pour tenir les utilisateurs informés.
+ */
 public class AdminService {
     
     private final ServeurUDP serviceUDP;
@@ -39,6 +46,15 @@ public class AdminService {
         }
     }
 */
+    /**
+     * Récupère la liste de toutes les commandes pour l'interface administrateur.
+     * Si une requête de recherche (query) est fournie, elle filtre par sa référence
+     * ou par son ID client de commande (si numérique).
+     * Les données retournées contiennent l'adresse complète et les totaux calculés.
+     * 
+     * @param requete La requête provenant du client, pouvant contenir le paramètre "query"
+     * @return Une Reponse contenant la collection de commandes sous liste de dictionnaires
+     */
     public Reponse getAllOrders(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -107,6 +123,14 @@ public class AdminService {
         }
     }
 
+    /**
+     * Effectue une recherche spécifique sur les commandes.
+     * Cette méthode duplique en grande partie le comportement de "getAllOrders"
+     * mais est utilisée spécifiquement pour la fonction de recherche de la barre du haut.
+     * 
+     * @param requete Requête contenant le terme de recherche "query"
+     * @return Reponse contenant la liste des commandes trouvées au même format
+     */
     public Reponse searchOrders(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -172,6 +196,13 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la recherche des commandes: " + e.getMessage(), null);
         }
     }
+    /**
+     * Récupère la liste des clients incrits sur la plateforme.
+     * Elle permet également de rechercher des clients précis grâce au filtre éventuel.
+     * 
+     * @param requete Requête contenant potentiellement un paramètre "query" (nom/prénom, etc)
+     * @return Une Reponse affichant la liste brute des objets model.Client
+     */
     public Reponse getAllClients(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -244,6 +275,16 @@ public class AdminService {
         return null;
     }
 
+    /**
+     * Met à jour le statut d'une commande (ex: Validée, Expédiée, Livrée).
+     * Processus :
+     * 1. Conversion de la chaîne texte en Enum statut de commande.
+     * 2. Mise à jour en BDD et réglage de la Date de Livraison si passée à "Livrée".
+     * 3. Création automatique d'une Notification UDP (NotificationService) envoyée instantanément au client de la commande.
+     * 
+     * @param requete Requête contenant "orderId" (l'ID de commande) et "status" (le nouveau statut textuel)
+     * @return Reponse (Succès ou Échec) traitée par le Côté Administrateur
+     */
     public Reponse updateOrderStatus(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -267,9 +308,10 @@ public class AdminService {
                 // Envoyer notification UDP au client concerné
                 int clientId = commandeDAO.getClientIdFromOrder(orderId);
                 if (clientId > 0) {
+                    NotificationService notifService = new NotificationService();
                     String message = "Votre commande #" + orderId + " est maintenant : " + newStatusStr;
-                    serviceUDP.envoyerNotification(clientId, message);
-                    System.out.println("[AdminService] Notification UDP envoyée au client " + clientId + " pour commande #" + orderId);
+                    notifService.creerNotification(clientId, message);
+                    System.out.println("[AdminService] Notification udp envoyée au client " + clientId + " pour commande #" + orderId);
                 } else {
                     System.err.println("[AdminService] Impossible de trouver le client pour la commande #" + orderId);
                 }
@@ -283,34 +325,76 @@ public class AdminService {
         }
     }
 
+    /**
+     * Suspend (bannit) un utilisateur de la plateforme.
+     * L'utilisateur banni ne pourra plus se connecter et ne pourra plus passer de paiements/commandes.
+     * Un diagnostic serveur est réalisé pour vérifier l'existence de la cible.
+     * Une Notification automatique sera également persistée et signalée.
+     * 
+     * @param requete Requête contenant l'ID du Client à sanctionner "targetUserId"
+     * @return Reponse de confirmation de bannissement à afficher à l'administrateur
+     */
     public Reponse banUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
+        int targetUserId = -1;
         try {
-            int userId = (Integer) params.get("userId");
-            boolean success = dao.ClientDAO.banUser(userId);
+            targetUserId = (Integer) params.get("targetUserId");
+            // DIAGNOSTIC: vérifier si le user existe dans Client
+            try (java.sql.Connection conn = dao.ConnexionBDD.getConnection();
+                 java.sql.PreparedStatement ps = conn.prepareStatement(
+                     "SELECT IdUtilisateur, statut FROM Client WHERE IdUtilisateur = ?")) {
+                ps.setInt(1, targetUserId);
+                try (java.sql.ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        System.out.println("[AdminService] Client trouvé - ID:" + targetUserId + " statut actuel:" + rs.getString("statut"));
+                    } else {
+                        System.err.println("[AdminService] DIAGNOSTIC: Aucun Client avec IdUtilisateur=" + targetUserId + " trouvé dans la table Client !");
+                    }
+                }
+            }
+            boolean success = dao.ClientDAO.banUser(targetUserId);
             if (success) {
+                new NotificationService().creerNotification(targetUserId, "Votre compte a été suspendu par l'administration.");
                 return new Reponse(true, "Utilisateur banni avec succès", null);
             } else {
                 return new Reponse(false, "Échec du bannissement", null);
             }
+        } catch (SQLException e) {
+            System.err.println("[AdminService] SQL Error while banning user " + targetUserId + ": " + e.getMessage());
+            return new Reponse(false, "Erreur SQL: " + e.getMessage(), null);
         } catch (Exception e) {
             return new Reponse(false, "Erreur lors du bannissement: " + e.getMessage(), null);
         }
     }
 
+
+    /**
+     * Lève la suspension (débannit) d'un profil client précédemment suspendu, 
+     * lui permettant à nouveau d'utiliser son compte après décision de modération.
+     * Une notification automatique est diffusée au client.
+     * 
+     * @param requete Requête contenant "targetUserId" (l'ID de l'utilisateur visé)
+     * @return Reponse confirmant en succès la réautorisation de compte
+     */
     public Reponse unbanUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
+        int targetUserId = -1;
         try {
-            int userId = (Integer) params.get("userId");
-            boolean success = dao.ClientDAO.unbanUser(userId);
+            targetUserId = (Integer) params.get("targetUserId");
+            boolean success = dao.ClientDAO.unbanUser(targetUserId);
             if (success) {
+                new NotificationService().creerNotification(targetUserId, "Votre compte est de nouveau actif. Bon shopping !");
                 return new Reponse(true, "Utilisateur débanni avec succès", null);
             } else {
                 return new Reponse(false, "Échec du débannissement", null);
             }
+        } catch (SQLException e) {
+            System.err.println("[AdminService] SQL Error while unbanning user " + targetUserId + ": " + e.getMessage());
+            return new Reponse(false, "Erreur SQL: " + e.getMessage(), null);
         } catch (Exception e) {
             return new Reponse(false, "Erreur lors du débannissement: " + e.getMessage(), null);
         }
     }
+
     
 }

@@ -8,173 +8,171 @@
 <?import javafx.scene.shape.Rectangle?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.CheckoutController" stylesheets="@../com/chrionline/css/checkout.css" styleClass="root">
-    
-    <!-- NAVBAR (TOP) -->
-    <top>
-        <HBox alignment="CENTER_LEFT" spacing="20" styleClass="navbar">
-            <Button styleClass="nav-button" onAction="#goBack">
-                <graphic>
-                    <SVGPath content="M15 19l-7-7 7-7" fill="WHITE" stroke="WHITE" strokeWidth="2"/>
-                </graphic>
-            </Button>
-            <Label text="Paiement Sécurisé" styleClass="nav-title"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <HBox alignment="CENTER" spacing="10">
-                <SVGPath content="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="#FDBF50" styleClass="nav-icon"/>
-            </HBox>
-        </HBox>
-    </top>
-
-    <center>
-        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: white;">
-            <VBox alignment="TOP_CENTER" spacing="28">
-                <padding><Insets top="24" right="32" bottom="24" left="32"/></padding>
-
-                <!-- PROGRESS STEPS -->
-                <HBox alignment="CENTER" maxWidth="600" spacing="0">
-                    <!-- Step 1: DONE -->
-                    <VBox alignment="CENTER" spacing="8">
-                        <StackPane>
-                            <Circle fx:id="step1Circle" radius="17" styleClass="step-circle-done"/>
-                            <SVGPath content="M5 13l4 4L19 7" stroke="WHITE" strokeWidth="2.5" fill="TRANSPARENT" scaleX="0.8" scaleY="0.8"/>
-                        </StackPane>
-                        <Label text="Adresse" styleClass="step-label-done"/>
-                    </VBox>
-
-                    <Rectangle height="2" width="100" styleClass="progress-line-done" HBox.hgrow="ALWAYS" />
-
-                    <!-- Step 2: ACTIVE -->
-                    <VBox alignment="CENTER" spacing="8">
-                        <StackPane>
-                            <Circle fx:id="step2Circle" radius="17" styleClass="step-circle-active"/>
-                            <Label text="2" styleClass="step-number-active"/>
-                        </StackPane>
-                        <Label text="Paiement" styleClass="step-label-active"/>
-                    </VBox>
-
-                    <Rectangle height="2" width="100" styleClass="progress-line-future" HBox.hgrow="ALWAYS" />
-
-                    <!-- Step 3: FUTURE -->
-                    <VBox alignment="CENTER" spacing="8">
-                        <StackPane>
-                            <Circle fx:id="step3Circle" radius="17" styleClass="step-circle-future"/>
-                            <Label text="3" styleClass="step-number-future"/>
-                        </StackPane>
-                        <Label text="Confirmation" styleClass="step-label-future"/>
-                    </VBox>
+<StackPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.CheckoutController" stylesheets="@../css/checkout.css" styleClass="root" fx:id="rootStackPane">
+    <ScrollPane fx:id="checkoutScrollPane" fitToWidth="true" fitToHeight="false" vbarPolicy="ALWAYS" style="-fx-background-color: transparent; -fx-background: white; -fx-border-width: 0;">
+        <VBox alignment="TOP_CENTER" spacing="0">
+            <VBox maxWidth="1200" alignment="TOP_CENTER" spacing="28">
+                
+                <!-- NAVBAR (Now inside ScrollPane) -->
+                <HBox alignment="CENTER_LEFT" spacing="20" styleClass="navbar" prefHeight="70">
+                    <Button styleClass="nav-button" onAction="#goBack">
+                        <graphic>
+                            <SVGPath content="M15 19l-7-7 7-7" fill="WHITE" stroke="WHITE" strokeWidth="2"/>
+                        </graphic>
+                    </Button>
+                    <Label text="Paiement Sécurisé" styleClass="nav-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <HBox alignment="CENTER" spacing="10">
+                        <SVGPath content="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="#FDBF50" styleClass="nav-icon"/>
+                    </HBox>
                 </HBox>
 
-                <!-- STEP PANELS -->
-                <StackPane maxWidth="600">
-                    <!-- PANEL 1: ADRESSE -->
-                    <VBox fx:id="step1Form" spacing="24">
-                        <Label text="Informations de livraison" styleClass="header-title"/>
-                        
-                        <GridPane hgap="16" vgap="16">
-                            <columnConstraints>
-                                <ColumnConstraints hgrow="ALWAYS" percentWidth="50" />
-                                <ColumnConstraints hgrow="ALWAYS" percentWidth="50" />
-                            </columnConstraints>
+                <VBox alignment="TOP_CENTER" spacing="28">
+                    <padding><Insets top="24" right="32" bottom="24" left="32"/></padding>
 
-                            <!-- Prénom + Nom -->
-                            <TextField fx:id="txtPrenom" promptText="Prénom" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="0" editable="false"/>
-                            <TextField fx:id="txtNom" promptText="Nom" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="0" editable="false"/>
-
-                            <!-- Adresse : ComboBox des adresses sauvegardées + nouvelle -->
-                            <ComboBox fx:id="cmbAdresse" promptText="Choisissez une adresse..." styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2" maxWidth="Infinity"/>
-
-                            <!-- Nouvelle adresse (visible uniquement si "Nouvelle adresse" sélectionné) -->
-                            <TextField fx:id="txtNouvelleAdresse" promptText="Nouvelle adresse de livraison" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2" visible="false" managed="false"/>
-
-                            <!-- Ville + Code postal -->
-                            <TextField fx:id="txtVille" promptText="Ville" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
-                            <TextField fx:id="txtCodePostal" promptText="Code postal" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
-
-                            <!-- Téléphone -->
-                            <TextField fx:id="txtTelephone" promptText="Numéro de téléphone" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.columnSpan="2" editable="false"/>
-                        </GridPane>
-
-                        <Label text="Pour modifier vos informations personnelles (Nom, Prénom, Téléphone), veuillez le faire depuis votre profil." wrapText="true" style="-fx-text-fill: #666666; -fx-font-size: 12px; -fx-font-style: italic;"/>
-
-                        <Button text="Continuer →" styleClass="btn-primary" maxWidth="Infinity" prefHeight="48" onAction="#goToStep2"/>
-                    </VBox>
-
-                    <!-- PANEL 2: PAIEMENT -->
-                    <VBox fx:id="step2Form" visible="false" managed="false" spacing="24">
-                        <Label text="Méthode de paiement" styleClass="header-title"/>
-                        
-                        <HBox spacing="16">
-                            <VBox fx:id="cardOption" spacing="12" styleClass="payment-option" HBox.hgrow="ALWAYS">
-                                <HBox alignment="CENTER_LEFT" spacing="12">
-                                    <SVGPath content="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M12 18h.01" styleClass="payment-icon"/>
-                                    <RadioButton fx:id="radioCard" selected="true"/>
-                                    <Label text="Carte bancaire" style="-fx-font-weight: bold;"/>
-                                </HBox>
-                            </VBox>
-                            <VBox fx:id="cashOption" spacing="12" styleClass="payment-option" HBox.hgrow="ALWAYS">
-                                <HBox alignment="CENTER_LEFT" spacing="12">
-                                    <SVGPath content="M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5 21a2.5 2.5 0 1 0 0-4 2.5 2.5 0 0 0 0 4z M17 21a2.5 2.5 0 1 0 0-4 2.5 2.5 0 0 0 0 4z" styleClass="payment-icon"/>
-                                    <RadioButton fx:id="radioCash"/>
-                                    <Label text="Paiement à la livraison" style="-fx-font-weight: bold;"/>
-                                </HBox>
-                            </VBox>
-                        </HBox>
-
-                        <VBox fx:id="cardFormBox" spacing="20" styleClass="card-pink">
-                            <!-- Local Card Preview -->
-                            <VBox styleClass="card-preview" spacing="15">
-                                <Label text="CHRI ONLINE" styleClass="card-brand"/>
-                                <Label fx:id="lblCardNumberPreview" text="•••• •••• •••• 3456" styleClass="card-number"/>
-                                <HBox spacing="20">
-                                    <Label fx:id="lblExpiryPreview" text="03/28" styleClass="card-expiry"/>
-                                    <Label text="CVV" styleClass="card-cvv"/>
-                                </HBox>
-                            </VBox>
-
-                            <GridPane hgap="16" vgap="16">
-                                <TextField fx:id="txtCardNumber" promptText="Numéro de carte" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2" onKeyReleased="#updateCardPreview"/>
-                                <TextField fx:id="txtExpiry" promptText="MM/YY" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                                <TextField promptText="CVV" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
-                            </GridPane>
-                        </VBox>
-
-                        <HBox spacing="16">
-                            <Button text="← Retour" styleClass="button" prefHeight="48" HBox.hgrow="ALWAYS" maxWidth="Infinity" onAction="#goToStep1"/>
-                            <Button text="Confirmer le paiement" styleClass="btn-primary" prefHeight="48" HBox.hgrow="ALWAYS" maxWidth="Infinity" onAction="#goToStep3"/>
-                        </HBox>
-                    </VBox>
-
-                    <!-- PANEL 3: CONFIRMATION -->
-                    <VBox fx:id="step3Form" visible="false" managed="false" alignment="CENTER" spacing="28" styleClass="card-pink">
-                        <StackPane>
-                            <Circle radius="40" fill="#f0fdf4"/>
-                            <SVGPath content="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="4" fill="TRANSPARENT" scaleX="1.5" scaleY="1.5"/>
-                        </StackPane>
-                        
+                    <!-- PROGRESS STEPS -->
+                    <HBox alignment="CENTER" maxWidth="600" spacing="0">
+                        <!-- Step 1: DONE -->
                         <VBox alignment="CENTER" spacing="8">
-                            <Label text="Commande confirmée !" styleClass="header-title"/>
-                            <Label fx:id="lblOrderId" text="#CHR-0000" styleClass="order-id"/>
+                            <StackPane>
+                                <Circle fx:id="step1Circle" radius="17" styleClass="step-circle-done"/>
+                                <SVGPath content="M5 13l4 4L19 7" stroke="WHITE" strokeWidth="2.5" fill="TRANSPARENT" scaleX="0.8" scaleY="0.8"/>
+                            </StackPane>
+                            <Label text="Adresse" styleClass="step-label-done"/>
                         </VBox>
 
-                        <VBox alignment="CENTER" spacing="12" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 14;">
-                            <Label text="Récapitulatif des produits :" style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #34495E;"/>
-                            <ScrollPane prefHeight="120" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: #DCDDE1; -fx-border-radius: 8;">
-                                <VBox fx:id="vboxOrderSummary" spacing="8" style="-fx-padding: 10;">
-                                    <Label text="Chargement..." style="-fx-text-fill: #95A5A6;"/>
+                        <Rectangle height="2" width="100" styleClass="progress-line-done" HBox.hgrow="ALWAYS" />
+
+                        <!-- Step 2: ACTIVE -->
+                        <VBox alignment="CENTER" spacing="8">
+                            <StackPane>
+                                <Circle fx:id="step2Circle" radius="17" styleClass="step-circle-active"/>
+                                <Label text="2" styleClass="step-number-active"/>
+                            </StackPane>
+                            <Label text="Paiement" styleClass="step-label-active"/>
+                        </VBox>
+
+                        <Rectangle height="2" width="100" styleClass="progress-line-future" HBox.hgrow="ALWAYS" />
+
+                        <!-- Step 3: FUTURE -->
+                        <VBox alignment="CENTER" spacing="8">
+                            <StackPane>
+                                <Circle fx:id="step3Circle" radius="17" styleClass="step-circle-future"/>
+                                <Label text="3" styleClass="step-number-future"/>
+                            </StackPane>
+                            <Label text="Confirmation" styleClass="step-label-future"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- STEP PANELS -->
+                    <StackPane maxWidth="600">
+                        <!-- PANEL 1: ADRESSE -->
+                        <VBox fx:id="step1Form" spacing="24">
+                            <Label text="Informations de livraison" styleClass="header-title"/>
+                            
+                            <GridPane hgap="16" vgap="16">
+                                <columnConstraints>
+                                    <ColumnConstraints hgrow="ALWAYS" percentWidth="50" />
+                                    <ColumnConstraints hgrow="ALWAYS" percentWidth="50" />
+                                </columnConstraints>
+
+                                <!-- Prénom + Nom -->
+                                <TextField fx:id="txtPrenom" promptText="Prénom" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="0" editable="false"/>
+                                <TextField fx:id="txtNom" promptText="Nom" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="0" editable="false"/>
+
+                                <!-- Adresse : ComboBox des adresses sauvegardées + nouvelle -->
+                                <ComboBox fx:id="cmbAdresse" promptText="Choisissez une adresse..." styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2" maxWidth="Infinity"/>
+
+                                <!-- Nouvelle adresse (visible uniquement si "Nouvelle adresse" sélectionné) -->
+                                <TextField fx:id="txtNouvelleAdresse" promptText="Nouvelle adresse de livraison" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="2" GridPane.columnSpan="2" visible="false" managed="false"/>
+
+                                <!-- Ville + Code postal -->
+                                <TextField fx:id="txtVille" promptText="Ville" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                                <TextField fx:id="txtCodePostal" promptText="Code postal" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+                                <!-- Téléphone -->
+                                <TextField fx:id="txtTelephone" promptText="Numéro de téléphone" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="4" GridPane.columnSpan="2" editable="false"/>
+                            </GridPane>
+
+                            <Label text="Pour modifier vos informations personnelles (Nom, Prénom, Téléphone), veuillez le faire depuis votre profil." wrapText="true" style="-fx-text-fill: #666666; -fx-font-size: 12px; -fx-font-style: italic;"/>
+
+                            <Button text="Continuer →" styleClass="btn-primary" maxWidth="Infinity" prefHeight="48" onAction="#goToStep2"/>
+                        </VBox>
+
+                        <!-- PANEL 2: PAIEMENT -->
+                        <VBox fx:id="step2Form" visible="false" managed="false" spacing="24">
+                            <Label text="Méthode de paiement" styleClass="header-title"/>
+                            
+                            <HBox spacing="16">
+                                <VBox fx:id="cardOption" spacing="12" styleClass="payment-option" HBox.hgrow="ALWAYS">
+                                    <HBox alignment="CENTER_LEFT" spacing="12">
+                                        <SVGPath content="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M12 18h.01" styleClass="payment-icon"/>
+                                        <RadioButton fx:id="radioCard" selected="true"/>
+                                        <Label text="Carte bancaire" style="-fx-font-weight: bold;"/>
+                                    </HBox>
                                 </VBox>
-                            </ScrollPane>
-                            <Region style="-fx-min-height: 1; -fx-background-color: #DCDDE1; -fx-max-height: 1;"/>
-                            <Label fx:id="lblOrderTotal" text="Montant : 0.00 MAD" style="-fx-font-size: 16; -fx-text-fill: #2C3E50;"/>
-                            <Label fx:id="lblDeliveryDate" text="Livraison prévue : --/--/----" style="-fx-font-size: 14; -fx-text-fill: #7F8C8D; -fx-font-style: italic;"/>
+                                <VBox fx:id="cashOption" spacing="12" styleClass="payment-option" HBox.hgrow="ALWAYS">
+                                    <HBox alignment="CENTER_LEFT" spacing="12">
+                                        <SVGPath content="M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5 21a2.5 2.5 0 1 0 0-4 2.5 2.5 0 0 0 0 4z M17 21a2.5 2.5 0 1 0 0-4 2.5 2.5 0 0 0 0 4z" styleClass="payment-icon"/>
+                                        <RadioButton fx:id="radioCash"/>
+                                        <Label text="Paiement à la livraison" style="-fx-font-weight: bold;"/>
+                                    </HBox>
+                                </VBox>
+                            </HBox>
+
+                            <VBox fx:id="cardFormBox" spacing="20" styleClass="card-pink">
+                                <!-- Local Card Preview -->
+                                <VBox styleClass="card-preview" spacing="15">
+                                    <Label text="CHRI ONLINE" styleClass="card-brand"/>
+                                    <Label fx:id="lblCardNumberPreview" text="•••• •••• •••• 3456" styleClass="card-number"/>
+                                    <HBox spacing="20">
+                                        <Label fx:id="lblExpiryPreview" text="03/28" styleClass="card-expiry"/>
+                                        <Label text="CVV" styleClass="card-cvv"/>
+                                    </HBox>
+                                </VBox>
+
+                                <GridPane hgap="16" vgap="16">
+                                    <TextField fx:id="txtCardNumber" promptText="Numéro de carte" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2" onKeyReleased="#updateCardPreview"/>
+                                    <TextField fx:id="txtExpiry" promptText="MM/YY" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                                    <TextField fx:id="txtCvv" promptText="CVV" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                                </GridPane>
+                            </VBox>
+
+                            <HBox spacing="16">
+                                <Button text="← Retour" styleClass="button" prefHeight="48" HBox.hgrow="ALWAYS" maxWidth="Infinity" onAction="#goToStep1"/>
+                                <Button text="Confirmer le paiement" styleClass="btn-primary" prefHeight="48" HBox.hgrow="ALWAYS" maxWidth="Infinity" onAction="#goToStep3"/>
+                            </HBox>
                         </VBox>
 
-                        <Button text="Retour à l'accueil" styleClass="btn-navy" prefHeight="48" maxWidth="Infinity" onAction="#goToHome"/>
-                    </VBox>
+                        <!-- PANEL 3: CONFIRMATION -->
+                        <VBox fx:id="step3Form" visible="false" managed="false" alignment="CENTER" spacing="28" styleClass="card-pink">
+                            <StackPane>
+                                <Circle radius="40" fill="#f0fdf4"/>
+                                <SVGPath content="M5 13l4 4L19 7" stroke="#22c55e" strokeWidth="4" fill="TRANSPARENT" scaleX="1.5" scaleY="1.5"/>
+                            </StackPane>
+                            
+                            <VBox alignment="CENTER" spacing="8">
+                                <Label text="Commande confirmée !" styleClass="header-title"/>
+                                <Label fx:id="lblOrderId" text="#CHR-0000" styleClass="order-id"/>
+                            </VBox>
 
-                </StackPane>
+                            <VBox alignment="CENTER" spacing="12" style="-fx-background-color: #f8f9fa; -fx-padding: 20; -fx-background-radius: 14;">
+                                <Label text="Récapitulatif des produits :" style="-fx-font-weight: bold; -fx-font-size: 14; -fx-text-fill: #34495E;"/>
+                                <ScrollPane prefHeight="120" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: #DCDDE1; -fx-border-radius: 8;">
+                                    <VBox fx:id="vboxOrderSummary" spacing="8" style="-fx-padding: 10;">
+                                        <Label text="Chargement..." style="-fx-text-fill: #95A5A6;"/>
+                                    </VBox>
+                                </ScrollPane>
+                                <Region style="-fx-min-height: 1; -fx-background-color: #DCDDE1; -fx-max-height: 1;"/>
+                                <Label fx:id="lblOrderTotal" text="Montant : 0.00 MAD" style="-fx-font-size: 16; -fx-text-fill: #2C3E50;"/>
+                                <Label fx:id="lblDeliveryDate" text="Livraison prévue : --/--/----" style="-fx-font-size: 14; -fx-text-fill: #7F8C8D; -fx-font-style: italic;"/>
+                            </VBox>
+
+                            <Button text="Retour à l'accueil" styleClass="btn-navy" prefHeight="48" maxWidth="Infinity" onAction="#goToHome"/>
+                        </VBox>
+                    </StackPane>
+                </VBox>
             </VBox>
-        </ScrollPane>
-    </center>
-</BorderPane>
-
+        </VBox>
+    </ScrollPane>
+</StackPane>

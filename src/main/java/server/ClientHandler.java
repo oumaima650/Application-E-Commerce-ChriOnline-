@@ -286,7 +286,19 @@ public class ClientHandler implements Runnable {
                     // Commande
                     // ───────────────────────────────
                     
-                    case VALIDATE_ORDER -> commandeService.passerCommande(requete);
+                    case VALIDATE_ORDER -> {
+                        System.out.println("[DEBUG_CH_1] VALIDATE_ORDER reçu par ClientHandler");
+                        Reponse res = commandeService.passerCommande(requete);
+                        if (res.getDonnees() != null) {
+                            System.out.println("[ClientHandler] VALIDATE_ORDER Données retournées : " + res.getDonnees().keySet());
+                            if (res.getDonnees().containsKey("items")) {
+                                List<?> items = (List<?>) res.getDonnees().get("items");
+                                System.out.println("[ClientHandler] Nombre d'items: " + (items != null ? items.size() : 0));
+                            }
+                            System.out.println("[ClientHandler] Total: " + res.getDonnees().get("total"));
+                        }
+                        yield res;
+                    }
                     case GET_ORDERS -> commandeService.getCommandesByClient(requete);
                     case GET_ORDER -> commandeService.getCommandeByReference(requete);
                     case GET_ORDERS_FILTERED -> commandeService.getCommandesFiltrees(requete);
@@ -300,6 +312,8 @@ public class ClientHandler implements Runnable {
                     case ADD_ADDRESS   -> clientService.addAdresse(requete);
                     
                     case ADD_AVIS      -> avisService.addAvis(requete);
+                    case GET_USER_AVIS_FOR_PRODUCT -> avisService.getUserAvisForProduct(requete);
+                    case UPDATE_AVIS   -> avisService.updateAvis(requete);
 
 
                     
