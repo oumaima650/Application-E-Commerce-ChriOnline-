@@ -21,17 +21,19 @@
 
     <!-- Contenu Principal -->
     <center>
-        <VBox alignment="TOP_CENTER" spacing="20" style="-fx-padding: 30px;">
-            <HBox maxWidth="600">
-                <Label text="Réception en temps réel" styleClass="subtitle" />
-                <Region HBox.hgrow="ALWAYS"/>
-                <Button text="Marquer tout comme lu" styleClass="button" style="-fx-background-color: transparent; -fx-text-fill: #888888; -fx-cursor: hand;" onAction="#clearNotifications"/>
-            </HBox>
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #F8F9FA;">
+            <VBox alignment="TOP_CENTER" spacing="20" style="-fx-padding: 30px;">
+                <HBox maxWidth="600">
+                    <Label text="Réception en temps réel" styleClass="subtitle" />
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="Marquer tout comme lu" styleClass="button" style="-fx-background-color: transparent; -fx-text-fill: #888888; -fx-cursor: hand;" onAction="#clearNotifications"/>
+                </HBox>
 
-            <!-- Liste dynamique de notifications UDP -->
-            <VBox fx:id="notificationsBox" spacing="15" maxWidth="600">
-                <!-- Les notifications arriveront ici programmatiquement -->
+                <!-- Liste dynamique de notifications UDP -->
+                <VBox fx:id="notificationsBox" spacing="15" maxWidth="600">
+                    <!-- Les notifications arriveront ici programmatiquement -->
+                </VBox>
             </VBox>
-        </VBox>
+        </ScrollPane>
     </center>
 </BorderPane>

@@ -78,6 +78,10 @@ public class NotificationsController {
                     if (notificationsBox != null) notificationsBox.getChildren().clear();
                     
                     if (notifsData != null) {
+                        // Trier par date croissante pour que l'ajout au début (index 0) 
+                        // aboutisse aux plus récents en haut.
+                        notifsData.sort((n1, n2) -> n1.getCreatedAt().compareTo(n2.getCreatedAt()));
+
                         int unreadCount = 0;
                         for (Notification n : notifsData) {
                             boolean isUnread = n.getStatut() == Notification.StatutNotification.NON_LU;
@@ -168,7 +172,7 @@ public class NotificationsController {
 
         card.getChildren().addAll(header, txtMessage);
         
-        // Ajouter au début de la liste (les plus récents en haut)
+        // Ajouter au début de la liste (index 0) pour que les plus récents soient en haut
         if (notificationsBox != null) {
             notificationsBox.getChildren().add(0, card);
         }
