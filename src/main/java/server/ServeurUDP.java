@@ -6,24 +6,28 @@ import java.net.InetAddress;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Serveur UDP pour l'envoi de notifications aux clients
+ * Serveur UDP charge de l'envoi des notifications (Systeme Push) aux clients connectes.
+ * Contrairement a TCP, UDP ne necessite pas de maintenir une connexion constante, il "tire"
+ * le message vers le port ecouteur du client.
  */
 public class ServeurUDP {
     private static ServeurUDP instance;
     private final ConcurrentHashMap<Integer, ClientEndPoint> clientsUdp;
     private DatagramSocket socketUdp;
     
+    // Constructeur prive (Design Pattern Singleton)
     private ServeurUDP() {
         this.clientsUdp = new ConcurrentHashMap<>();
         try {
-            // Socket UDP pour l'envoi
+            // Creation du Socket UDP pour l'envoi (le systeme choisit un port libre aleatoire)
             this.socketUdp = new DatagramSocket();
-            System.out.println("[ServeurUDP] Serveur UDP initialisé sur un port aléatoire");
+            System.out.println("[ServeurUDP] Serveur UDP initialise sur un port aleatoire");
         } catch (Exception e) {
             System.err.println("[ServeurUDP] Erreur d'initialisation: " + e.getMessage());
         }
     }
     
+    // Fournit l'unique instance de ServeurUDP a tout le programme
     public static synchronized ServeurUDP getInstance() {
         if (instance == null) {
             instance = new ServeurUDP();
@@ -32,54 +36,59 @@ public class ServeurUDP {
     }
     
     /**
-     * Enregistre un client pour les notifications UDP
+     * Enregistre l'adresse et le port UDP d'un utilisateur specifique.
+     * Cette fonction est appelee lorsque le client se connecte via TCP
+     * et transmet ses coordonnees UDP.
      */
     public void registerClient(int clientId, String ipAddress, int udpPort) {
         ClientEndPoint endPoint = new ClientEndPoint(ipAddress, udpPort, clientId);
         clientsUdp.put(clientId, endPoint);
-        System.out.println("[ServeurUDP] Client enregistré: " + endPoint);
+        System.out.println("[ServeurUDP] Client enregistre: " + endPoint);
     }
     
     /**
-     * Désenregistre un client
+     * Supprime le client du registre UDP (ex: lorsqu'il se deconnecte).
      */
     public void unregisterClient(int clientId) {
         ClientEndPoint removed = clientsUdp.remove(clientId);
         if (removed != null) {
-            System.out.println("[ServeurUDP] Client désenregistré: " + removed);
+            System.out.println("[ServeurUDP] Client desenregistre: " + removed);
         }
     }
     
     /**
-     * Envoie une notification UDP à un client spécifique
+     * Construit et expedie un paquet UDP contenant le message texte
+     * vers l'adresse IP et le port UDP d'un client cible par son ID.
      */
     public boolean envoyerNotification(int clientId, String message) {
         ClientEndPoint endPoint = clientsUdp.get(clientId);
         if (endPoint == null) {
-            System.err.println("[ServeurUDP] Client " + clientId + " non trouvé pour notification UDP");
+            System.err.println("[ServeurUDP] Client " + clientId + " non trouve pour notification UDP");
             return false;
         }
         
         try {
             byte[] buffer = message.getBytes();
             InetAddress address = InetAddress.getByName(endPoint.getIpAddress());
+            // Creation de l'enveloppe contenant le message et l'adresse de destination
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length, address, endPoint.getUdpPort());
             
+            // Lancement du paquet sur le reseau
             socketUdp.send(packet);
-            System.out.println("[ServeurUDP] Notification envoyée à " + endPoint + ": " + message);
+            System.out.println("[ServeurUDP] Notification envoyee a " + endPoint + ": " + message);
             return true;
             
         } catch (Exception e) {
-            System.err.println("[ServeurUDP] Erreur envoi notification à " + clientId + ": " + e.getMessage());
+            System.err.println("[ServeurUDP] Erreur envoi notification a " + clientId + ": " + e.getMessage());
             return false;
         }
     }
     
     /**
-     * Envoie une notification à tous les clients connectés
+     * Diffuse un meme message a l'ensemble des clients enregistres.
      */
     public void envoyerNotificationGlobale(String message) {
-        System.out.println("[ServeurUDP] Envoi notification globale à " + clientsUdp.size() + " clients");
+        System.out.println("[ServeurUDP] Envoi notification globale a " + clientsUdp.size() + " clients");
         
         clientsUdp.forEach((clientId, endPoint) -> {
             envoyerNotification(clientId, message);
@@ -87,19 +96,19 @@ public class ServeurUDP {
     }
     
     /**
-     * Vérifie si un client est enregistré pour UDP
+     * Verifie de maniere securisee si le client figure dans le dictionnaire des cibles UDP.
      */
     public boolean isClientRegistered(int clientId) {
         return clientsUdp.containsKey(clientId);
     }
     
     /**
-     * Ferme le serveur UDP
+     * Ferme le port UDP lors de l'arret du serveur pour liberer les ressources.
      */
     public void fermer() {
         if (socketUdp != null && !socketUdp.isClosed()) {
             socketUdp.close();
-            System.out.println("[ServeurUDP] Serveur UDP fermé");
+            System.out.println("[ServeurUDP] Serveur UDP ferme");
         }
     }
 }
