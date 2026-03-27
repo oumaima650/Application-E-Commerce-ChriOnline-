@@ -115,6 +115,29 @@ public class CategorieDAO {
         }
     }
 
+    // Récupère les variantes liées à une catégorie
+    public List<Variante> getVariantes(int idCategorie) {
+        List<Variante> variantes = new ArrayList<>();
+        String query = "SELECT v.* FROM Variante v " +
+                       "JOIN CategorieVariante cv ON v.idVariante = cv.idVariante " +
+                       "WHERE cv.idCategorie = ?";
+        try (Connection conn = ConnexionBDD.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, idCategorie);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Variante v = new Variante();
+                    v.setIdVariante(rs.getInt("idVariante"));
+                    v.setNom(rs.getString("nom"));
+                    variantes.add(v);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de la récupération des variantes pour la catégorie id=" + idCategorie, e);
+        }
+        return variantes;
+    }
+
     // Convertit un résultat SQL en objet Categorie
     private Categorie mapResultSetToCategorie(ResultSet rs) throws SQLException {
         Categorie cat = new Categorie();

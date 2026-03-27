@@ -8,14 +8,16 @@ public class Produit implements Serializable {
     private String nom;
     private String description;
     private LocalDateTime createdAt;
+    private LocalDateTime deletedAt;
 
     public Produit() {}
 
-    public Produit(int idProduit, String nom, String description, LocalDateTime createdAt) {
+    public Produit(int idProduit, String nom, String description, LocalDateTime createdAt, LocalDateTime deletedAt) {
         this.idProduit = idProduit;
         this.nom = nom;
         this.description = description;
         this.createdAt = createdAt;
+        this.deletedAt = deletedAt;
     }
 
     public int getIdProduit() { return idProduit; }
@@ -30,6 +32,9 @@ public class Produit implements Serializable {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+
     @Override
     public String toString() {
         return "Produit{" +
@@ -37,6 +42,7 @@ public class Produit implements Serializable {
                 ", nom='" + nom + '\'' +
                 ", description='" + description + '\'' +
                 ", createdAt=" + createdAt +
+                ", deletedAt=" + deletedAt +
                 '}';
     }
 }
