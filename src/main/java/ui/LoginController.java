@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
+import javafx.scene.control.TextInputDialog;
 
 
 public class LoginController implements Initializable {
@@ -66,6 +67,7 @@ public class LoginController implements Initializable {
 
     @FXML private HBox  strengthBarBox;
     @FXML private Label strengthLabel;
+    @FXML private Hyperlink forgotPasswordLink;
 
 
     @Override
