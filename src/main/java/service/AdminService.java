@@ -21,7 +21,14 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-
+/**
+ * Service gérant la logique métier côté Administrateur.
+ * Il traite les requêtes envoyées par le tableau de bord admin pour :
+ * - Lister/rechercher les commandes et les clients
+ * - Modifier les statuts des commandes
+ * - Gérer les bannissements (Bannir/Débannir) des utilisateurs
+ * Envoie également des notifications UDP en temps réel pour tenir les utilisateurs informés.
+ */
 public class AdminService {
     
     private final ServeurUDP serviceUDP;
@@ -39,6 +46,15 @@ public class AdminService {
         }
     }
 */
+    /**
+     * Récupère la liste de toutes les commandes pour l'interface administrateur.
+     * Si une requête de recherche (query) est fournie, elle filtre par sa référence
+     * ou par son ID client de commande (si numérique).
+     * Les données retournées contiennent l'adresse complète et les totaux calculés.
+     * 
+     * @param requete La requête provenant du client, pouvant contenir le paramètre "query"
+     * @return Une Reponse contenant la collection de commandes sous liste de dictionnaires
+     */
     public Reponse getAllOrders(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -107,6 +123,14 @@ public class AdminService {
         }
     }
 
+    /**
+     * Effectue une recherche spécifique sur les commandes.
+     * Cette méthode duplique en grande partie le comportement de "getAllOrders"
+     * mais est utilisée spécifiquement pour la fonction de recherche de la barre du haut.
+     * 
+     * @param requete Requête contenant le terme de recherche "query"
+     * @return Reponse contenant la liste des commandes trouvées au même format
+     */
     public Reponse searchOrders(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -172,6 +196,13 @@ public class AdminService {
             return new Reponse(false, "Erreur lors de la recherche des commandes: " + e.getMessage(), null);
         }
     }
+    /**
+     * Récupère la liste des clients incrits sur la plateforme.
+     * Elle permet également de rechercher des clients précis grâce au filtre éventuel.
+     * 
+     * @param requete Requête contenant potentiellement un paramètre "query" (nom/prénom, etc)
+     * @return Une Reponse affichant la liste brute des objets model.Client
+     */
     public Reponse getAllClients(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -244,6 +275,16 @@ public class AdminService {
         return null;
     }
 
+    /**
+     * Met à jour le statut d'une commande (ex: Validée, Expédiée, Livrée).
+     * Processus :
+     * 1. Conversion de la chaîne texte en Enum statut de commande.
+     * 2. Mise à jour en BDD et réglage de la Date de Livraison si passée à "Livrée".
+     * 3. Création automatique d'une Notification UDP (NotificationService) envoyée instantanément au client de la commande.
+     * 
+     * @param requete Requête contenant "orderId" (l'ID de commande) et "status" (le nouveau statut textuel)
+     * @return Reponse (Succès ou Échec) traitée par le Côté Administrateur
+     */
     public Reponse updateOrderStatus(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         try {
@@ -284,6 +325,15 @@ public class AdminService {
         }
     }
 
+    /**
+     * Suspend (bannit) un utilisateur de la plateforme.
+     * L'utilisateur banni ne pourra plus se connecter et ne pourra plus passer de paiements/commandes.
+     * Un diagnostic serveur est réalisé pour vérifier l'existence de la cible.
+     * Une Notification automatique sera également persistée et signalée.
+     * 
+     * @param requete Requête contenant l'ID du Client à sanctionner "targetUserId"
+     * @return Reponse de confirmation de bannissement à afficher à l'administrateur
+     */
     public Reponse banUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         int targetUserId = -1;
@@ -318,6 +368,14 @@ public class AdminService {
     }
 
 
+    /**
+     * Lève la suspension (débannit) d'un profil client précédemment suspendu, 
+     * lui permettant à nouveau d'utiliser son compte après décision de modération.
+     * Une notification automatique est diffusée au client.
+     * 
+     * @param requete Requête contenant "targetUserId" (l'ID de l'utilisateur visé)
+     * @return Reponse confirmant en succès la réautorisation de compte
+     */
     public Reponse unbanUser(Requete requete) {
         Map<String, Object> params = requete.getParametres();
         int targetUserId = -1;
