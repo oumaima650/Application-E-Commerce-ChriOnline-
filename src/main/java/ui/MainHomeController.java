@@ -796,60 +796,21 @@ public class MainHomeController implements Initializable {
         avisLabel.setStyle("-fx-text-fill: #aaa; -fx-font-size: 10px;");
         rBox.getChildren().add(avisLabel);
 
-        Button btnAdd = new Button("Ajouter");
+        Button btnAdd = new Button("Détails");
         btnAdd.setMaxWidth(Double.MAX_VALUE);
         btnAdd.setStyle("-fx-background-color: " + BLEU_NUIT
                 + "; -fx-text-fill: white; -fx-font-size: 11px; -fx-background-radius: 50px; -fx-cursor: hand;");
         btnAdd.setOnAction(e -> {
             e.consume(); // Prevent card click
-            if (!SessionManager.getInstance().isAuthenticated()) {
-                SessionManager.getInstance().setPendingRedirect("main-home.fxml", "ChriOnline - Accueil");
-                SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
-                return;
-            }
-
-            Integer idObj = (Integer) p.get("id");
-            if (idObj == null) {
+            Object objId = p.get("id");
+            if (objId instanceof Number) {
+                int id = ((Number) objId).intValue();
+                // Navigate to product detail
+                ProductDetailController.setSelectedProductId(id);
+                SceneManager.switchTo("product-detail.fxml", (String) p.get("nom"));
+            } else {
                 showToast("Produit indisponible");
-                return;
             }
-
-            Task<shared.Reponse> task = new Task<>() {
-                @Override
-                protected shared.Reponse call() {
-                    Map<String, Object> reqP = new HashMap<>();
-                    reqP.put("idProduit", idObj);
-                    String token = SessionManager.getInstance().getSession().getAccessToken();
-                    shared.Reponse skuRep = client.ClientSocket.getInstance()
-                            .envoyer(new shared.Requete(shared.RequestType.GET_SKU_BY_PRODUIT, reqP, token));
-
-                    if (skuRep != null && skuRep.isSucces() && skuRep.getDonnees() != null) {
-                        @SuppressWarnings("unchecked")
-                        List<Map<String, Object>> skus = (List<Map<String, Object>>) skuRep.getDonnees().get("skus");
-                        if (skus != null && !skus.isEmpty()) {
-                            String firstSku = (String) skus.get(0).get("sku");
-                            Map<String, Object> addParams = new HashMap<>();
-                            addParams.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
-                            addParams.put("sku", firstSku);
-                            addParams.put("quantite", 1);
-                            return client.ClientSocket.getInstance()
-                                    .envoyer(new shared.Requete(shared.RequestType.ADD_TO_CART, addParams, token));
-                        }
-                    }
-                    return new shared.Reponse(false, "Produit sans SKU disponible.", null);
-                }
-            };
-
-            task.setOnSucceeded(ev -> {
-                Reponse rep = task.getValue();
-                if (rep != null && rep.isSucces()) {
-                    showToast("Article ajouté au panier !");
-                    updateBadges();
-                } else {
-                    showToast(rep != null ? rep.getMessage() : "Serveur injoignable");
-                }
-            });
-            new Thread(task).start();
         });
 
         card.getChildren().addAll(img, nm, pBox, rBox, btnAdd);

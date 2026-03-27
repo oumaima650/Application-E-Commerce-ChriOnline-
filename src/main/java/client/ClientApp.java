@@ -16,14 +16,9 @@ public class ClientApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        primaryStage.setTitle("ChriOnline - Boutique en ligne");
+        primaryStage.setTitle("ChriOnline - E-Commerce");
         primaryStage.setWidth(1200);
         primaryStage.setHeight(800);
-        primaryStage.setMinWidth(1100);
-        primaryStage.setMinHeight(750);
-
-    public void start(Stage primaryStage) throws Exception {
-        primaryStage.setTitle("ChriOnline - E-Commerce");
         primaryStage.setMinWidth(1100);
         primaryStage.setMinHeight(750);
         
