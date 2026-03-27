@@ -65,7 +65,7 @@ public class PanierService {
 
             if (ligneExistante.isPresent()) {
                 ligneAEnregistrer = ligneExistante.get();
-                ligneAEnregistrer.setQuantite(quantite); // ✅ REMPLACER la quantité, pas additionner
+                ligneAEnregistrer.setQuantite(ligneAEnregistrer.getQuantite() + quantite); // ✅ ADD the quantity
             } else {
                 ligneAEnregistrer = new LignePanier(panier.getIdPanier(), sku, quantite, BigDecimal.ZERO);
                 panier.getLignes().add(ligneAEnregistrer);
@@ -214,7 +214,7 @@ public class PanierService {
         return panierDAO.getLignesParSkus(panier.getIdPanier(), skus);
     }
 
-    public void supprimerLignes(int idClient, java.util.List<String> skus) {
+    public void supprimerArticles(int idClient, java.util.List<String> skus) {
         Panier panier = recupererPanier(idClient);
         panierDAO.supprimerLignesParSkus(panier.getIdPanier(), skus);
     }

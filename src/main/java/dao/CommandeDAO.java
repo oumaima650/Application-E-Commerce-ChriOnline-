@@ -326,6 +326,19 @@ public class CommandeDAO {
             return stmt.executeUpdate() > 0;
         }
     }
+
+    public double getMontantTotal(int idCommande) throws SQLException {
+        String query = "SELECT SUM(quantite * prixAchat) FROM LigneCommande WHERE idCommande = ?";
+        try (Connection connection = ConnexionBDD.getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, idCommande);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble(1);
+            }
+        }
+        return 0.0;
+    }
 }
 
 

@@ -67,6 +67,8 @@ public class MainHomeController implements Initializable {
 
     // Filter Bar Components (promoted to fields for sync)
     private MenuButton catsFilter;
+    private Slider pSlider;
+    private Label priceMaxLabel;
     @FXML
     private Label cartBadge;
     @FXML
@@ -165,6 +167,9 @@ public class MainHomeController implements Initializable {
         catsFilter.setStyle("-fx-background-color: #F8F9FA; -fx-background-radius: 50px; -fx-text-fill: "
                 + BLEU_NUIT + "; -fx-font-size: 12px; -fx-padding: 6 20; -fx-border-color: #EEE; -fx-border-radius: 50px; -fx-cursor: hand;");
 
+        // [USER REQUEST] REMOVED categories dropdown from bar for better UX
+        // bar.getChildren().add(catsFilter); 
+
         // Populate Categories dynamically
         Set<String> categories = new TreeSet<>();
         for (Map<String, Object> p : allProducts) {
@@ -219,26 +224,26 @@ public class MainHomeController implements Initializable {
         HBox pRow = new HBox(15);
         pRow.setAlignment(Pos.CENTER_LEFT);
         
-        Slider pSlider = new Slider(0, 50000, maxPrice);
+        pSlider = new Slider(0, 50000, maxPrice);
         pSlider.setPrefWidth(160);
         pSlider.setStyle(
             ".slider .track { -fx-background-color: #EEE; -fx-pref-height: 4px; } " +
             ".slider .thumb { -fx-background-color: white; -fx-border-color: #DDD; -fx-pref-width: 16px; -fx-pref-height: 16px; }"
         );
         
-        Label v = new Label("Max " + (maxPrice / 1000) + "k");
-        v.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + "; -fx-font-size: 13px;");
+        priceMaxLabel = new Label("Max " + (maxPrice / 1000) + "k");
+        priceMaxLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + "; -fx-font-size: 13px;");
 
         // Debounce price slider
         PauseTransition pause = new PauseTransition(Duration.millis(300));
         pSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
             maxPrice = newVal.intValue();
-            v.setText("Max " + (maxPrice / 1000) + "k");
+            priceMaxLabel.setText("Max " + (maxPrice >= 1000 ? (maxPrice / 1000) + "k" : maxPrice));
             pause.playFromStart();
         });
         pause.setOnFinished(e -> applyFilters());
 
-        pRow.getChildren().addAll(pSlider, v);
+        pRow.getChildren().addAll(pSlider, priceMaxLabel);
         pCont.getChildren().addAll(pLabel, pRow);
 
         Region spacer = new Region();
@@ -254,7 +259,7 @@ public class MainHomeController implements Initializable {
             applyFilters();
         });
 
-        bar.getChildren().addAll(l, catsFilter, toggles, sep, pCont, spacer, sort);
+        bar.getChildren().addAll(l, toggles, sep, pCont, spacer, sort);
 
         if (filterBarContainer != null) {
             filterBarContainer.getChildren().clear();
@@ -557,10 +562,35 @@ public class MainHomeController implements Initializable {
             m.put("image", p.getImage());
             m.put("stock", p.getStock());
             m.put("id", p.getIdProduit());
+            m.put("note", p.getNoteMoyenne());
+            m.put("avisCount", p.getNombreAvis());
             allProducts.add(m);
         }
-
-        applyFilters();
+        
+        // [USER REQUEST] Dynamic price limit
+        int absMax = 0;
+        for (Map<String, Object> p : allProducts) {
+            int price = (int) p.get("prix");
+            if (price > absMax) absMax = price;
+        }
+        
+        // Buffer of 10% or at least a minimum
+        final int finalMax = Math.max(absMax + 1, 100); 
+        
+        Platform.runLater(() -> {
+            if (pSlider != null) {
+                pSlider.setMax(finalMax);
+                // If it's first load or if current maxPrice is unrealisticly high, sync it
+                if (maxPrice > finalMax || maxPrice == 50000) {
+                    maxPrice = finalMax;
+                    pSlider.setValue(finalMax);
+                }
+            }
+            if (priceMaxLabel != null) {
+                priceMaxLabel.setText("Max " + (maxPrice >= 1000 ? (maxPrice / 1000) + "k" : maxPrice));
+            }
+            applyFilters();
+        });
     }
 
     private void applyFilters() {
@@ -747,65 +777,40 @@ public class MainHomeController implements Initializable {
         op.setStyle("-fx-text-fill: #aaa; -fx-font-size: 10px; -fx-strikethrough: true;");
         pBox.getChildren().addAll(sp, op);
 
-        HBox rBox = new HBox(2);
-        for (int i = 0; i < 4; i++)
-            rBox.getChildren().add(IconLibrary.getFilledIcon(IconLibrary.STAR, 10, SAFRAN));
-        rBox.getChildren().add(IconLibrary.getIcon(IconLibrary.STAR, 10, SAFRAN));
+        HBox rBox = new HBox(4);
+        rBox.setAlignment(Pos.CENTER_LEFT);
+        
+        double note = (p.get("note") != null) ? (double) p.get("note") : 0.0;
+        int avis = (p.get("avisCount") != null) ? (int) p.get("avisCount") : 0;
+        
+        // Render 5 stars based on the note
+        for (int i = 1; i <= 5; i++) {
+            if (i <= Math.round(note)) {
+                rBox.getChildren().add(IconLibrary.getFilledIcon(IconLibrary.STAR, 11, SAFRAN));
+            } else {
+                rBox.getChildren().add(IconLibrary.getIcon(IconLibrary.STAR, 11, "#DDD"));
+            }
+        }
+        
+        Label avisLabel = new Label("(" + avis + ")");
+        avisLabel.setStyle("-fx-text-fill: #aaa; -fx-font-size: 10px;");
+        rBox.getChildren().add(avisLabel);
 
-        Button btnAdd = new Button("Ajouter");
+        Button btnAdd = new Button("Détails");
         btnAdd.setMaxWidth(Double.MAX_VALUE);
         btnAdd.setStyle("-fx-background-color: " + BLEU_NUIT
                 + "; -fx-text-fill: white; -fx-font-size: 11px; -fx-background-radius: 50px; -fx-cursor: hand;");
         btnAdd.setOnAction(e -> {
             e.consume(); // Prevent card click
-            if (!SessionManager.getInstance().isAuthenticated()) {
-                SessionManager.getInstance().setPendingRedirect("main-home.fxml", "ChriOnline - Accueil");
-                SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
-                return;
-            }
-
-            Integer idObj = (Integer) p.get("id");
-            if (idObj == null) {
+            Object objId = p.get("id");
+            if (objId instanceof Number) {
+                int id = ((Number) objId).intValue();
+                // Navigate to product detail
+                ProductDetailController.setSelectedProductId(id);
+                SceneManager.switchTo("product-detail.fxml", (String) p.get("nom"));
+            } else {
                 showToast("Produit indisponible");
-                return;
             }
-
-            Task<shared.Reponse> task = new Task<>() {
-                @Override
-                protected shared.Reponse call() {
-                    Map<String, Object> reqP = new HashMap<>();
-                    reqP.put("idProduit", idObj);
-                    String token = SessionManager.getInstance().getSession().getAccessToken();
-                    shared.Reponse skuRep = client.ClientSocket.getInstance()
-                            .envoyer(new shared.Requete(shared.RequestType.GET_SKU_BY_PRODUIT, reqP, token));
-
-                    if (skuRep != null && skuRep.isSucces() && skuRep.getDonnees() != null) {
-                        @SuppressWarnings("unchecked")
-                        List<Map<String, Object>> skus = (List<Map<String, Object>>) skuRep.getDonnees().get("skus");
-                        if (skus != null && !skus.isEmpty()) {
-                            String firstSku = (String) skus.get(0).get("SKU");
-                            Map<String, Object> addParams = new HashMap<>();
-                            addParams.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
-                            addParams.put("sku", firstSku);
-                            addParams.put("quantite", 1);
-                            return client.ClientSocket.getInstance()
-                                    .envoyer(new shared.Requete(shared.RequestType.ADD_TO_CART, addParams, token));
-                        }
-                    }
-                    return new shared.Reponse(false, "Produit sans SKU disponible.", null);
-                }
-            };
-
-            task.setOnSucceeded(ev -> {
-                Reponse rep = task.getValue();
-                if (rep != null && rep.isSucces()) {
-                    showToast("Article ajouté au panier !");
-                    updateBadges();
-                } else {
-                    showToast(rep != null ? rep.getMessage() : "Serveur injoignable");
-                }
-            });
-            new Thread(task).start();
         });
 
         card.getChildren().addAll(img, nm, pBox, rBox, btnAdd);
@@ -959,42 +964,70 @@ public class MainHomeController implements Initializable {
         System.out.println("Hero Action: Click");
     }
 
-    @FXML
+        @FXML
     private void handleCartClick() {
-        SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
+        if (SessionManager.getInstance().isAuthenticated()) {
+            SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
+        } else {
+            // Mémoriser pour revenir au panier après le login
+            SessionManager.getInstance().setPendingRedirect("panier.fxml", "Mon Panier - ChriOnline");
+            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+        }
     }
+
 
     @FXML
     private void handleCreateAccountClick() {
+        SessionManager.getInstance().setPendingRedirect("main-home.fxml", "ChriOnline - Accueil");
         SceneManager.switchTo("login.fxml", "Créer un compte - ChriOnline");
     }
     
-    @FXML
+        @FXML
     private void handleUserClick() {
-        if (userAvatar == null)
-            return;
+        if (userAvatar == null) return;
 
         ContextMenu userMenu = new ContextMenu();
-        MenuItem miCompte = new MenuItem("Mon compte");
-        MenuItem miCommandes = new MenuItem("Mes commandes");
-        MenuItem miDeconnexion = new MenuItem("Déconnexion");
-
-        miCompte.setOnAction(e -> SceneManager.switchTo("profile.fxml", "Mon Profil - ChriOnline"));
-        miCommandes.setOnAction(e -> SceneManager.switchTo("commandes.fxml", "Mes Commandes - ChriOnline"));
-
-        miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
-        miDeconnexion.setOnAction(e -> {
-            SessionManager.getInstance().fermer();
-            SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
-        });
-
-        userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
+        
+        if (SessionManager.getInstance().isAuthenticated()) {
+            MenuItem miCompte = new MenuItem("Mon compte");
+            MenuItem miCommandes = new MenuItem("Mes commandes");
+            MenuItem miDeconnexion = new MenuItem("Déconnexion");
+            
+            miCompte.setOnAction(e -> SceneManager.switchTo("profile.fxml", "Mon Profil - ChriOnline"));
+            miCommandes.setOnAction(e -> SceneManager.switchTo("commandes.fxml", "Mes Commandes - ChriOnline"));
+            
+            miDeconnexion.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
+            miDeconnexion.setOnAction(e -> {
+                SessionManager.getInstance().fermer();
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
+            });
+            
+            userMenu.getItems().addAll(miCompte, miCommandes, new SeparatorMenuItem(), miDeconnexion);
+        } else {
+            MenuItem miConnexion = new MenuItem("Se connecter");
+            miConnexion.setStyle("-fx-font-weight: bold; -fx-text-fill: " + CORAIL + ";");
+            miConnexion.setOnAction(e -> {
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+            });
+            
+            MenuItem miInscription = new MenuItem("Créer un compte");
+            miInscription.setOnAction(e -> {
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo("login.fxml", "Inscription - ChriOnline");
+            });
+            
+            userMenu.getItems().addAll(miConnexion, miInscription);
+        }
+        
         userMenu.show(userAvatar, javafx.geometry.Side.BOTTOM, 0, 0);
     }
 
 
     @FXML
     private void handleLoginClick() {
+        SessionManager.getInstance().setPendingRedirect("main-home.fxml", "ChriOnline - Accueil");
         SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
     }
 
