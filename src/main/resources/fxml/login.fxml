@@ -18,28 +18,9 @@
     minWidth="420" minHeight="560">
 
     <!-- ══ Background layer ════════════════════════════════════ -->
-    <Region styleClass="bg-pink" maxWidth="Infinity" maxHeight="Infinity"/>
+    <Region styleClass="bg-theme" maxWidth="Infinity" maxHeight="Infinity"/>
 
-    <!-- Decorative blob — top-left -->
-    <Circle
-        radius="140"
-        styleClass="deco-blob-1"
-        StackPane.alignment="TOP_LEFT"
-        translateX="-60" translateY="-60"/>
 
-    <!-- Decorative blob — bottom-right -->
-    <Circle
-        radius="100"
-        styleClass="deco-blob-2"
-        StackPane.alignment="BOTTOM_RIGHT"
-        translateX="50" translateY="50"/>
-
-    <!-- Decorative small accent — top-right -->
-    <Circle
-        radius="44"
-        styleClass="deco-blob-3"
-        StackPane.alignment="TOP_RIGHT"
-        translateX="-30" translateY="80"/>
 
     <!-- ══ Auth Card ═══════════════════════════════════════════ -->
     <VBox
@@ -65,12 +46,13 @@
             <Button
                 text="← Boutique"
                 onAction="#handleBackToHome"
-                style="-fx-background-color: transparent; -fx-text-fill: #9CA3AF; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 5 0;"/>
+                style="-fx-background-color: transparent; -fx-text-fill: #8892A4; -fx-font-size: 13px; -fx-cursor: hand; -fx-padding: 5 0;"/>
         </HBox>
 
         <!-- ── Logo / Header ────────────────────────────────── -->
         <VBox styleClass="logo-section" alignment="CENTER" spacing="6">
-            <VBox.margin><Insets top="20" bottom="16" left="24" right="24"/></VBox.margin>
+            <VBox.margin><Insets top="0" bottom="0" left="0" right="0"/></VBox.margin>
+
 
             <!-- Logo row: icon + wordmark -->
             <HBox alignment="CENTER" spacing="12">
@@ -80,10 +62,10 @@
                 </StackPane>
 
                 <!-- Brand wordmark -->
-                <VBox alignment="CENTER_LEFT" spacing="1">
-                    <Label text="ChriOnline" styleClass="logo-wordmark"/>
-                    <Label text="Tech &amp; Smartphones" styleClass="logo-tagline-small"/>
-                </VBox>
+<!--                <VBox alignment="CENTER_LEFT" spacing="1">-->
+<!--                    <Label text="ChriOnline" styleClass="logo-wordmark"/>-->
+<!--                    <Label text="Tech &amp; Smartphones" styleClass="logo-tagline-small"/>-->
+<!--                </VBox>-->
             </HBox>
 
             <!-- Lemon accent bar under logo -->
@@ -100,7 +82,8 @@
             fx:id="mainTabPane"
             styleClass="auth-tab-pane"
             tabClosingPolicy="UNAVAILABLE"
-            VBox.vgrow="ALWAYS">
+            VBox.vgrow="ALWAYS"
+            prefHeight="480">
 
             <!-- ════════════════════════════════════════════════ -->
             <!-- Tab 1 — SE CONNECTER                            -->
@@ -114,7 +97,9 @@
                     alignment="TOP_CENTER">
                     <VBox.margin>
                         <!-- ↑ left/right raised from 36 → 56 for more breathing room -->
-                        <Insets top="28" right="56" bottom="28" left="56"/>
+<!--                        <Insets top="28" right="56" bottom="28" left="56"/>-->
+                        <Insets top="0" right="0" bottom="0" left="0"/>
+
                     </VBox.margin>
 
                     <!-- ── Email ─────────────────────────────── -->
@@ -138,13 +123,7 @@
 
                     <!-- ── Password ──────────────────────────── -->
                     <VBox spacing="7">
-                        <HBox alignment="CENTER_LEFT">
-                            <Label text="Mot de passe" styleClass="field-label"/>
-                            <Region HBox.hgrow="ALWAYS"/>
-                            <Hyperlink
-                                text="Oublié ?"
-                                styleClass="forgot-link"/>
-                        </HBox>
+                        <Label text="Mot de passe" styleClass="field-label"/>
                         <HBox
                             fx:id="loginPasswordWrapper"
                             styleClass="input-wrapper"
@@ -159,6 +138,13 @@
                                 styleClass="auth-field"
                                 HBox.hgrow="ALWAYS"/>
                         </HBox>
+<!--                        <HBox alignment="CENTER_RIGHT">-->
+<!--                            <Hyperlink-->
+<!--                                fx:id="forgotPasswordLink"-->
+<!--                                text="Oublié ?"-->
+<!--                                onAction="#handleForgotPassword"-->
+<!--                                styleClass="forgot-link"/>-->
+<!--                        </HBox>-->
                     </VBox>
 
                     <!-- ── Error Label ────────────────────────── -->
@@ -215,7 +201,9 @@
                         alignment="TOP_CENTER">
                         <VBox.margin>
                             <!-- ↑ left/right raised from 36 → 56 for more breathing room -->
-                            <Insets top="24" right="56" bottom="28" left="56"/>
+<!--                            <Insets top="24" right="56" bottom="28" left="56"/>-->
+                            <Insets top="0" right="0" bottom="0" left="0"/>
+
                         </VBox.margin>
 
                         <!-- ── First Name + Last Name ────────── -->
