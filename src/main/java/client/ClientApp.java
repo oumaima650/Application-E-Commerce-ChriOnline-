@@ -12,7 +12,7 @@ public class ClientApp extends Application {
     // Contrôleur de la page Notifications, accessible globalement
     private static NotificationsController notificationsController;
     private static ClientUDP udpListener;
-    private static final int UDP_PORT = 9090;
+    public static final int UDP_PORT = 9090;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -35,7 +35,7 @@ public class ClientApp extends Application {
 
             // Créer la scène avec les styles
             javafx.scene.Scene scene = new javafx.scene.Scene(root);
-            String cssPath = getClass().getResource("/css/styles.css").toExternalForm();
+            String cssPath = getClass().getResource("/com/chrionline/css/styles.css").toExternalForm();
             scene.getStylesheets().add(cssPath);
             
             primaryStage.setTitle("ChriOnline - Boutique en ligne");
@@ -74,8 +74,8 @@ public class ClientApp extends Application {
         udpListener.start();
         System.out.println("[ClientApp] Client UDP démarré sur le port " + UDP_PORT);
         
-        // DEMARRER SUR LA PAGE D'ACCUEIL (Guest Mode)
-        SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
+        // Démarrer directement sur la page d'accueil (Login)
+        SceneManager.switchTo("login.fxml", "ChriOnline - Accueil");
         
         primaryStage.show();
     }

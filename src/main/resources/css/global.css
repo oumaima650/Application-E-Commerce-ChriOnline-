@@ -24,25 +24,83 @@
    TYPOGRAPHY UTILITIES
 ════════════════════════════════════════════════════════════════ */
 
-.text-navy   { -fx-text-fill: #2A2C41; }
-.text-lilac  { -fx-text-fill: #FF724C; }
-.text-lemon  { -fx-text-fill: #FDBF50; }
-.text-pink   { -fx-text-fill: #F4F4F8; }
-.text-gray   { -fx-text-fill: #8892A4; }
-.text-white  { -fx-text-fill: white; }
-.text-red    { -fx-text-fill: #E74C3C; }
-.text-green  { -fx-text-fill: #2ECC71; }
+.text-navy {
+    -fx-text-fill: #2A2C41;
+}
 
-.bold        { -fx-font-weight: bold; }
-.semibold    { -fx-font-weight: 600; }
-.italic      { -fx-font-style: italic; }
+.text-lilac {
+    -fx-text-fill: #FF724C;
+}
 
-.h1 { -fx-font-size: 32px; -fx-font-weight: bold;  -fx-text-fill: #2A2C41; }
-.h2 { -fx-font-size: 26px; -fx-font-weight: bold;  -fx-text-fill: #2A2C41; }
-.h3 { -fx-font-size: 20px; -fx-font-weight: bold;  -fx-text-fill: #2A2C41; }
-.h4 { -fx-font-size: 16px; -fx-font-weight: bold;  -fx-text-fill: #2A2C41; }
-.body { -fx-font-size: 13px; -fx-text-fill: #2A2C41; }
-.caption { -fx-font-size: 11px; -fx-text-fill: #8892A4; }
+.text-lemon {
+    -fx-text-fill: #FDBF50;
+}
+
+.text-pink {
+    -fx-text-fill: #F4F4F8;
+}
+
+.text-gray {
+    -fx-text-fill: #8892A4;
+}
+
+.text-white {
+    -fx-text-fill: white;
+}
+
+.text-red {
+    -fx-text-fill: #E74C3C;
+}
+
+.text-green {
+    -fx-text-fill: #2ECC71;
+}
+
+.bold {
+    -fx-font-weight: bold;
+}
+
+.semibold {
+    -fx-font-weight: 600;
+}
+
+.italic {
+    -fx-font-style: italic;
+}
+
+.h1 {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2A2C41;
+}
+
+.h2 {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2A2C41;
+}
+
+.h3 {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2A2C41;
+}
+
+.h4 {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2A2C41;
+}
+
+.body {
+    -fx-font-size: 13px;
+    -fx-text-fill: #2A2C41;
+}
+
+.caption {
+    -fx-font-size: 11px;
+    -fx-text-fill: #8892A4;
+}
 
 /* ════════════════════════════════════════════════════════════════
    PRIMARY BUTTON — Lilac fill, white text, rounded
@@ -95,13 +153,13 @@
 }
 
 .secondary-btn:hover {
-    -fx-background-color: rgba(255,114,76,0.10);
+    -fx-background-color: rgba(255, 114, 76, 0.10);
     -fx-border-color: #e8612e;
     -fx-text-fill: #e8612e;
 }
 
 .secondary-btn:pressed {
-    -fx-background-color: rgba(255,114,76,0.20);
+    -fx-background-color: rgba(255, 114, 76, 0.20);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -116,7 +174,9 @@
     -fx-cursor: hand;
 }
 
-.danger-btn:hover { -fx-background-color: #c0392b; }
+.danger-btn:hover {
+    -fx-background-color: #c0392b;
+}
 
 /* ════════════════════════════════════════════════════════════════
    INPUT WRAPPER — bordered container holding icon + field
@@ -133,7 +193,7 @@
 /* Focus state applied programmatically by controller */
 .input-wrapper-focused {
     -fx-border-color: #FF724C;
-    -fx-effect: dropshadow(gaussian, rgba(255,114,76,0.28), 10, 0, 0, 2);
+    -fx-effect: dropshadow(gaussian, rgba(255, 114, 76, 0.28), 10, 0, 0, 2);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -152,7 +212,7 @@
 
 .auth-field:focused {
     -fx-background-color: transparent;
-    -fx-highlight-fill: rgba(255,114,76,0.35);
+    -fx-highlight-fill: rgba(255, 114, 76, 0.35);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -191,7 +251,8 @@
 /* ════════════════════════════════════════════════════════════════
    HYPERLINKS
 ════════════════════════════════════════════════════════════════ */
-.hyperlink, Hyperlink {
+.hyperlink,
+Hyperlink {
     -fx-text-fill: #FF724C;
     -fx-font-size: 12px;
     -fx-underline: false;
@@ -200,12 +261,14 @@
     -fx-cursor: hand;
 }
 
-.hyperlink:hover, Hyperlink:hover {
+.hyperlink:hover,
+Hyperlink:hover {
     -fx-text-fill: #e8612e;
     -fx-underline: true;
 }
 
-.hyperlink:visited, Hyperlink:visited {
+.hyperlink:visited,
+Hyperlink:visited {
     -fx-text-fill: #FF724C;
 }
 
@@ -218,7 +281,9 @@
     -fx-cursor: hand;
 }
 
-.forgot-link:hover { -fx-underline: true; }
+.forgot-link:hover {
+    -fx-underline: true;
+}
 
 /* ════════════════════════════════════════════════════════════════
    DIVIDER ROW
@@ -282,7 +347,7 @@
     -fx-padding: 0;
 }
 
-.form-scroll > .viewport {
+.form-scroll>.viewport {
     -fx-background-color: transparent;
 }
 
@@ -295,12 +360,12 @@
 }
 
 .scroll-bar:vertical .thumb {
-    -fx-background-color: rgba(255,114,76,0.40);
+    -fx-background-color: rgba(255, 114, 76, 0.40);
     -fx-background-radius: 4;
 }
 
 .scroll-bar:vertical .thumb:hover {
-    -fx-background-color: rgba(255,114,76,0.65);
+    -fx-background-color: rgba(255, 114, 76, 0.65);
 }
 
 .scroll-bar:vertical .increment-button,
@@ -342,20 +407,20 @@
 .card {
     -fx-background-color: white;
     -fx-background-radius: 16;
-    -fx-effect: dropshadow(gaussian, rgba(42,44,65,0.10), 20, 0, 0, 6);
+    -fx-effect: dropshadow(gaussian, rgba(42, 44, 65, 0.10), 20, 0, 0, 6);
 }
 
 .card-pink {
     -fx-background-color: #F4F4F8;
     -fx-background-radius: 16;
-    -fx-effect: dropshadow(gaussian, rgba(42,44,65,0.08), 16, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(42, 44, 65, 0.08), 16, 0, 0, 4);
 }
 
 /* ════════════════════════════════════════════════════════════════
    BADGE / CHIP
 ════════════════════════════════════════════════════════════════ */
 .badge-lilac {
-    -fx-background-color: rgba(255,114,76,0.18);
+    -fx-background-color: rgba(255, 114, 76, 0.18);
     -fx-text-fill: #FF724C;
     -fx-background-radius: 20;
     -fx-font-size: 11px;
@@ -400,7 +465,7 @@
     -fx-font-size: 11px;
     -fx-font-weight: bold;
     -fx-text-fill: #E74C3C;
-    -fx-background-color: rgba(231,76,60,0.12);
+    -fx-background-color: rgba(231, 76, 60, 0.12);
     -fx-background-radius: 6;
     -fx-padding: 2 6 2 6;
 }

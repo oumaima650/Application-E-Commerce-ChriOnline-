@@ -3,15 +3,20 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.cell.PropertyValueFactory?>
+<?import javafx.scene.shape.Circle?>
 
-<BorderPane style="-fx-background-color: #F4F4F8;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AdminController">
+<BorderPane style="-fx-background-color: #F4F4F8" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AdminController">
     <!-- Header Admin -->
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20" styleClass="navbar" style="-fx-padding: 15px 30px;">
             <Label text="ChriOnline Admin" styleClass="navbar-logo" style="-fx-font-size: 24px;"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Button text="🔔" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 13px;" onAction="#ouvrirNotifications"/>
-            <Button text="Se déconnecter" styleClass="btn-primary"/>
+            <StackPane fx:id="notifBadge" visible="true">
+                <Button text="🔔" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 16px;" onAction="#ouvrirNotifications"/>
+                <Circle fx:id="notifCircle" radius="8" fill="#FF724C" translateX="12" translateY="-10" mouseTransparent="true" visible="false"/>
+                <Label fx:id="notifCount" text="0" style="-fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold;" translateX="12" translateY="-10" mouseTransparent="true" visible="false"/>
+            </StackPane>
+            <Button text="Se déconnecter" styleClass="btn-primary" onAction="#handleLogout"/>
         </HBox>
     </top>
 
@@ -78,7 +83,7 @@
             <Tab text="👥 Utilisateurs">
                 <VBox spacing="15" style="-fx-padding: 20px;">
                     <HBox spacing="15" alignment="CENTER_LEFT">
-                        <TextField promptText="Rechercher un utilisateur..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
+                        <TextField fx:id="searchClientField" promptText="Rechercher un utilisateur..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
                     </HBox>
                     <TableView fx:id="tableClients" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
