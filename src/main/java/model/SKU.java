@@ -8,14 +8,16 @@ public class SKU implements Serializable {
     private BigDecimal prix;
     private int quantite;
     private String image;
+    private java.time.LocalDateTime deletedAt;
 
     public SKU() {}
 
-    public SKU(String sku, BigDecimal prix, int quantite, String image) {
+    public SKU(String sku, BigDecimal prix, int quantite, String image, java.time.LocalDateTime deletedAt) {
         this.sku = sku;
         this.prix = prix;
         this.quantite = quantite;
         this.image = image;
+        this.deletedAt = deletedAt;
     }
 
     public String getSku() { return sku; }
@@ -30,6 +32,9 @@ public class SKU implements Serializable {
     public String getImage() { return image; }
     public void setImage(String image) { this.image = image; }
 
+    public java.time.LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(java.time.LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+
     @Override
     public String toString() {
         return "SKU{" +
@@ -37,6 +42,7 @@ public class SKU implements Serializable {
                 ", prix=" + prix +
                 ", quantite=" + quantite +
                 ", image='" + image + '\'' +
+                ", deletedAt=" + deletedAt +
                 '}';
     }
 }

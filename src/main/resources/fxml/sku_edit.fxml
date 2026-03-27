@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="20" alignment="CENTER" style="-fx-background-color: white; -fx-padding: 30px; -fx-background-radius: 15px;" 
+      xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="ui.SKUEditController" prefWidth="400">
+    
+    <Label text="Modifier la Variante" styleClass="h2"/>
+    
+    <VBox spacing="10">
+        <Label text="Code SKU (Lecture seule)" styleClass="field-label"/>
+        <TextField fx:id="skuCodeField" editable="false" styleClass="input-field" disable="true"/>
+    </VBox>
+    
+    <HBox spacing="15">
+        <VBox spacing="10" HBox.hgrow="ALWAYS">
+            <Label text="Prix (€)" styleClass="field-label"/>
+            <TextField fx:id="prixField" styleClass="input-field"/>
+        </VBox>
+        <VBox spacing="10" HBox.hgrow="ALWAYS">
+            <Label text="Stock" styleClass="field-label"/>
+            <TextField fx:id="stockField" styleClass="input-field"/>
+        </VBox>
+    </HBox>
+    
+    <VBox spacing="10">
+        <Label text="URL de l'image" styleClass="field-label"/>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <TextField fx:id="imageField" styleClass="input-field" HBox.hgrow="ALWAYS"/>
+            <Button text="Upload" onAction="#handleUploadImage" styleClass="secondary-btn" style="-fx-min-width: 80;"/>
+        </HBox>
+    </VBox>
+    
+    <HBox spacing="15" alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
+        <Button text="Annuler" onAction="#handleCancel" styleClass="secondary-btn"/>
+        <Button text="Enregistrer" onAction="#handleSave" styleClass="primary-btn"/>
+    </HBox>
+    
+</VBox>

@@ -1,8 +1,10 @@
 package ui;
 
 import client.ClientSocket;
+import javafx.stage.Stage;
 import model.Commande;
-//import model.Produit;
+import model.Produit;
+import model.SKU;
 import model.Client;
 import model.Notification;
 import model.enums.StatutCommande;
@@ -12,6 +14,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
 import javafx.util.Callback;
 import shared.Reponse;
 import shared.Requete;
@@ -27,9 +32,11 @@ public class AdminController {
 
     private List<Map<String, Object>> rawCommandesData = new ArrayList<>();
 
-    //@FXML private TableView<Produit> tableProduits;
+    @FXML private VBox productContainer;
     @FXML private TableView<Commande> tableCommandes;
     @FXML private TableView<Client> tableClients;
+    @FXML private TextField searchProduitField;
+    @FXML private Button btnAddSku;
     
     @FXML private TextField searchCommandeField;
     @FXML private TextField searchClientField;
@@ -48,7 +55,7 @@ public class AdminController {
     @FXML private TableColumn<Commande, String> colDateLivraisonReelle;
     @FXML private TableColumn<Commande, Void> colActionsCommande;
     
-    //@FXML private TableColumn<Produit, Void> colActionsProduit;
+    // --- TAB CLIENTS ---
     @FXML private TableColumn<Client, String> colStatutClient;
     @FXML private TableColumn<Client, Void> colActionsClient;
 
@@ -69,13 +76,19 @@ public class AdminController {
     public void initialize() {
         // Configurer les colonnes
         setupColumns();
-        
+
         // Charger les données depuis le backend via TCP
+        loadProduits("");
         loadCommandes("");
         loadClients("");
         loadUnreadCount();
         
         // Configurer recherche
+        if (searchProduitField != null) {
+            searchProduitField.textProperty().addListener((observable, oldValue, newValue) -> {
+                loadProduits(newValue);
+            });
+        }
         if (searchCommandeField != null) {
             searchCommandeField.textProperty().addListener((observable, oldValue, newValue) -> {
                 loadCommandes(newValue);
@@ -87,8 +100,13 @@ public class AdminController {
             });
         }
         
+        if (searchProduitField != null) {
+            searchProduitField.textProperty().addListener((observable, oldValue, newValue) -> {
+                loadProduits(newValue);
+            });
+        }
+
         // Configurer les colonnes interactives
-        //setupProduitActions();
         setupCommandeActions();
         setupClientActions();
     }
@@ -225,6 +243,8 @@ public class AdminController {
             return new javafx.beans.property.SimpleStringProperty("—");
         });
  
+        // -- Colonnes SKUs partagées? Non, on fera ça dynamiquement --
+
         // -- Colonnes Client ------------------------------------------------
         if (colStatutClient != null) {
             colStatutClient.setCellValueFactory(cellData -> {
@@ -232,6 +252,283 @@ public class AdminController {
                 String status = c.getStatut() != null ? c.getStatut() : "CLIENT";
                 return new javafx.beans.property.SimpleStringProperty(status);
             });
+        }
+    }
+
+    private void loadProduits(String searchText) {
+        if (!SessionManager.getInstance().isAuthenticated()) return;
+        String token = SessionManager.getInstance().getSession().getAccessToken();
+
+        javafx.concurrent.Task<Reponse> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Reponse call() {
+                Map<String, Object> params = new HashMap<>();
+                if (searchText != null && !searchText.isEmpty()) params.put("query", searchText);
+                return ClientSocket.getInstance().envoyer(new Requete(RequestType.ADMIN_GET_ALL_PRODUCTS, params, token));
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            Reponse rep = task.getValue();
+            if (rep != null && rep.isSucces()) {
+                @SuppressWarnings("unchecked")
+                List<Produit> produits = (List<Produit>) rep.getDonnees().get("produits");
+                javafx.application.Platform.runLater(() -> {
+                    productContainer.getChildren().clear();
+                    if (produits != null) {
+                        for (Produit p : produits) {
+                            productContainer.getChildren().add(createProductBlock(p));
+                        }
+                    }
+                });
+            } else {
+                String msg = (rep != null) ? rep.getMessage() : "Échec de la communication";
+                javafx.application.Platform.runLater(() -> {
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                    alert.setTitle("Erreur");
+                    alert.setHeaderText("Impossible de charger les produits");
+                    alert.setContentText(msg);
+                    alert.showAndWait();
+                });
+            }
+        });
+        new Thread(task).start();
+    }
+
+    private VBox createProductBlock(Produit p) {
+        VBox block = new VBox(15);
+        block.setStyle("-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);");
+        
+        // Header
+        HBox header = new HBox(15);
+        header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        
+        VBox titles = new VBox(5);
+        
+        HBox nameAndBadge = new HBox(10);
+        nameAndBadge.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        
+        Label lblName = new Label(p.getNom());
+        lblName.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;");
+        
+        if (p.getNomCategorie() != null && !p.getNomCategorie().isEmpty()) {
+            Label badge = new Label(p.getNomCategorie());
+            badge.setStyle("-fx-background-color: #E0E7FF; -fx-text-fill: #4F46E5; -fx-padding: 2 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;");
+            nameAndBadge.getChildren().add(badge);
+        }
+        nameAndBadge.getChildren().add(0, lblName);
+
+        Label lblDesc = new Label(p.getDescription());
+        lblDesc.setStyle("-fx-font-size: 14px; -fx-text-fill: #666;");
+        titles.getChildren().addAll(nameAndBadge, lblDesc);
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+        
+        Button btnEdit = new Button("Modifier");
+        btnEdit.getStyleClass().add("secondary-btn");
+        btnEdit.setStyle("-fx-background-color: #FDBF50; -fx-text-fill: #2A2C41;");
+        btnEdit.setOnAction(e -> {
+            showProductEditDialog(p);
+        });
+        
+        Button btnDelete = new Button(p.getDeletedAt() == null ? "Supprimer" : "Restaurer");
+        btnDelete.setStyle(p.getDeletedAt() == null ? "-fx-background-color: #FF724C; -fx-text-fill: white;" : "-fx-background-color: #2ECC71; -fx-text-fill: white;");
+        btnDelete.setOnAction(e -> {
+            sendDeleteRequest(RequestType.ADMIN_DELETE_PRODUCT, p.getIdProduit(), true);
+        });
+        
+        header.getChildren().addAll(titles, spacer, btnEdit, btnDelete);
+        
+        // Table des SKUs
+        TableView<SKU> skuTable = new TableView<>();
+        skuTable.setPrefHeight(200);
+        skuTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        
+        TableColumn<SKU, String> colCode = new TableColumn<>("Code SKU");
+        colCode.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("sku"));
+        
+        TableColumn<SKU, String> colPrix = new TableColumn<>("Prix");
+        colPrix.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(String.format("%.2f €", c.getValue().getPrix())));
+        
+        TableColumn<SKU, String> colStock = new TableColumn<>("Stock");
+        colStock.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(String.valueOf(c.getValue().getQuantite())));
+        
+        TableColumn<SKU, Void> colActions = new TableColumn<>("Actions");
+        colActions.setCellFactory(param -> new TableCell<>() {
+            private final Button specEdit = new Button("Edit");
+            private final Button specDel = new Button("Del");
+            private final HBox specBox = new HBox(8, specEdit, specDel);
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
+                    setGraphic(null);
+                    setOpacity(1.0);
+                } else {
+                    SKU s = (SKU) getTableRow().getItem();
+                    boolean isDeleted = s.getDeletedAt() != null;
+                    
+                    specEdit.setOnAction(e -> showSKUEditDialog(s));
+                    
+                    if (isDeleted) {
+                        specDel.setText("Restaurer");
+                        specDel.setStyle("-fx-background-color: #2ECC71; -fx-text-fill: white; -fx-font-size: 11px;");
+                        setOpacity(0.5);
+                    } else {
+                        specDel.setText("Supprimer");
+                        specDel.setStyle("-fx-background-color: #FF724C; -fx-text-fill: white; -fx-font-size: 11px;");
+                        setOpacity(1.0);
+                    }
+                    
+                    specDel.setOnAction(e -> sendDeleteRequest(RequestType.DELETE_SKU, s.getSku(), false));
+                    setGraphic(specBox);
+                }
+            }
+        });
+        
+        skuTable.getColumns().addAll(colCode, colPrix, colStock, colActions);
+        
+        block.getChildren().addAll(header, skuTable);
+        
+        // Load data for this table
+        loadSkusForTable(p, skuTable);
+        
+        return block;
+    }
+
+    private void loadSkusForTable(Produit p, TableView<SKU> table) {
+        String token = SessionManager.getInstance().getSession().getAccessToken();
+        javafx.concurrent.Task<Reponse> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Reponse call() {
+                Map<String, Object> params = new HashMap<>();
+                params.put("idProduit", p.getIdProduit());
+                return ClientSocket.getInstance().envoyer(new Requete(RequestType.ADMIN_GET_SKU_BY_PRODUIT, params, token));
+            }
+        };
+        task.setOnSucceeded(e -> {
+            Reponse rep = task.getValue();
+            if (rep != null && rep.isSucces()) {
+                @SuppressWarnings("unchecked")
+                List<SKU> skus = (List<SKU>) rep.getDonnees().get("skus");
+                javafx.application.Platform.runLater(() -> table.setItems(FXCollections.observableArrayList(skus)));
+            }
+        });
+        new Thread(task).start();
+    }
+
+    @FXML private void handleNewProduit() {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/product_add_wizard.fxml"));
+            VBox page = loader.load();
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Ajouter un nouveau Produit (Wizard)");
+            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            dialogStage.initOwner(productContainer.getScene().getWindow());
+            dialogStage.setScene(new javafx.scene.Scene(page));
+
+            // Le controller se rafraîchira tout seul si on ajoute un callback ou si on recharge ici
+            dialogStage.showAndWait();
+            
+            // Rafraîchir la liste après la fermeture du wizard
+            loadProduits(searchProduitField.getText());
+            
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+            alert.setTitle("Erreur de chargement");
+            alert.setContentText("Impossible d'ouvrir le wizard : " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
+
+    @FXML private void handleNewSKU() {
+        // TODO: Implémenter modale ajout SKU
+        System.out.println("Ajouter nouveau SKU");
+    }
+
+
+    private void sendDeleteRequest(RequestType type, Object id, boolean isProduct) {
+        System.out.println("[AdminController] Envoi requête suppression - Type: " + type + ", ID: " + id);
+        String token = SessionManager.getInstance().getSession().getAccessToken();
+        Map<String, Object> params = new HashMap<>();
+        if (isProduct) params.put("idProduit", id);
+        else params.put("sku", id);
+        
+        new Thread(() -> {
+            try {
+                Reponse rep = ClientSocket.getInstance().envoyer(new Requete(type, params, token));
+                javafx.application.Platform.runLater(() -> {
+                    if (rep != null && rep.isSucces()) {
+                        loadProduits(searchProduitField.getText());
+                    } else {
+                        String msg = (rep != null) ? rep.getMessage() : "Le serveur n'a pas répondu.";
+                        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                        alert.setTitle("Erreur");
+                        alert.setHeaderText("L'opération a échoué");
+                        alert.setContentText(msg);
+                        alert.showAndWait();
+                    }
+                });
+            } catch (Exception e) {
+                javafx.application.Platform.runLater(() -> {
+                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                    alert.setTitle("Erreur Fatale");
+                    alert.setContentText("Connexion perdue ou erreur client : " + e.getMessage());
+                    alert.showAndWait();
+                });
+            }
+        }).start();
+    }
+
+    private void showProductEditDialog(Produit p) {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/product_edit.fxml"));
+            VBox page = loader.load();
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Modifier le Produit");
+            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            dialogStage.initOwner(productContainer.getScene().getWindow());
+            dialogStage.setScene(new javafx.scene.Scene(page));
+
+            ProductEditController controller = loader.getController();
+            controller.setDialogStage(dialogStage);
+            controller.setProduit(p);
+
+            dialogStage.showAndWait();
+
+            if (controller.isSaveClicked()) {
+                loadProduits(searchProduitField.getText());
+            }
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showSKUEditDialog(SKU sku) {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/sku_edit.fxml"));
+            VBox page = loader.load();
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("Modifier SKU");
+            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            dialogStage.initOwner(productContainer.getScene().getWindow());
+            javafx.scene.Scene scene = new javafx.scene.Scene(page);
+            dialogStage.setScene(scene);
+
+            SKUEditController controller = loader.getController();
+            controller.setDialogStage(dialogStage);
+            controller.setSKU(sku);
+
+            dialogStage.showAndWait();
+
+            if (controller.isSaveClicked()) {
+                loadProduits(searchProduitField.getText());
+            }
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
         }
     }
 

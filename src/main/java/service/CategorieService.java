@@ -194,4 +194,17 @@ public class CategorieService {
             return new Reponse(false, e.getMessage(), null);
         }
     }
+
+    public Reponse getVariantes(Requete requete) {
+        try {
+            Object idCatParam = requete.getParametres().get("idCategorie");
+            if (!(idCatParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idCategorie doit être Integer).", null);
+            }
+            Integer idCategorie = (Integer) idCatParam;
+            return new Reponse(true, "Liste des variantes récupérée.", Map.of("variantes", categorieDAO.getVariantes(idCategorie)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
 }

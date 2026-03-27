@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox fx:id="wizardRoot" prefWidth="900" prefHeight="700" spacing="0" 
+      style="-fx-background-color: #F8F9FD;" 
+      stylesheets="@../com/chrionline/css/global.css,@../com/chrionline/css/login.css"
+      xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="ui.ProductAddWizardController">
+
+    <!-- ══ Header / Step Indicator ════════════════════════════ -->
+    <VBox spacing="10" style="-fx-background-color: #1A1C2E; -fx-padding: 30 40;">
+        <Label text="Ajouter un Nouveau Produit" style="-fx-text-fill: white; -fx-font-size: 28px; -fx-font-weight: bold;"/>
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <HBox fx:id="step1Indicator" alignment="CENTER" spacing="8" styleClass="step-active">
+                <Label text="1" styleClass="step-number"/>
+                <Label text="Identité" styleClass="step-label"/>
+            </HBox>
+            <Region style="-fx-background-color: #ffffff22; -fx-min-height: 2; -fx-min-width: 40;" HBox.hgrow="NEVER"/>
+            <HBox fx:id="step2Indicator" alignment="CENTER" spacing="8" styleClass="step-inactive">
+                <Label text="2" styleClass="step-number"/>
+                <Label text="Variantes" styleClass="step-label"/>
+            </HBox>
+            <Region style="-fx-background-color: #ffffff22; -fx-min-height: 2; -fx-min-width: 40;" HBox.hgrow="NEVER"/>
+            <HBox fx:id="step3Indicator" alignment="CENTER" spacing="8" styleClass="step-inactive">
+                <Label text="3" styleClass="step-number"/>
+                <Label text="Combinaisons" styleClass="step-label"/>
+            </HBox>
+            <Region style="-fx-background-color: #ffffff22; -fx-min-height: 2; -fx-min-width: 40;" HBox.hgrow="NEVER"/>
+            <HBox fx:id="step4Indicator" alignment="CENTER" spacing="8" styleClass="step-inactive">
+                <Label text="4" styleClass="step-number"/>
+                <Label text="Détails SKUs" styleClass="step-label"/>
+            </HBox>
+        </HBox>
+    </VBox>
+
+    <!-- ══ Content Area ═══════════════════════════════════════ -->
+    <StackPane VBox.vgrow="ALWAYS" style="-fx-padding: 40;">
+        
+        <!-- STEP 1: IDENTITY -->
+        <VBox fx:id="step1Box" spacing="25" visible="true">
+            <VBox spacing="8">
+                <Label text="Nom du Produit" styleClass="field-label" style="-fx-text-fill: #1A1C2E;"/>
+                <TextField fx:id="txtName" promptText="Ex: iPhone 15 Pro Max" styleClass="input-field-light" prefHeight="50"/>
+            </VBox>
+            
+            <VBox spacing="8">
+                <Label text="Description" styleClass="field-label" style="-fx-text-fill: #1A1C2E;"/>
+                <TextArea fx:id="txtDescription" promptText="Description détaillée..." prefHeight="150" wrapText="true" style="-fx-background-radius: 12; -fx-border-radius: 12;"/>
+            </VBox>
+            
+            <VBox spacing="8">
+                <Label text="Catégorie" styleClass="field-label" style="-fx-text-fill: #1A1C2E;"/>
+                <ComboBox fx:id="cbCategory" promptText="Sélectionner une catégorie" maxWidth="Infinity" prefHeight="50" styleClass="combo-box-light"/>
+            </VBox>
+        </VBox>
+
+        <!-- STEP 2: VARIANTS -->
+        <VBox fx:id="step2Box" spacing="20" visible="false">
+            <Label text="Définissez les valeurs pour chaque variante de la catégorie" style="-fx-font-size: 16px; -fx-text-fill: #666;"/>
+            <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;">
+                <VBox fx:id="variantsContainer" spacing="30"/>
+            </ScrollPane>
+        </VBox>
+
+        <!-- STEP 3: COMBINATIONS -->
+        <VBox fx:id="step3Box" spacing="15" visible="false">
+            <HBox alignment="CENTER_LEFT" spacing="20">
+                <VBox HBox.hgrow="ALWAYS">
+                    <Label text="Liste des combinaisons" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+                    <Label text="Générez-les automatiquement ou ajoutez-en manuellement." style="-fx-text-fill: #666;"/>
+                </VBox>
+                <Button text="Tout Générer" onAction="#handleAutoGenerate" styleClass="btn-secondary"/>
+            </HBox>
+            
+            <!-- Manual Entry Section -->
+            <VBox spacing="10" style="-fx-background-color: #F0F4FF; -fx-padding: 15; -fx-background-radius: 12; -fx-border-color: #D1D5DB; -fx-border-radius: 12;">
+                <Label text="Ajout Manuel" style="-fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+                <FlowPane fx:id="manualEntryContainer" hgap="15" vgap="10" alignment="CENTER_LEFT"/>
+                <Button text="+ Ajouter cette combinaison" onAction="#handleAddManual" styleClass="btn-primary" style="-fx-padding: 8 16;"/>
+            </VBox>
+
+            <ListView fx:id="listCombinations" VBox.vgrow="ALWAYS" style="-fx-background-radius: 12; -fx-border-radius: 12;"/>
+        </VBox>
+
+        <!-- STEP 4: FINALIZE -->
+        <VBox fx:id="step4Box" spacing="20" visible="false">
+            <Label text="Détails finaux des SKUs" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+            <TableView fx:id="tableFinalSkus" VBox.vgrow="ALWAYS" styleClass="table-view">
+                <columns>
+                    <TableColumn fx:id="colSkuName" text="Combinaison" prefWidth="250"/>
+                    <TableColumn fx:id="colSkuPrice" text="Prix" prefWidth="120"/>
+                    <TableColumn fx:id="colSkuQuantity" text="Quantité" prefWidth="100"/>
+                    <TableColumn fx:id="colSkuImage" text="Image" prefWidth="200"/>
+                </columns>
+            </TableView>
+        </VBox>
+
+    </StackPane>
+
+    <!-- ══ Footer Controls ════════════════════════════════════ -->
+    <HBox spacing="20" alignment="CENTER_RIGHT" style="-fx-padding: 20 40; -fx-background-color: white; -fx-border-color: #EEE; -fx-border-width: 1 0 0 0;">
+        <Button fx:id="btnBack" text="Précédent" onAction="#handleBack" styleClass="btn-outline-dark" visible="false"/>
+        <Button fx:id="btnNext" text="Suivant" onAction="#handleNext" styleClass="btn-primary" prefWidth="150" prefHeight="50"/>
+        <Button fx:id="btnFinish" text="Terminer" onAction="#handleFinish" styleClass="btn-success" prefWidth="150" prefHeight="50" visible="false" managed="false"/>
+    </HBox>
+
+</VBox>
