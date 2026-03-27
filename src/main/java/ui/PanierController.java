@@ -71,6 +71,8 @@ public class PanierController implements Initializable {
             panierScrollPane.setFitToHeight(false);
             panierScrollPane.setFitToWidth(true);
         }
+
+        chargerPanier();
     }
 
     @FXML

@@ -17,6 +17,9 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.shape.Circle;
+import javafx.scene.paint.Color;
+import javafx.scene.layout.Priority;
 
 import shared.Requete;
 import shared.Reponse;
@@ -25,6 +28,9 @@ import client.utils.SessionManager;
 import client.utils.SceneManager;
 import service.ProduitDetailService;
 import model.Avis;
+import model.ProduitVarValeur;
+import model.Variante;
+import model.SKU;
 import ui.utils.IconLibrary;
 
 import java.net.URL;
@@ -101,10 +107,16 @@ public class ProductDetailController implements Initializable {
     private int quantity = 1;
     private Map<String, Object> produitData;
     private Map<String, Object> uiData;
-    private Map<String, String> currentSelections;
+    private Map<String, String> currentSelections = new HashMap<>();
     private Map<String, Object> currentSku;
     private List<Map<String, Object>> allSkus;
     private int currentImageIndex = 0;
+
+    // [USER REQUEST] New fields for variants
+    private List<model.ProduitVarValeur> productPVVs;
+    private Map<Integer, String> variantIdToNameMap = new HashMap<>();
+    private Map<String, Integer> valueToIdPvvMap = new HashMap<>(); // "Name_Value" -> idPVV
+    private Map<String, ToggleButton> pvvButtonsMap = new HashMap<>(); // "idPVV" -> button
 
     private static final String CORAIL = "#FF724C";
     private static final String BLEU_NUIT = "#2A2C41";
@@ -200,8 +212,7 @@ public class ProductDetailController implements Initializable {
                     }
                     
                     displayProductInfo();
-                    setupVariantSelectors();
-                    loadProductImage();
+                    loadExtraVariantData(); // Fetch PVVs and Variant Names
                     loadReviews();
                 });
             }
@@ -271,15 +282,7 @@ public class ProductDetailController implements Initializable {
         if (quantityField != null)
             quantityField.setText(String.valueOf(quantity));
 
-        // Load Avis
-        loadReviews();
-
-        // Stars (simulation)
-        ratingBox.getChildren().clear();
-        for (int i = 0; i < 5; i++) {
-            ratingBox.getChildren().add(IconLibrary.getFilledIcon(IconLibrary.STAR, 14, "#FDBF50"));
-        }
-        reviewsLabel.setText("(0 avis)");
+        updateAvisVisibility();
     }
 
     private void setupImageGallery() {
@@ -399,199 +402,260 @@ public class ProductDetailController implements Initializable {
 
         // TODO: Implémenter la logique pour extraire les valeurs de variantes du SKU et
         // mettre à jour les ComboBox
-        // Ceci nécessiterait une requête supplémentaire ou une structure de données
-        // différente
+    }
+
+    // [USER REQUEST] IMPLEMENTATION OF INTELLIGENT VARIANT SELECTION
+    private void loadExtraVariantData() {
+        Task<Void> task = new Task<>() {
+            @Override protected Void call() throws Exception {
+                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getAccessToken() : "";
+                
+                // 1. Fetch PVVs
+                Map<String, Object> pvvParams = new HashMap<>();
+                pvvParams.put("idProduit", selectedProductId);
+                Reponse pvvRep = client.ClientSocket.getInstance().envoyer(new Requete(RequestType.GET_PRODUCT_VARIANTS, pvvParams, token));
+                
+                // 2. Fetch Variant Names
+                Reponse varRep = client.ClientSocket.getInstance().envoyer(new Requete(RequestType.GET_VARIANTES_BY_PRODUIT, pvvParams, token));
+                
+                if (pvvRep != null && pvvRep.isSucces() && varRep != null && varRep.isSucces()) {
+                    @SuppressWarnings("unchecked")
+                    List<ProduitVarValeur> pvvs = (List<ProduitVarValeur>) pvvRep.getDonnees().get("pvvs");
+                    @SuppressWarnings("unchecked")
+                    List<Variante> vars = (List<Variante>) varRep.getDonnees().get("variantes");
+                    
+                    productPVVs = pvvs;
+                    variantIdToNameMap.clear();
+                    for (Variante v : vars) variantIdToNameMap.put(v.getIdVariante(), v.getNom());
+                    
+                    valueToIdPvvMap.clear();
+                    for (ProduitVarValeur pvv : pvvs) {
+                        String name = variantIdToNameMap.get(pvv.getIdVariante());
+                        if (name != null) valueToIdPvvMap.put(name + "_" + pvv.getValeur(), pvv.getIdPVV());
+                    }
+                }
+                return null;
+            }
+        };
+        
+        task.setOnSucceeded(e -> Platform.runLater(() -> {
+            setupVariantSelectors();
+            refreshVariantButtonStates(); // Update gray-out initial state
+            loadProductImage();
+        }));
+        new Thread(task).start();
     }
 
     private void setupVariantSelectors() {
-        if (variantsContainer == null || uiData == null)
-            return;
+        if (variantsContainer == null || productPVVs == null) return;
 
         variantsContainer.getChildren().clear();
+        pvvButtonsMap.clear();
 
-        @SuppressWarnings("unchecked")
-        Map<String, List<String>> variantes = (Map<String, List<String>>) uiData.get("variantes");
-
-        if (variantes == null || variantes.isEmpty()) {
-            Label noVariants = new Label("Ce produit n'a pas de variantes");
-            noVariants.setStyle("-fx-text-fill: #999; -fx-font-style: italic;");
-            variantsContainer.getChildren().add(noVariants);
-            return;
+        // Group PVVs by variant name
+        Map<String, List<model.ProduitVarValeur>> grouped = new LinkedHashMap<>();
+        for (model.ProduitVarValeur pvv : productPVVs) {
+            String name = variantIdToNameMap.get(pvv.getIdVariante());
+            if (name != null) {
+                grouped.computeIfAbsent(name, k -> new ArrayList<>()).add(pvv);
+            }
         }
 
-        for (Map.Entry<String, List<String>> entry : variantes.entrySet()) {
+        for (Map.Entry<String, List<model.ProduitVarValeur>> entry : grouped.entrySet()) {
             String nomVariante = entry.getKey();
-            List<String> valeurs = entry.getValue();
+            List<model.ProduitVarValeur> valores = entry.getValue();
 
-            VBox varianteBox = new VBox(8);
-            varianteBox.setPadding(new Insets(0, 0, 15, 0));
+            VBox box = new VBox(8);
+            box.setPadding(new Insets(0, 0, 15, 0));
+            Label l = new Label(nomVariante + " :");
+            l.setStyle("-fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 14px;");
 
-            Label titre = new Label(nomVariante + ":");
-            titre.setStyle("-fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 14px;");
-
-            FlowPane optionsPane = new FlowPane(10, 10);
+            FlowPane flow = new FlowPane(10, 10);
             ToggleGroup group = new ToggleGroup();
 
-            boolean hasVisibleOption = false;
-
-            for (String val : valeurs) {
-                // Vérifier si cette option est compatible avec les autres sélections
-                if (!isVariantOptionCompatible(nomVariante, val)) {
-                    continue; // Cacher si non compatible
-                }
-
-                hasVisibleOption = true;
-                ToggleButton btn = new ToggleButton();
+            for (model.ProduitVarValeur pvv : valores) {
+                ToggleButton btn = new ToggleButton(pvv.getValeur());
                 btn.setToggleGroup(group);
-                
-                String imgUrl = nomVariante.equalsIgnoreCase("Couleur") ? findImageForColor(val) : null;
-                
-                if (imgUrl != null) {
-                    try {
-                        Image img = new Image(imgUrl, 40, 40, true, true, true);
-                        ImageView iv = new ImageView(img);
-                        iv.setClip(new javafx.scene.shape.Circle(20, 20, 20));
-                        btn.setGraphic(iv);
-                        btn.setTooltip(new Tooltip(val));
-                        btn.setStyle("-fx-background-color: transparent; -fx-border-color: #DDD; -fx-border-radius: 50%; -fx-cursor: hand; -fx-padding: 2;");
-                    } catch (Exception e) {
-                        btn.setText(val);
-                        applyButtonStyle(btn, false);
-                    }
-                } else {
-                    btn.setText(val);
-                    applyButtonStyle(btn, false);
-                }
+                btn.setUserData(pvv);
+                pvvButtonsMap.put(String.valueOf(pvv.getIdPVV()), btn);
 
-                if (currentSelections != null && val.equals(currentSelections.get(nomVariante))) {
+                // Initial Selection
+                if (currentSelections.containsKey(nomVariante) && currentSelections.get(nomVariante).equals(pvv.getValeur())) {
                     btn.setSelected(true);
-                    applyButtonStyle(btn, true);
                 }
 
                 btn.setOnAction(e -> {
                     if (btn.isSelected()) {
-                        mettreAJourVariante(nomVariante, val);
+                        currentSelections.put(nomVariante, pvv.getValeur());
+                        
+                        // Auto-correct invalid combinations
+                        boolean isValid = false;
+                        for (Map<String, Object> sku : allSkus) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, String> skuVars = (Map<String, String>) sku.get("variantes");
+                            if (skuVars == null) continue;
+                            
+                            boolean allMatch = true;
+                            for (Map.Entry<String, String> sel : currentSelections.entrySet()) {
+                                if (!sel.getValue().equals(skuVars.get(sel.getKey()))) {
+                                    allMatch = false;
+                                    break;
+                                }
+                            }
+                            if (allMatch) {
+                                isValid = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!isValid) {
+                            // Find any valid SKU that matches the NEW selection and update other selections
+                            for (Map<String, Object> sku : allSkus) {
+                                @SuppressWarnings("unchecked")
+                                Map<String, String> skuVars = (Map<String, String>) sku.get("variantes");
+                                if (skuVars == null) continue;
+                                
+                                if (pvv.getValeur().equals(skuVars.get(nomVariante))) {
+                                    for (Map.Entry<String, String> skuVar : skuVars.entrySet()) {
+                                        currentSelections.put(skuVar.getKey(), skuVar.getValue());
+                                        // Update the toggle buttons visually
+                                        for (ToggleButton otherBtn : pvvButtonsMap.values()) {
+                                            model.ProduitVarValeur otherPvv = (model.ProduitVarValeur) otherBtn.getUserData();
+                                            String otherType = variantIdToNameMap.get(otherPvv.getIdVariante());
+                                            if (otherType != null && otherType.equals(skuVar.getKey()) && otherPvv.getValeur().equals(skuVar.getValue())) {
+                                                otherBtn.setSelected(true);
+                                            }
+                                        }
+                                    }
+                                    break; // Take the first matching SKU
+                                }
+                            }
+                        }
+
+                        refreshVariantButtonStates();
+                        fetchSkuByCurrentSelections();
                     } else {
-                        btn.setSelected(true);
+                        btn.setSelected(true); // Don't allow deselect
                     }
                 });
 
-                optionsPane.getChildren().add(btn);
+                applyButtonStyles(btn, true);
+                flow.getChildren().add(btn);
             }
-
-            if (hasVisibleOption) {
-                varianteBox.getChildren().addAll(titre, optionsPane);
-                variantsContainer.getChildren().add(varianteBox);
-            }
+            box.getChildren().addAll(l, flow);
+            variantsContainer.getChildren().add(box);
         }
     }
 
-    private void applyButtonStyle(ToggleButton btn, boolean selected) {
-        if (btn.getGraphic() != null) {
-            btn.setStyle("-fx-background-color: transparent; -fx-border-color: " + (selected ? CORAIL : "#DDD")
-                    + "; -fx-border-width: " + (selected ? "2px" : "1px") + "; -fx-border-radius: 50%; -fx-cursor: hand; -fx-padding: 2;");
-        } else {
-            btn.setStyle("-fx-background-color: " + (selected ? CORAIL : "white")
-                    + "; -fx-text-fill: " + (selected ? "white" : "black")
-                    + "; -fx-border-color: " + (selected ? CORAIL : "#DDD")
-                    + "; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand;");
-        }
-    }
+    private void refreshVariantButtonStates() {
+        if (allSkus == null || pvvButtonsMap.isEmpty()) return;
 
-    private boolean isVariantOptionCompatible(String targetType, String targetValue) {
-        if (allSkus == null || allSkus.isEmpty()) return true;
+        for (ToggleButton btn : pvvButtonsMap.values()) {
+            model.ProduitVarValeur pvv = (model.ProduitVarValeur) btn.getUserData();
+            String type = variantIdToNameMap.get(pvv.getIdVariante());
+            String val = pvv.getValeur();
 
-        for (Map<String, Object> sku : allSkus) {
-            @SuppressWarnings("unchecked")
-            Map<String, String> skuVariants = (Map<String, String>) sku.get("variantes");
-            if (skuVariants == null) continue;
+            // Check if this option is possible with selections of OTHER variant types
+            boolean possible = false;
+            for (Map<String, Object> sku : allSkus) {
+                @SuppressWarnings("unchecked")
+                Map<String, String> skuVars = (Map<String, String>) sku.get("variantes");
+                if (skuVars == null) continue;
 
-            if (!targetValue.equals(skuVariants.get(targetType))) continue;
+                // Does this SKU have our target value?
+                if (!val.equals(skuVars.get(type))) continue;
 
-            boolean matchesOthers = true;
-            for (Map.Entry<String, String> selection : currentSelections.entrySet()) {
-                String type = selection.getKey();
-                if (type.equals(targetType)) continue;
-                if (!selection.getValue().equals(skuVariants.get(type))) {
-                    matchesOthers = false;
-                    break;
-                }
-            }
-            if (matchesOthers) return true;
-        }
-        return false;
-    }
-
-    private void mettreAJourVariante(String nomVariante, String nouvelleValeur) {
-        if (currentSelections == null)
-            currentSelections = new HashMap<>();
-        currentSelections.put(nomVariante, nouvelleValeur);
-
-        // Ajuster les autres sélections si elles deviennent invalides
-        ajusterSelectionsInvalides(nomVariante);
-
-        // Refresh UI to hide incompatible options
-        setupVariantSelectors();
-
-        // Trouver le SKU correspondant aux sélections finales
-        Map<String, Object> nouveauSku = trouverSkuParVariantes(currentSelections);
-
-        if (nouveauSku != null) {
-            currentSku = nouveauSku;
-            updateSkuDisplay();
-
-            String imageUrl = (String) nouveauSku.get("image");
-            if (imageUrl != null && !imageUrl.isBlank() && productImageView != null) {
-                new Thread(() -> {
-                    try {
-                        Image img = new Image(imageUrl, 400, 300, true, true, true);
-                        Platform.runLater(() -> {
-                            if (!img.isError()) {
-                                productImageView.setImage(img);
-                            }
-                        });
-                    } catch (Exception e) {
-                        System.err.println("[ProductDetail] Erreur chargement image: " + e.getMessage());
-                    }
-                }).start();
-            }
-            updateGallerySelection(nouveauSku);
-        }
-    }
-
-    private void ajusterSelectionsInvalides(String skipType) {
-        @SuppressWarnings("unchecked")
-        Map<String, List<String>> variantes = (Map<String, List<String>>) uiData.get("variantes");
-        if (variantes == null) return;
-
-        for (String type : variantes.keySet()) {
-            if (type.equals(skipType)) continue;
-
-            String currentVal = currentSelections.get(type);
-            if (currentVal != null && !isVariantOptionCompatible(type, currentVal)) {
-                // Trouver la première option compatible pour ce type
-                for (String val : variantes.get(type)) {
-                    if (isVariantOptionCompatible(type, val)) {
-                        currentSelections.put(type, val);
+                // Does it match our OTHER selections?
+                boolean matchesOthers = true;
+                for (Map.Entry<String, String> sel : currentSelections.entrySet()) {
+                    if (sel.getKey().equals(type)) continue;
+                    if (!sel.getValue().equals(skuVars.get(sel.getKey()))) {
+                        matchesOthers = false;
                         break;
                     }
                 }
+                if (matchesOthers) {
+                    possible = true;
+                    break;
+                }
             }
+
+            // Remove setDisable to allow clicking and switching
+            applyButtonStyles(btn, possible);
         }
     }
 
-    private Map<String, Object> trouverSkuParVariantes(Map<String, String> selections) {
-        if (uiData == null || selections == null)
-            return null;
-        @SuppressWarnings("unchecked")
-        Map<String, Map<String, Object>> skusMap = (Map<String, Map<String, Object>>) uiData.get("skus");
-        if (skusMap == null) {
-            skusMap = (Map<String, Map<String, Object>>) uiData.get("skusOrganises");
+    private void applyButtonStyles(ToggleButton btn, boolean possible) {
+        boolean selected = btn.isSelected();
+
+        if (!possible) {
+            btn.setStyle("-fx-background-color: transparent; -fx-text-fill: #CCC; -fx-border-color: #EEE; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand; -fx-strikethrough: true;");
+        } else if (selected) {
+            btn.setStyle("-fx-background-color: " + CORAIL + "; -fx-text-fill: white; -fx-border-color: " + CORAIL + "; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand; -fx-font-weight: bold;");
+        } else {
+            btn.setStyle("-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #DDD; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand;");
         }
-        if (skusMap != null) {
-            return util.ProduitVariantUtils.trouverSkuPourVariantes(skusMap, selections);
+    }
+
+    private void fetchSkuByCurrentSelections() {
+        if (currentSelections.size() < variantIdToNameMap.size()) return; // Wait for all selected
+
+        List<Integer> pvvIds = new ArrayList<>();
+        for (Map.Entry<String, String> sel : currentSelections.entrySet()) {
+            Integer id = valueToIdPvvMap.get(sel.getKey() + "_" + sel.getValue());
+            if (id != null) pvvIds.add(id);
         }
-        return null;
+
+        Task<Map<String, Object>> task = new Task<>() {
+            @Override protected Map<String, Object> call() throws Exception {
+                String token = SessionManager.getInstance().isAuthenticated() ? SessionManager.getInstance().getSession().getAccessToken() : "";
+                Map<String, Object> params = new HashMap<>();
+                params.put("idProduit", selectedProductId);
+                params.put("pvvIds", pvvIds);
+                
+                Reponse rep = client.ClientSocket.getInstance().envoyer(new Requete(RequestType.GET_SKU_BY_VARIANTS, params, token));
+                if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
+                    Object skuObj = rep.getDonnees().get("sku");
+                    if (skuObj != null) {
+                        // The server returns a model.SKU object. Let's convert it to a Map for compatibility with existing code
+                        SKU s = (SKU) skuObj;
+                        Map<String, Object> m = new HashMap<>();
+                        m.put("sku", s.getSku());
+                        m.put("prix", s.getPrix());
+                        m.put("quantite", s.getQuantite());
+                        m.put("image", s.getImage());
+                        return m;
+                    }
+                }
+                return null;
+            }
+        };
+
+        task.setOnSucceeded(e -> Platform.runLater(() -> {
+            Map<String, Object> sku = task.getValue();
+            if (sku != null) {
+                currentSku = sku;
+                updateSkuDisplay();
+                // Update Image if present
+                String img = (String) sku.get("image");
+                if (img != null && !img.isBlank()) {
+                    new Thread(() -> {
+                        try {
+                            Image im = new Image(img, 400, 300, true, true, true);
+                            Platform.runLater(() -> { if(!im.isError()) productImageView.setImage(im); });
+                        } catch(Exception ignored) {}
+                    }).start();
+                }
+                addToCartButton.setDisable(false);
+                addToCartButton.setText("Ajouter au panier");
+            } else {
+                priceLabel.setText("Non disponible");
+                stockLabel.setText("Combinaison non disponible");
+                stockLabel.setStyle("-fx-text-fill: #EF4444;");
+                addToCartButton.setDisable(true);
+            }
+        }));
+        new Thread(task).start();
     }
 
     private String findImageForColor(String color) {
@@ -688,10 +752,12 @@ public class ProductDetailController implements Initializable {
     }
 
     @FXML private void handleBack() { SceneManager.back(); }
-  @FXML private void handleCart() { 
+    @FXML 
+    private void handleCart() { 
         if (SessionManager.getInstance().isAuthenticated()) {
             SceneManager.switchTo("panier.fxml", "Mon Panier - ChriOnline");
         } else {
+            SessionManager.getInstance().setPendingRedirect("product-detail.fxml", "Détail Produit - ChriOnline");
             SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
         }
     }    
@@ -724,7 +790,7 @@ public class ProductDetailController implements Initializable {
             return;
         }
 
-        String skuCode = (String) currentSku.get("SKU");
+        String skuCode = (String) currentSku.get("sku");
         if (skuCode == null) {
             showToast("SKU non disponible");
             return;
