@@ -267,9 +267,10 @@ public class AdminService {
                 // Envoyer notification UDP au client concerné
                 int clientId = commandeDAO.getClientIdFromOrder(orderId);
                 if (clientId > 0) {
+                    NotificationService notifService = new NotificationService();
                     String message = "Votre commande #" + orderId + " est maintenant : " + newStatusStr;
-                    serviceUDP.envoyerNotification(clientId, message);
-                    System.out.println("[AdminService] Notification UDP envoyée au client " + clientId + " pour commande #" + orderId);
+                    notifService.creerNotification(clientId, message);
+                    System.out.println("[AdminService] Notification udp envoyée au client " + clientId + " pour commande #" + orderId);
                 } else {
                     System.err.println("[AdminService] Impossible de trouver le client pour la commande #" + orderId);
                 }
@@ -289,6 +290,7 @@ public class AdminService {
             int userId = (Integer) params.get("userId");
             boolean success = dao.ClientDAO.banUser(userId);
             if (success) {
+                new NotificationService().creerNotification(userId, "Votre compte a été suspendu par l'administration.");
                 return new Reponse(true, "Utilisateur banni avec succès", null);
             } else {
                 return new Reponse(false, "Échec du bannissement", null);
@@ -304,6 +306,7 @@ public class AdminService {
             int userId = (Integer) params.get("userId");
             boolean success = dao.ClientDAO.unbanUser(userId);
             if (success) {
+                new NotificationService().creerNotification(userId, "Votre compte est de nouveau actif. Bon shopping !");
                 return new Reponse(true, "Utilisateur débanni avec succès", null);
             } else {
                 return new Reponse(false, "Échec du débannissement", null);
