@@ -14,8 +14,7 @@
     fx:controller="ui.LoginController"
     styleClass="login-root"
     stylesheets="@../css/styles.css"
-    prefWidth="480" prefHeight="640"
-    minWidth="420" minHeight="560">
+    alignment="CENTER">
 
     <!-- ══ Background layer ════════════════════════════════════ -->
     <Region styleClass="bg-pink" maxWidth="Infinity" maxHeight="Infinity"/>
@@ -46,6 +45,7 @@
         fx:id="loginCard"
         styleClass="login-card"
         alignment="TOP_CENTER"
+        StackPane.alignment="CENTER"
         spacing="0"
         maxWidth="420"
         minWidth="340">

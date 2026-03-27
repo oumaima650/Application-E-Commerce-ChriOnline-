@@ -41,6 +41,10 @@ public class CheckoutController {
     private Circle step2Circle;
     @FXML
     private Circle step3Circle;
+    @FXML
+    private ScrollPane checkoutScrollPane;
+    @FXML
+    private StackPane rootStackPane;
 
     // --- Step 1 fields ---
     @FXML
@@ -103,6 +107,11 @@ public class CheckoutController {
         setupPaymentOptions();
         prefillUserData();
         loadAddresses();
+        
+        if (checkoutScrollPane != null) {
+            checkoutScrollPane.setFitToHeight(false);
+            checkoutScrollPane.setFitToWidth(true);
+        }
     }
 
     // ──────────────────────────────────────────
@@ -420,8 +429,7 @@ public class CheckoutController {
                 }
             }
 
-            // Forcer le rafraîchissement du panier lors du prochain accès
-            SceneManager.clearCache("panier.fxml");
+            // Fresh loading is now handled automatically by SceneManager.switchTo
         } else {
             lblOrderId.setText("Erreur");
             double baseTotal = (selectedSkus != null) ? selectedSkus.size() * 500.0 : 0.0;
@@ -461,7 +469,6 @@ public class CheckoutController {
                 shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
                 client.ClientSocket.getInstance().envoyer(req);
 
-                SceneManager.clearCache("panier.fxml");
                 SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier");
                 return;
             }

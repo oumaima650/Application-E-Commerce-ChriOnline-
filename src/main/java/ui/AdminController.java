@@ -50,19 +50,12 @@ public class AdminController {
 
     @FXML
     private void ouvrirNotifications() {
-        SceneManager.switchToCached("notifications.fxml", "ChriOnline - Notifications");
+        client.utils.SceneManager.switchTo("notifications.fxml", "ChriOnline - Notifications");
     }
 
     @FXML
     public void initialize() {
-        // Mettre en cache la vue notifications pour un accès rapide
-        try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/chrionline/fxml/notifications.fxml"));
-            javafx.scene.Parent notificationsRoot = loader.load();
-            SceneManager.cacheScene("notifications.fxml", notificationsRoot);
-        } catch (Exception e) {
-            System.err.println("Erreur lors du chargement en cache de notifications.fxml: " + e.getMessage());
-        }
+        // Caching is now handled internally or replaced by fresh loading for stability
         
         // Configurer les colonnes
         setupColumns();

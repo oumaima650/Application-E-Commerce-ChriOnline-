@@ -120,7 +120,7 @@ public class LoginController implements Initializable {
         params.put("email",      email);
         params.put("motDePasse", password);
 
-        Requete requete = new Requete(RequestType.LOGIN, params, null);
+        shared.Requete requete = new shared.Requete(shared.RequestType.LOGIN, params, null);
 
         setLoginLoading(true);
         runAsync(requete, reponse -> {
@@ -223,7 +223,7 @@ public class LoginController implements Initializable {
         params.put("prenom",     prenom);
         params.put("telephone",  phone);
 
-        Requete requete = new Requete(RequestType.REGISTER, params, null);
+        shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER, params, null);
 
         setRegisterLoading(true);
         runAsync(requete, reponse -> {
@@ -307,10 +307,10 @@ public class LoginController implements Initializable {
      * Runs the network call on a daemon thread, then calls the callback
      * on the JavaFX Application Thread when done.
      */
-    private void runAsync(Requete requete, java.util.function.Consumer<Reponse> onDone) {
-        Task<Reponse> task = new Task<>() {
+    private void runAsync(shared.Requete requete, java.util.function.Consumer<shared.Reponse> onDone) {
+        Task<shared.Reponse> task = new Task<>() {
             @Override
-            protected Reponse call() {
+            protected shared.Reponse call() {
                 return client.ClientSocket.getInstance().envoyer(requete);
             }
         };
