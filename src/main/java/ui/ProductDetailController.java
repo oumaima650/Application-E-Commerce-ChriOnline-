@@ -790,7 +790,12 @@ public class ProductDetailController implements Initializable {
             return;
         }
 
-        String skuCode = (String) currentSku.get("sku");
+        String tempSkuCode = (String) currentSku.get("sku");
+        if (tempSkuCode == null) {
+            tempSkuCode = (String) currentSku.get("SKU");
+        }
+        
+        final String skuCode = tempSkuCode;
         if (skuCode == null) {
             showToast("SKU non disponible");
             return;
