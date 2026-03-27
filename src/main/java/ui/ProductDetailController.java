@@ -653,9 +653,11 @@ public class ProductDetailController implements Initializable {
             SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
         }
     }    
-    @FXML private void incrementQty() { 
-        quantity++; 
-        quantityLabel.setText(String.valueOf(quantity)); 
+    @FXML
+    private void incrementQty() {
+        quantity++;
+        if (quantityField != null)
+            quantityField.setText(String.valueOf(quantity));
     }
 
     @FXML
@@ -830,7 +832,7 @@ public class ProductDetailController implements Initializable {
                 params.put("contenu", contenu.trim());
                 params.put("evaluation", finalEval);
                 return sendRequest(new Requete(RequestType.ADD_AVIS, params,
-                        SessionManager.getInstance().getSession().getToken()));
+                        SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
 

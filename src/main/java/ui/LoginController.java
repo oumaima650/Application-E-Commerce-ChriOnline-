@@ -27,9 +27,6 @@ import java.util.regex.Pattern;
 
 public class LoginController implements Initializable {
 
-    private static final String SERVER_HOST = "127.0.0.1";
-    private static final int    SERVER_PORT = 8443;
-
     private static final int     PW_MIN       = 8;
     private static final int     PW_MAX       = 32;
     private static final Pattern HAS_UPPER    = Pattern.compile(".*[A-Z].*");
@@ -306,41 +303,6 @@ public class LoginController implements Initializable {
     }
 
 
-    // ══════════════════════════════════════════════════════════════════════
-    // TCP COMMUNICATION  (runs on background thread via runAsync)
-    // ══════════════════════════════════════════════════════════════════════
-
-    /**
-     * Sends a Requete to the server and returns the Reponse.
-     * Blocks — always call from a background thread (use runAsync).
-     */
-    private Reponse sendToServer(Requete requete) {
-        try {
-            SSLSocketFactory factory = client.utils.SSLSocketFactoryBuilder.build();
-            try (SSLSocket socket        = (SSLSocket) factory.createSocket(SERVER_HOST, SERVER_PORT);
-                 ObjectOutputStream out  = new ObjectOutputStream(socket.getOutputStream());
-                 ObjectInputStream  in   = new ObjectInputStream(socket.getInputStream())) {
-
-                // Enforce TLS 1.3 only
-                socket.setEnabledProtocols(new String[]{"TLSv1.3"});
-                socket.startHandshake();
-
-                out.writeObject(requete);
-                out.flush();
-                return (Reponse) in.readObject();
-            }
-        } catch (SSLHandshakeException e) {
-            System.err.println("[LoginController] Échec de la connexion sécurisée (Handshake) : " + e.getMessage());
-            return null;
-        } catch (IOException e) {
-            System.err.println("[LoginController] Serveur inaccessible ou erreur SSL : " + e.getMessage());
-            return null;
-        } catch (Exception e) {
-            System.err.println("[LoginController] Erreur de communication : " + e.getMessage());
-            return null;
-        }
-    }
-
     /**
      * Runs the network call on a daemon thread, then calls the callback
      * on the JavaFX Application Thread when done.
@@ -349,7 +311,7 @@ public class LoginController implements Initializable {
         Task<Reponse> task = new Task<>() {
             @Override
             protected Reponse call() {
-                return sendToServer(requete);
+                return client.ClientSocket.getInstance().envoyer(requete);
             }
         };
 

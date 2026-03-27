@@ -270,12 +270,10 @@ public class MainHomeController implements Initializable {
             }
         }
     }
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
         setupNavbar();
-        setupFilterBar();
         setupHeroSlider();
         loadCategories();
         loadProducts();
@@ -328,39 +326,6 @@ public class MainHomeController implements Initializable {
             userAvatar.setFill(Color.web(SessionManager.getInstance().isAuthenticated() ? CORAIL : "#94a3b8"));
         }
     }
-
-    private void setupSidebar() {
-        // Style ALL sidebar icons and buttons
-        Button[] btns = {btnTous, btnSmartphones, btnAccessoires, btnOrdinateurs, btnMontres, btnPromotions};
-        String[] icons = {IconLibrary.CATEGORY, IconLibrary.PHONE, IconLibrary.HEADPHONE, IconLibrary.LAPTOP, IconLibrary.WATCH, IconLibrary.TAG};
-
-        for (int i = 0; i < btns.length; i++) {
-            if (btns[i] != null) {
-                btns[i].setGraphic(IconLibrary.getIcon(icons[i], 16, "rgba(244,244,248,0.4)"));
-                btns[i].setStyle("-fx-background-color: transparent; -fx-text-fill: rgba(244,244,248,0.4); " +
-                        "-fx-padding: 10 15; -fx-background-radius: 10px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;");
-                
-                final int idx = i;
-                btns[i].setOnMouseEntered(e -> {
-                    if (!btns[idx].getStyle().contains(CORAIL)) {
-                        btns[idx].setStyle("-fx-background-color: rgba(255,114,76,0.1); -fx-text-fill: " + SAFRAN + "; " +
-                                "-fx-padding: 10 15; -fx-background-radius: 10px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;");
-                    }
-                });
-                btns[i].setOnMouseExited(e -> {
-                    if (!btns[idx].getStyle().contains(CORAIL)) {
-                        btns[idx].setStyle("-fx-background-color: transparent; -fx-text-fill: rgba(244,244,248,0.4); " +
-                                "-fx-padding: 10 15; -fx-background-radius: 10px; -fx-cursor: hand; -fx-alignment: CENTER_LEFT;");
-                    }
-                });
-            }
-        }
-
-        if (userAvatar != null) {
-            userAvatar.setFill(Color.web(CORAIL));
-        }
-    }
-
 
     private void updateBadges() {
         // GET_CART
@@ -776,7 +741,7 @@ public class MainHomeController implements Initializable {
                 protected Reponse call() {
                     Map<String, Object> reqP = new HashMap<>();
                     reqP.put("idProduit", idObj);
-                    String token = SessionManager.getInstance().getSession().getToken();
+                    String token = SessionManager.getInstance().getSession().getAccessToken();
                     Reponse skuRep = client.ClientSocket.getInstance()
                             .envoyer(new Requete(RequestType.GET_SKU_BY_PRODUIT, reqP, token));
 

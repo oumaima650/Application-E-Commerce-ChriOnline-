@@ -338,4 +338,9 @@ public class PanierController implements Initializable {
     private void goToHome() {
         SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
     }
+
+    @FXML
+    private void goToCommandes() {
+        SceneManager.switchTo("commandes.fxml", "ChriOnline - Mes Commandes");
+    }
 }

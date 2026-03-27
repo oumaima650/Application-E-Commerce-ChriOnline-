@@ -52,37 +52,41 @@ public class SceneManager {
         }
 
         // Sauvegarder la scène actuelle pour pouvoir revenir
-        if (primaryStage.getScene() != null) {
-            history.push(primaryStage.getScene());
-        }
+        javafx.application.Platform.runLater(() -> {
+            if (primaryStage.getScene() != null) {
+                history.push(primaryStage.getScene());
+            }
 
-        Scene scene = root.getScene();
-        if (scene == null) {
-            scene = new Scene(root);
-            String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
-            scene.getStylesheets().add(cssPath);
-        }
+            Scene scene = root.getScene();
+            if (scene == null) {
+                scene = new Scene(root);
+                String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
+                scene.getStylesheets().add(cssPath);
+            }
 
-        primaryStage.setTitle(title);
-        primaryStage.setScene(scene);
+            primaryStage.setTitle(title);
+            primaryStage.setScene(scene);
 
-        FadeTransition ft = new FadeTransition(Duration.millis(250), root);
-        ft.setFromValue(0.0);
-        ft.setToValue(1.0);
-        ft.play();
+            FadeTransition ft = new FadeTransition(Duration.millis(250), root);
+            ft.setFromValue(0.0);
+            ft.setToValue(1.0);
+            ft.play();
+        });
     }
 
     /** Revenir à la scène précédente */
     public static void back() {
-        if (!history.isEmpty()) {
-            Scene previous = history.pop();
-            primaryStage.setTitle("ChriOnline");
-            primaryStage.setScene(previous);
-            FadeTransition ft = new FadeTransition(Duration.millis(250), previous.getRoot());
-            ft.setFromValue(0.0);
-            ft.setToValue(1.0);
-            ft.play();
-        }
+        javafx.application.Platform.runLater(() -> {
+            if (!history.isEmpty()) {
+                Scene previous = history.pop();
+                primaryStage.setTitle("ChriOnline");
+                primaryStage.setScene(previous);
+                FadeTransition ft = new FadeTransition(Duration.millis(250), previous.getRoot());
+                ft.setFromValue(0.0);
+                ft.setToValue(1.0);
+                ft.play();
+            }
+        });
     }
 
     public static void switchTo(String fxmlFile, String title) {
@@ -97,17 +101,19 @@ public class SceneManager {
             Parent root = loader.load();
             sceneCache.put(fxmlFile, root); // Cache for next time
 
-            Scene scene = new Scene(root);
-            String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
-            scene.getStylesheets().add(cssPath);
+            javafx.application.Platform.runLater(() -> {
+                Scene scene = new Scene(root);
+                String cssPath = ClientApp.class.getResource("/css/styles.css").toExternalForm();
+                scene.getStylesheets().add(cssPath);
 
-            primaryStage.setTitle(title);
-            primaryStage.setScene(scene);
+                primaryStage.setTitle(title);
+                primaryStage.setScene(scene);
 
-            FadeTransition ft = new FadeTransition(Duration.millis(300), root);
-            ft.setFromValue(0.0);
-            ft.setToValue(1.0);
-            ft.play();
+                FadeTransition ft = new FadeTransition(Duration.millis(300), root);
+                ft.setFromValue(0.0);
+                ft.setToValue(1.0);
+                ft.play();
+            });
 
         } catch (IOException e) {
             System.err.println("Erreur de chargement de la vue: " + fxmlFile);
