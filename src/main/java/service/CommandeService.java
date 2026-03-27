@@ -6,23 +6,17 @@ import dao.AdresseDAO;
 import dao.ClientDAO;
 import dao.SKUDAO;
 import model.Commande;
-import model.LigneCommande;
 import model.Paiement;
 import model.Adresse;
 import model.Client;
 import model.SKU;
 import model.enums.StatutCommande;
-import model.enums.MethodePaiement;
-import model.enums.StatutPaiement;
-import service.NotificationService;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
-import java.util.stream.Collectors;
 
 public class CommandeService {
     private CommandeDAO commandeDAO;
@@ -178,7 +172,7 @@ public class CommandeService {
         }
     }
 
-    /    /**
+    /**
      * Passer une commande à partir du panier
      * Gère la création de nouvelles commandes ou la validation de commandes existantes (Draft)
      */
