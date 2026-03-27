@@ -103,6 +103,7 @@ CREATE TABLE Produit (
     nom             VARCHAR(150)    NOT NULL,
     description     TEXT,
     created_At      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deletedAt       DATETIME        NULL,
     PRIMARY KEY (idProduit)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -143,6 +144,7 @@ CREATE TABLE SKU (
     prix            DECIMAL(10,2)   NOT NULL,
     quantite        INT             NOT NULL DEFAULT 0,
     image           VARCHAR(255),
+    deletedAt       DATETIME        NULL,
     PRIMARY KEY (SKU)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
