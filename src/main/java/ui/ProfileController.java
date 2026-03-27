@@ -100,18 +100,61 @@ public class ProfileController {
 
     @FXML
     private void handleAddAddress() {
-        TextInputDialog dialog = new TextInputDialog();
+        Dialog<Map<String, String>> dialog = new Dialog<>();
         dialog.setTitle("Nouvelle Adresse");
         dialog.setHeaderText("Ajouter une adresse de livraison");
-        dialog.setContentText("Adresse complète (Rue, n°, etc.):");
 
-        dialog.showAndWait().ifPresent(addr -> {
-            // Simplified: asking for 3 parts in one dialog is tricky, let's just do a simple add
-            String ville = "Casablanca"; // Default for mockup
-            String cp = "20000";
-            
+        // Custom buttons
+        ButtonType btnAjouter = new ButtonType("Ajouter", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(btnAjouter, ButtonType.CANCEL);
+
+        // Fields
+        VBox content = new VBox(10);
+        content.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
+
+        TextField txtAddr = new TextField();
+        txtAddr.setPromptText("Adresse complète (Rue, n°, etc.)");
+        TextField txtVille = new TextField();
+        txtVille.setPromptText("Ville");
+        TextField txtCP = new TextField();
+        txtCP.setPromptText("Code postal (5 chiffres)");
+
+        content.getChildren().addAll(
+            new Label("Adresse :"), txtAddr,
+            new Label("Ville :"), txtVille,
+            new Label("Code Postal :"), txtCP
+        );
+        dialog.getDialogPane().setContent(content);
+
+        // Convert result
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == btnAjouter) {
+                return Map.of(
+                    "addr", txtAddr.getText().trim(),
+                    "ville", txtVille.getText().trim(),
+                    "cp", txtCP.getText().trim()
+                );
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(res -> {
+            String addr = res.get("addr");
+            String ville = res.get("ville");
+            String cp = res.get("cp");
+
+            if (addr.isEmpty() || ville.isEmpty() || !cp.matches("\\d{5}")) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Erreur de validation");
+                alert.setHeaderText("Données invalides");
+                alert.setContentText("L'adresse et la ville sont obligatoires. Le code postal doit contenir exactement 5 chiffres.");
+                alert.showAndWait();
+                return;
+            }
+
             executor.submit(() -> {
                 Map<String, Object> params = Map.of(
+                    "idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur(),
                     "addresseComplete", addr,
                     "ville", ville,
                     "codePostal", cp
