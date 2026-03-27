@@ -7,119 +7,131 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.ProductDetailController" style="-fx-background-color: #F4F4F8;">
-    
-    <!-- Navbar Placeholder (Consistent with Home) -->
-    <top>
-        <HBox fx:id="navbar" alignment="CENTER_LEFT" spacing="24" prefHeight="70" style="-fx-background-color: #2A2C41; -fx-padding: 0 40 0 40;">
-            <Label fx:id="logoLabel" text="ChriOnline" style="-fx-text-fill: #FDBF50; -fx-font-size: 20px; -fx-font-weight: bold;"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <HBox alignment="CENTER" spacing="15">
-                <Button fx:id="backButton" onAction="#handleBack" text="← Retour" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;"/>
-                <Button fx:id="cartButton" onAction="#handleCart" text="Panier (0)" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-background-radius: 50px; -fx-padding: 8 16; -fx-cursor: hand;"/>
-            </HBox>
-        </HBox>
-    </top>
-
-    <center>
-        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-width: 0;">
-            <VBox alignment="TOP_CENTER">
-                <HBox spacing="40" alignment="TOP_CENTER" style="-fx-padding: 40;" maxWidth="940">
+<StackPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.ProductDetailController" alignment="CENTER" style="-fx-background-color: #F4F4F8;" fx:id="rootStackPane">
+    <ScrollPane 
+        fx:id="productScrollPane" 
+        fitToWidth="true" 
+        fitToHeight="false" 
+        vbarPolicy="ALWAYS" 
+        style="-fx-background-color: transparent; -fx-background: #F4F4F8; -fx-border-width: 0;">
+        
+        <VBox alignment="TOP_CENTER" style="-fx-background-color: #F4F4F8;">
+            <VBox fx:id="rootPane" maxWidth="1200" style="-fx-background-color: #F4F4F8;">
                 
-                <!-- Left: Image Gallery -->
-                <VBox spacing="15" prefWidth="450">
-                    <StackPane fx:id="mainImageContainer" prefHeight="450" style="-fx-background-color: white; -fx-background-radius: 25px; -fx-border-color: #F0F0F0; -fx-border-radius: 25px;">
-                        <ImageView fx:id="productImageView" fitWidth="350" fitHeight="350" preserveRatio="true"/>
-                        <Label fx:id="promoBadge" text="-20%" visible="false" StackPane.alignment="TOP_LEFT" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-padding: 5 12; -fx-background-radius: 10px; -fx-font-weight: bold;">
-                            <StackPane.margin><Insets top="20" left="20"/></StackPane.margin>
-                        </Label>
-                    </StackPane>
-                    
-                    <HBox fx:id="thumbnailBar" spacing="10" alignment="CENTER"/>
-                </VBox>
-
-                <!-- Right: Info & Selectors -->
-                <VBox spacing="25" prefWidth="450">
-                    <VBox spacing="5">
-                        <Label fx:id="categoryLabel" text="SMARTPHONES" style="-fx-text-fill: #FF724C; -fx-font-weight: bold; -fx-font-size: 13px; -fx-letter-spacing: 1px;"/>
-                        <Label fx:id="productNameLabel" text="Nom du Produit" wrapText="true" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
-                        <HBox alignment="CENTER_LEFT" spacing="10">
-                            <HBox fx:id="ratingBox" spacing="2"/>
-                            <Label fx:id="reviewsLabel" text="(12 avis)" style="-fx-text-fill: #999; -fx-font-size: 13px;"/>
-                        </HBox>
-                    </VBox>
-
-                    <HBox alignment="BASELINE_LEFT" spacing="15">
-                        <Label fx:id="priceLabel" text="0 MAD" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #FF724C;"/>
-                        <Label fx:id="originalPriceLabel" text="0 MAD" visible="false" style="-fx-text-fill: #CCC; -fx-strikethrough: true; -fx-font-size: 18px;"/>
+                <!-- Navbar (Now part of the scrollable content) -->
+                <HBox fx:id="navbar" alignment="CENTER_LEFT" spacing="24" prefHeight="70" style="-fx-background-color: #2A2C41; -fx-padding: 0 40 0 40;">
+                    <Label fx:id="logoLabel" text="ChriOnline" style="-fx-text-fill: #FDBF50; -fx-font-size: 20px; -fx-font-weight: bold;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <HBox alignment="CENTER" spacing="15">
+                        <Button fx:id="backButton" onAction="#handleBack" text="← Retour" style="-fx-background-color: transparent; -fx-text-fill: white; -fx-cursor: hand;"/>
+                        <Button fx:id="cartButton" onAction="#handleCart" text="Panier (0)" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-background-radius: 50px; -fx-padding: 8 16; -fx-cursor: hand;"/>
                     </HBox>
+                </HBox>
 
-                    <Separator/>
+                <!-- Main Content Area -->
+                <VBox fx:id="mainContent" alignment="TOP_CENTER" spacing="20">
+                    <HBox spacing="40" alignment="TOP_CENTER" style="-fx-padding: 40;" maxWidth="940">
+                    
+                        <!-- Left: Image Gallery -->
+                        <VBox spacing="15" prefWidth="450">
+                            <StackPane fx:id="mainImageContainer" prefHeight="450" style="-fx-background-color: white; -fx-background-radius: 25px; -fx-border-color: #F0F0F0; -fx-border-radius: 25px;">
+                                <ImageView fx:id="productImageView" fitWidth="350" fitHeight="350" preserveRatio="true"/>
+                                <Label fx:id="promoBadge" text="-20%" visible="false" StackPane.alignment="TOP_LEFT" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-padding: 5 12; -fx-background-radius: 10px; -fx-font-weight: bold;">
+                                    <StackPane.margin><Insets top="20" left="20"/></StackPane.margin>
+                                </Label>
+                            </StackPane>
+                            
+                            <HBox fx:id="thumbnailBar" spacing="10" alignment="CENTER"/>
+                        </VBox>
 
-                    <!-- Dynamic Variants Section -->
-                    <VBox fx:id="variantsContainer" spacing="20">
-                        <!-- Content injected by controller -->
-                    </VBox>
-
-                    <Separator/>
-
-                    <VBox spacing="15">
-                        <HBox alignment="CENTER_LEFT" spacing="20">
+                        <!-- Right: Info & Selectors -->
+                        <VBox spacing="25" prefWidth="450">
                             <VBox spacing="5">
-                                <Label text="Quantité" style="-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #999;"/>
-                                <HBox alignment="CENTER" spacing="15" style="-fx-background-color: white; -fx-background-radius: 50px; -fx-padding: 5 15; -fx-border-color: #E0E0E0; -fx-border-radius: 50px;">
-                                    <Button text="−" onAction="#decrementQty" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
-                                    <TextField fx:id="quantityField" text="1" prefWidth="40" alignment="CENTER" style="-fx-background-color: transparent; -fx-font-weight: bold;"/>
-                                    <Button text="+" onAction="#incrementQty" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
+                                <Label fx:id="categoryLabel" text="SMARTPHONES" style="-fx-text-fill: #FF724C; -fx-font-weight: bold; -fx-font-size: 13px; -fx-letter-spacing: 1px;"/>
+                                <Label fx:id="productNameLabel" text="Nom du Produit" wrapText="true" style="-fx-font-size: 32px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+                                <HBox alignment="CENTER_LEFT" spacing="10">
+                                    <HBox fx:id="ratingBox" spacing="2"/>
+                                    <Label fx:id="reviewsLabel" text="(0 avis)" style="-fx-text-fill: #999; -fx-font-size: 13px;"/>
                                 </HBox>
                             </VBox>
-                            
-                            <VBox spacing="5" HBox.hgrow="ALWAYS">
-                                <Label text="Stock" style="-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #999;"/>
-                                <Label fx:id="stockLabel" text="En stock (24 unités)" style="-fx-text-fill: #10B981; -fx-font-weight: bold;"/>
-                            </VBox>
-                        </HBox>
 
-                        <Button fx:id="addToCartButton" text="Ajouter au Panier" onAction="#handleAddToCart" maxWidth="Infinity" prefHeight="55" style="-fx-background-color: #2A2C41; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold; -fx-background-radius: 50px; -fx-cursor: hand;"/>
-                    </VBox>
-                    
-                    <VBox spacing="10" style="-fx-background-color: #F0F7FF; -fx-padding: 20; -fx-background-radius: 15px;">
-                        <HBox spacing="10" alignment="CENTER_LEFT">
-                            <Label text="🛡️" style="-fx-font-size: 18px;"/>
-                            <Label text="Garantie constructeur de 2 ans incluse" style="-fx-font-size: 12px; -fx-text-fill: #444;"/>
-                        </HBox>
-                        <HBox spacing="10" alignment="CENTER_LEFT">
-                            <Label text="🚚" style="-fx-font-size: 18px;"/>
-                            <Label text="Livraison gratuite en 48h partout au Maroc" style="-fx-font-size: 12px; -fx-text-fill: #444;"/>
-                        </HBox>
-                    </VBox>
-                </VBox>
-            </HBox>
-            
-            <!-- Avis Section -->
-            <VBox spacing="20" style="-fx-padding: 0 40 40 40;" maxWidth="940">
-                <Separator/>
-                <Label text="Avis et commentaires" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
-                
-                <!-- Display existing reviews -->
-                <VBox fx:id="reviewsContainer" spacing="15">
-                    <!-- Injected by controller -->
-                </VBox>
-                
-                <!-- Add new review form -->
-                <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 15px; -fx-border-color: #E0E0E0; -fx-border-radius: 15px;">
-                    <Label text="Laissez votre avis" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <Label text="Note :" style="-fx-font-weight: bold;"/>
-                        <ComboBox fx:id="evaluationComboBox" prefWidth="100"/>
+                            <HBox alignment="BASELINE_LEFT" spacing="15">
+                                <Label fx:id="priceLabel" text="0 MAD" style="-fx-font-size: 30px; -fx-font-weight: bold; -fx-text-fill: #FF724C;"/>
+                                <Label fx:id="originalPriceLabel" text="0 MAD" visible="false" style="-fx-text-fill: #CCC; -fx-strikethrough: true; -fx-font-size: 18px;"/>
+                            </HBox>
+
+                            <Separator/>
+
+                            <!-- Dynamic Variants Section -->
+                            <VBox fx:id="variantsContainer" spacing="20">
+                                <!-- Content injected by controller -->
+                            </VBox>
+
+                            <Separator/>
+
+                            <VBox spacing="15">
+                                <HBox alignment="CENTER_LEFT" spacing="20">
+                                    <VBox spacing="5">
+                                        <Label text="Quantité" style="-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #999;"/>
+                                        <HBox alignment="CENTER" spacing="15" style="-fx-background-color: white; -fx-background-radius: 50px; -fx-padding: 5 15; -fx-border-color: #E0E0E0; -fx-border-radius: 50px;">
+                                            <Button text="−" onAction="#decrementQty" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
+                                            <TextField fx:id="quantityField" text="1" prefWidth="40" alignment="CENTER" style="-fx-background-color: transparent; -fx-font-weight: bold;"/>
+                                            <Button text="+" onAction="#incrementQty" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
+                                        </HBox>
+                                    </VBox>
+                                    
+                                    <VBox spacing="5" HBox.hgrow="ALWAYS">
+                                        <Label text="Stock" style="-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #999;"/>
+                                        <Label fx:id="stockLabel" text="En stock" style="-fx-text-fill: #10B981; -fx-font-weight: bold;"/>
+                                    </VBox>
+                                </HBox>
+
+                                <Button fx:id="addToCartButton" text="Ajouter au Panier" onAction="#handleAddToCart" maxWidth="Infinity" prefHeight="55" style="-fx-background-color: #2A2C41; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold; -fx-background-radius: 50px; -fx-cursor: hand;"/>
+                            </VBox>
+                            
+                            <VBox spacing="10" style="-fx-background-color: #F0F7FF; -fx-padding: 20; -fx-background-radius: 15px;">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="🛡️" style="-fx-font-size: 18px;"/>
+                                    <Label text="Garantie constructeur de 2 ans incluse" style="-fx-font-size: 12px; -fx-text-fill: #444;"/>
+                                </HBox>
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="🚚" style="-fx-font-size: 18px;"/>
+                                    <Label text="Livraison gratuite en 48h partout au Maroc" style="-fx-font-size: 12px; -fx-text-fill: #444;"/>
+                                </HBox>
+                            </VBox>
+                        </VBox>
                     </HBox>
-                    <TextArea fx:id="avisContentField" promptText="Écrivez votre commentaire ici..." prefRowCount="3" wrapText="true"/>
-                    <Button text="Soumettre mon avis" onAction="#handleSubmitAvis" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 50px; -fx-padding: 10 20;"/>
-                    <Label fx:id="avisStatusLabel" text="" visible="false"/>
+                    
+                    <!-- Avis Section -->
+                    <VBox spacing="20" style="-fx-padding: 0 40 40 40;" maxWidth="940">
+                        <Separator/>
+                        <Label text="Avis et commentaires" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+                        
+                        <!-- Display existing reviews -->
+                        <VBox fx:id="reviewsContainer" spacing="15">
+                            <!-- Injected by controller -->
+                        </VBox>
+                        
+                        <!-- Review Form Container (Toggled in controller) -->
+                        <VBox fx:id="avisFormContainer" spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 15px; -fx-border-color: #E0E0E0; -fx-border-radius: 15px;">
+                            <Label text="Laissez votre avis" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Label text="Note :" style="-fx-font-weight: bold;"/>
+                                <ComboBox fx:id="evaluationComboBox" prefWidth="100"/>
+                            </HBox>
+                            <TextArea fx:id="avisContentField" promptText="Écrivez votre commentaire ici..." prefRowCount="3" wrapText="true"/>
+                            <Button text="Soumettre mon avis" onAction="#handleSubmitAvis" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 50px; -fx-padding: 10 20;"/>
+                            <Label fx:id="avisStatusLabel" text="" visible="false"/>
+                        </VBox>
+                        
+                        <!-- Login Required Message (Toggled in controller) -->
+                        <VBox fx:id="loginRequiredContainer" alignment="CENTER" spacing="15" style="-fx-background-color: #F8F9FA; -fx-padding: 30; -fx-background-radius: 15px; -fx-border-style: dashed; -fx-border-color: #DDD; -fx-border-width: 2px;" managed="false" visible="false">
+                            <Label text="Connectez-vous pour partager votre expérience" style="-fx-font-size: 14px; -fx-text-fill: #666;"/>
+                            <Button text="Se connecter" onAction="#handleLoginRedirect" style="-fx-background-color: #2A2C41; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 24; -fx-background-radius: 20px; -fx-cursor: hand;"/>
+                        </VBox>
+                    </VBox>
                 </VBox>
             </VBox>
         </VBox>
-        </ScrollPane>
-    </center>
-
-</BorderPane>
+    </ScrollPane>
+</StackPane>

@@ -4,117 +4,110 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
 <?import javafx.geometry.Insets?>
-
 <?import javafx.scene.image.ImageView?>
-<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.MainHomeController">
-    
-    <!-- TOP NAVBAR -->
-    <top>
-        <HBox style="-fx-background-color: #2A2C41; -fx-padding: 0 16;" prefHeight="56" alignment="CENTER_LEFT">
-            <!-- Logo -->
-            <Label fx:id="logoLabel" text="ChriOnline" style="-fx-text-fill: #FDBF50; -fx-font-size: 18px; -fx-font-weight: bold; -fx-letter-spacing: -0.5px;"/>
-            
-            <!-- Spacer -->
-            <Region HBox.hgrow="ALWAYS"/>
-            
-            <!-- Search Bar -->
-            <HBox style="-fx-background-color: rgba(255,255,255,0.08); -fx-background-radius: 50px; -fx-alignment: CENTER_LEFT; -fx-padding: 0 16;" prefWidth="240">
-                <children>
-                    <fx:include source="icons/search_icon.fxml"/>
-                    <TextField fx:id="searchField" promptText="Rechercher des produits..." style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: white; -fx-prompt-text-fill: rgba(255,255,255,0.6); -fx-font-size: 13px;" HBox.hgrow="ALWAYS" onAction="#handleSearchAction"/>
-                </children>
-            </HBox>
-            
-            <!-- Spacer -->
-            <Region prefWidth="20"/>
-            
-            <!-- Cart Button -->
-            <Button fx:id="cartButton" onAction="#handleCartClick">
-                <graphic>
-                    <StackPane>
-                        <fx:include source="icons/cart_icon.fxml"/>
-                        <Label fx:id="cartBadge" text="0" style="-fx-background-color: #FF724C; -fx-background-radius: 50px; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 2 6;" StackPane.alignment="TOP_RIGHT"/>
-                    </StackPane>
-                </graphic>
-            </Button>
-            
-            <!-- Spacer -->
-            <Region prefWidth="16"/>
-            
-            <!-- User Auth Section -->
-            <StackPane alignment="CENTER_RIGHT">
-                <children>
-                    <!-- Login Button -->
-                    <Button fx:id="loginButton" text="Connexion / Inscription" onAction="#handleLoginClick" 
-                            style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-background-radius: 8px; -fx-font-weight: bold; -fx-padding: 8 16; -fx-cursor: hand;"
-                            visible="true"/>
+
+<StackPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.MainHomeController" fx:id="rootStackPane" style="-fx-background-color: #F4F4F8;">
+    <ScrollPane fx:id="mainScrollPane"
+                style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-width: 0;"
+                fitToWidth="true" fitToHeight="false" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
+        <VBox alignment="TOP_CENTER" style="-fx-background-color: #F4F4F8;">
+            <VBox maxWidth="1200" spacing="0" style="-fx-background-color: #F4F4F8;">
+                
+                <!-- TOP NAVBAR (Now inside ScrollPane) -->
+                <HBox style="-fx-background-color: #2A2C41; -fx-padding: 0 16;" prefHeight="65" alignment="CENTER_LEFT">
+                    <!-- Logo -->
+                    <Label fx:id="logoLabel" text="ChriOnline" style="-fx-text-fill: #FDBF50; -fx-font-size: 20px; -fx-font-weight: bold; -fx-letter-spacing: -0.5px;"/>
                     
-                    <!-- User Avatar -->
-                    <StackPane fx:id="userAvatarContainer" onMouseClicked="#handleUserClick" style="-fx-cursor: hand;" visible="false">
-                        <Circle fx:id="userAvatar" radius="17" fill="#FF724C"/>
-                        <Label fx:id="userInitial" text="U" style="-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    
+                    <!-- Search Bar -->
+                    <HBox style="-fx-background-color: rgba(255,255,255,0.08); -fx-background-radius: 50px; -fx-alignment: CENTER_LEFT; -fx-padding: 0 16;" prefWidth="300" prefHeight="40">
+                        <children>
+                            <fx:include source="icons/search_icon.fxml"/>
+                            <TextField fx:id="searchField" promptText="Rechercher des produits..." style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: white; -fx-prompt-text-fill: rgba(255,255,255,0.6); -fx-font-size: 13px;" HBox.hgrow="ALWAYS" onAction="#handleSearchAction"/>
+                        </children>
+                    </HBox>
+                    
+                    <Region prefWidth="24"/>
+                    
+                    <!-- Cart Button -->
+                    <Button fx:id="cartButton" onAction="#handleCartClick" style="-fx-background-color: transparent; -fx-cursor: hand;">
+                        <graphic>
+                            <StackPane>
+                                <fx:include source="icons/cart_icon.fxml"/>
+                                <Label fx:id="cartBadge" text="0" style="-fx-background-color: #FF724C; -fx-background-radius: 50px; -fx-text-fill: white; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 2 6;" StackPane.alignment="TOP_RIGHT" translateX="10" translateY="-10"/>
+                            </StackPane>
+                        </graphic>
+                    </Button>
+                    
+                    <Region prefWidth="16"/>
+                    
+                    <!-- User Auth Section -->
+                    <StackPane alignment="CENTER_RIGHT">
+                        <children>
+                            <!-- Login Button -->
+                            <Button fx:id="loginButton" text="Connexion / Inscription" onAction="#handleLoginClick" 
+                                    style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-background-radius: 8px; -fx-font-weight: bold; -fx-padding: 8 16; -fx-cursor: hand;"
+                                    visible="true"/>
+                            
+                            <!-- User Avatar -->
+                            <StackPane fx:id="userAvatarContainer" onMouseClicked="#handleUserClick" style="-fx-cursor: hand;" visible="false">
+                                <Circle fx:id="userAvatar" radius="18" fill="#FF724C"/>
+                                <Label fx:id="userInitial" text="U" style="-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                            </StackPane>
+                        </children>
                     </StackPane>
-                </children>
-            </StackPane>
-        </HBox>
-    </top>
-    
-    <!-- CENTER CONTENT -->
-    <center>
-        <!-- MAIN CONTENT -->
-        <ScrollPane fx:id="mainScrollPane" style="-fx-background-color: #F4F4F8; -fx-border-width: 0;" fitToWidth="true">
-            <VBox fx:id="mainContent" style="-fx-padding: 24; -fx-spacing: 28;">
-                
-                <!-- HERO BANNER -->
-                <StackPane fx:id="heroBanner" style="-fx-background-color: #2A2C41; -fx-background-radius: 20px; -fx-pref-height: 200px; -fx-padding: 0 40;">
-                    <children>
-                        <!-- Left Content -->
-                        <VBox alignment="CENTER_LEFT" spacing="10" StackPane.alignment="CENTER_LEFT">
-                            <children>
-                                <Label fx:id="heroBadge" text="NOUVELLE COLLECTION" style="-fx-text-fill: #FF724C; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-color: rgba(255,114,76,0.1); -fx-padding: 4 8; -fx-background-radius: 6;"/>
-                                <Label fx:id="heroTitle" text="Smartphones&#10;Haut de Gamme" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 26px;"/>
-                                <Label fx:id="heroSubtitle" text="Découvrez notre sélection des derniers modèles" style="-fx-text-fill: white; -fx-font-size: 13px; -fx-opacity: 0.8;"/>
-                                <Button fx:id="heroButton" text="Découvrir →" onAction="#handleHeroAction" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20; -fx-background-radius: 20px; -fx-cursor: hand; -fx-translate-y: 10;"/>
-                            </children>
-                        </VBox>
-                        
-                        <!-- Right: Product Image from Cloudinary -->
-                        <StackPane StackPane.alignment="CENTER_RIGHT" style="-fx-padding: 20;">
-                            <children>
-                                <ImageView fx:id="heroBannerImage"
-                                           fitHeight="160" fitWidth="160"
-                                           preserveRatio="true"
-                                           smooth="true"
-                                           StackPane.alignment="CENTER_RIGHT"/>
-                            </children>
-                        </StackPane>
-                    </children>
-                </StackPane>
-                
-                <!-- DYNAMIC CATEGORIES ROW -->
-                <HBox fx:id="categoriesContainer" style="-fx-spacing: 12;" alignment="CENTER_LEFT">
-                    <!-- Dynamic categories added by controller -->
                 </HBox>
-                
-                <!-- PRODUCTS SECTION -->
-                <VBox style="-fx-spacing: 16;">
-                    <children>
-                        <!-- Section Header -->
-                        <HBox alignment="CENTER_LEFT" style="-fx-spacing: 12;">
-                            <Label fx:id="sectionTitle" text="Top Produits"/>
-                            <Region HBox.hgrow="ALWAYS"/>
-                            <Button fx:id="voirToutButton" text="Voir tout" style="-fx-text-fill: #FF724C; -fx-background-color: transparent; -fx-cursor: hand; -fx-font-weight: bold;"/>
-                        </HBox>
-                        
-                        <!-- Product Grid -->
-                        <FlowPane fx:id="productGrid" style="-fx-hgap: 14; -fx-vgap: 14; -fx-pref-wrap-length: 680;">
-                            <!-- Products will be added dynamically -->
-                        </FlowPane>
-                    </children>
+
+                <!-- MAIN CONTENT AREA -->
+                <VBox fx:id="productContent" style="-fx-padding: 24; -fx-spacing: 24; -fx-background-color: #F4F4F8;">
+
+                    <!-- HERO BANNER -->
+                    <StackPane fx:id="heroBanner" style="-fx-background-color: #2A2C41; -fx-background-radius: 20px; -fx-pref-height: 220px; -fx-padding: 0 40;">
+                        <children>
+                            <VBox alignment="CENTER_LEFT" spacing="12" StackPane.alignment="CENTER_LEFT">
+                                <children>
+                                    <Label fx:id="heroBadge" text="NOUVELLE COLLECTION" style="-fx-text-fill: #FF724C; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-color: rgba(255,114,76,0.1); -fx-padding: 6 12; -fx-background-radius: 6;"/>
+                                    <Label fx:id="heroTitle" text="Smartphones&#10;Haut de Gamme" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 32px; -fx-line-spacing: -2;"/>
+                                    <Label fx:id="heroSubtitle" text="Découvrez notre sélection des derniers modèles" style="-fx-text-fill: white; -fx-font-size: 14px; -fx-opacity: 0.8;"/>
+                                    <Button fx:id="heroButton" text="Découvrir →" onAction="#handleHeroAction" style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 24; -fx-background-radius: 20px; -fx-cursor: hand; -fx-translate-y: 10;"/>
+                                </children>
+                            </VBox>
+                            
+                            <StackPane StackPane.alignment="CENTER_RIGHT" style="-fx-padding: 20;">
+                                <children>
+                                    <ImageView fx:id="heroBannerImage"
+                                               fitHeight="180" fitWidth="180"
+                                               preserveRatio="true"
+                                               smooth="true"
+                                               StackPane.alignment="CENTER_RIGHT"/>
+                                </children>
+                            </StackPane>
+                        </children>
+                    </StackPane>
+                    
+                    <!-- DYNAMIC CATEGORIES ROW -->
+                    <HBox fx:id="categoriesContainer" style="-fx-spacing: 16;" alignment="CENTER_LEFT">
+                        <!-- Dynamic categories added by controller -->
+                    </HBox>
+
+                    <!-- FILTER BAR CONTAINER -->
+                    <VBox fx:id="filterBarContainer" spacing="10"/>
+
+                    <!-- PRODUCTS SECTION -->
+                    <VBox style="-fx-spacing: 20;">
+                        <children>
+                            <HBox alignment="CENTER_LEFT" style="-fx-spacing: 12;">
+                                <Label fx:id="sectionTitle" text="Top Produits" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+                            </HBox>
+                            
+                            <FlowPane fx:id="productGrid" style="-fx-hgap: 20; -fx-vgap: 20; -fx-pref-wrap-length: 1100;" alignment="TOP_LEFT">
+                                <!-- Products added dynamically -->
+                            </FlowPane>
+                        </children>
+                    </VBox>
                 </VBox>
-                
             </VBox>
-        </ScrollPane>
-    </center>
-    
-</BorderPane>
+        </VBox>
+    </ScrollPane>
+</StackPane>
