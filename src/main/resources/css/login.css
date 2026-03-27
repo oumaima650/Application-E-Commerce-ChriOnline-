@@ -15,7 +15,7 @@
 /* Soft radial + linear gradient over pink base */
 .bg-pink {
     -fx-background-color:
-            linear-gradient(from 0% 0% to 100% 100%, #ececf2, #F4F4F8 50%, #eeeef5);
+        linear-gradient(from 0% 0% to 100% 100%, #ececf2, #F4F4F8 50%, #eeeef5);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -60,7 +60,7 @@
 .logo-icon-pill {
     -fx-background-color: linear-gradient(to bottom right, #FF724C, #e8612e);
     -fx-background-radius: 14;
-    -fx-effect: dropshadow(gaussian, rgba(255,114,76,0.50), 10, 0, 0, 3);
+    -fx-effect: dropshadow(gaussian, rgba(255, 114, 76, 0.50), 10, 0, 0, 3);
 }
 
 .logo-icon-letter {
@@ -87,7 +87,7 @@
 
 /* Lemon accent bar below the wordmark */
 .logo-accent-bar {
-    -fx-background-color: linear-gradient(to right, #FDBF50, rgba(253,191,80,0.2));
+    -fx-background-color: linear-gradient(to right, #FDBF50, rgba(253, 191, 80, 0.2));
     -fx-background-radius: 2;
     -fx-max-width: 64;
 }
@@ -112,20 +112,20 @@
 }
 
 /* Header area (the row of tab buttons) */
-.auth-tab-pane > .tab-header-area {
+.auth-tab-pane>.tab-header-area {
     -fx-background-color: transparent;
     -fx-padding: 0 20 0 20;
 }
 
 /* Strip behind tab buttons */
-.auth-tab-pane > .tab-header-area > .tab-header-background {
+.auth-tab-pane>.tab-header-area>.tab-header-background {
     -fx-background-color: transparent;
     -fx-border-color: transparent transparent #e8e8f0 transparent;
     -fx-border-width: 0 0 1.5 0;
 }
 
 /* Container for tabs */
-.auth-tab-pane > .tab-header-area > .headers-region {
+.auth-tab-pane>.tab-header-area>.headers-region {
     -fx-background-color: transparent;
 }
 
@@ -160,7 +160,7 @@
 }
 
 /* ★ Lemon (#FDBF50) underline on selected tab ★ */
-.auth-tab-pane .tab:selected > .tab-container {
+.auth-tab-pane .tab:selected>.tab-container {
     -fx-border-color: #FDBF50;
     -fx-border-width: 0 0 3 0;
     -fx-background-color: transparent;
@@ -183,7 +183,7 @@
 }
 
 /* Content area behind the form boxes */
-.auth-tab-pane > .tab-content-area {
+.auth-tab-pane>.tab-content-area {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-padding: 0;
@@ -208,7 +208,7 @@
     -fx-faint-focus-color: transparent;
 }
 
-.form-scroll > .viewport {
+.form-scroll>.viewport {
     -fx-background-color: transparent;
 }
 

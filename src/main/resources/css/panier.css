@@ -37,7 +37,8 @@ BLEU_NUIT       : #2A2C41
 .cart-title {
     -fx-text-fill: #2A2C41;
     -fx-font-size: 28px;
-    -fx-font-weight: 800; /* bold 700-800 */
+    -fx-font-weight: 800;
+    /* bold 700-800 */
 }
 
 .cart-badge {
@@ -60,7 +61,7 @@ BLEU_NUIT       : #2A2C41
 .cart-row-active {
     -fx-border-color: #f0f0f0 #f0f0f0 #f0f0f0 #FF724C;
     -fx-border-width: 1 1 1 4;
-    -fx-background-color: rgba(255,114,76,0.04);
+    -fx-background-color: rgba(255, 114, 76, 0.04);
     -fx-padding: 14;
 }
 
@@ -74,9 +75,17 @@ BLEU_NUIT       : #2A2C41
 }
 
 /* Category backgrounds */
-.cat-phone { -fx-background-color: #E2E8F0; } 
-.cat-laptop { -fx-background-color: #FEE2E2; }
-.cat-headphone { -fx-background-color: #FFEDD5; }
+.cat-phone {
+    -fx-background-color: #E2E8F0;
+}
+
+.cat-laptop {
+    -fx-background-color: #FEE2E2;
+}
+
+.cat-headphone {
+    -fx-background-color: #FFEDD5;
+}
 
 .item-icon {
     -fx-fill: #2A2C41;
@@ -96,22 +105,22 @@ BLEU_NUIT       : #2A2C41
 }
 
 /* ── QUANTITY CONTROL ── */
-.qty-control { 
-    -fx-background-color: #F4F4F8; 
-    -fx-background-radius: 50px; 
+.qty-control {
+    -fx-background-color: #F4F4F8;
+    -fx-background-radius: 50px;
 }
 
-.qty-btn { 
-    -fx-text-fill: #FF724C; 
-    -fx-font-weight: bold; 
-    -fx-background-color: transparent; 
+.qty-btn {
+    -fx-text-fill: #FF724C;
+    -fx-font-weight: bold;
+    -fx-background-color: transparent;
     -fx-cursor: hand;
     -fx-font-size: 16px;
     -fx-padding: 0 8;
 }
 
-.qty-btn:hover { 
-    -fx-text-fill: #e55a35; 
+.qty-btn:hover {
+    -fx-text-fill: #e55a35;
 }
 
 
@@ -154,13 +163,13 @@ BLEU_NUIT       : #2A2C41
 
 /* Summary Card */
 /* ── SUMMARY CARD ── */
-.summary-card { 
-    -fx-background-color: #F4F4F8; 
-    -fx-background-radius: 20px; 
+.summary-card {
+    -fx-background-color: #F4F4F8;
+    -fx-background-radius: 20px;
 }
 
-.summary-header { 
-    -fx-background-color: #2A2C41; 
+.summary-header {
+    -fx-background-color: #2A2C41;
     -fx-padding: 20 22;
     -fx-background-radius: 20 20 0 0;
 }
