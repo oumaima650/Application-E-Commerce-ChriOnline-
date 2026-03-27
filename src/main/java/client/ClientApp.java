@@ -16,13 +16,15 @@ public class ClientApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        primaryStage.setTitle("ChriOnline - Boutique en ligne");
+        primaryStage.setTitle("ChriOnline - E-Commerce");
         primaryStage.setWidth(1200);
         primaryStage.setHeight(800);
         primaryStage.setMinWidth(1100);
         primaryStage.setMinHeight(750);
 
         // Initialiser le gestionnaire de navigation entre les scenes
+        
+        // INITIALISER LE SCENE MANAGER
         SceneManager.init(primaryStage);
 
         try {
