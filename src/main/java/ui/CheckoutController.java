@@ -97,6 +97,8 @@ public class CheckoutController {
     // Stored addresses data
     private List<Map<String, Object>> savedAddresses = new ArrayList<>();
     private static final String NEW_ADDRESS_OPTION = "+ Nouvelle adresse";
+    /** ID of the currently selected address (saved or newly created). */
+    private Integer selectedIdAdresse = null;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r);
@@ -270,6 +272,9 @@ public class CheckoutController {
                 cmbAdresse.getItems().add(NEW_ADDRESS_OPTION);
                 if (!cmbAdresse.getItems().isEmpty() && savedAddresses.size() > 0) {
                     cmbAdresse.setValue(cmbAdresse.getItems().get(0));
+                    // Set initial selected address ID
+                    Object idObj = savedAddresses.get(0).get("idAdresse");
+                    selectedIdAdresse = idObj instanceof Number ? ((Number) idObj).intValue() : null;
                 }
 
                 // Show/hide new address field based on selection
@@ -283,8 +288,13 @@ public class CheckoutController {
                         if (idx >= 0 && idx < savedAddresses.size()) {
                             txtVille.setText((String) savedAddresses.get(idx).get("ville"));
                             txtCodePostal.setText((String) savedAddresses.get(idx).get("codePostal"));
+                            // Track the selected address ID
+                            Object idObj = savedAddresses.get(idx).get("idAdresse");
+                            selectedIdAdresse = idObj instanceof Number ? ((Number) idObj).intValue() : null;
                         }
                     } else if (isNew) {
+                        // Will be set after ADD_ADDRESS response
+                        selectedIdAdresse = null;
                         txtVille.clear();
                         txtCodePostal.clear();
                     }
@@ -387,7 +397,7 @@ public class CheckoutController {
             return;
         }
 
-        // If "Nouvelle adresse" — save it first
+        // If "Nouvelle adresse" — save it first and capture the returned idAdresse
         if (isNewAddress) {
             executor.submit(() -> {
                 java.util.Map<String, Object> p = new java.util.HashMap<>();
@@ -396,7 +406,13 @@ public class CheckoutController {
                 p.put("ville", ville);
                 p.put("codePostal", codePostal);
                 shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getAccessToken());
-                client.ClientSocket.getInstance().envoyer(req);
+                shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+                if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
+                    Object idObj = rep.getDonnees().get("idAdresse");
+                    if (idObj instanceof Number) {
+                        selectedIdAdresse = ((Number) idObj).intValue();
+                    }
+                }
             });
         }
         step1Form.setVisible(false);
@@ -449,6 +465,10 @@ public class CheckoutController {
         params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
         params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
         params.put("statut", "VALIDEE");
+        params.put("methodePaiement", radioCard.isSelected() ? "CARD" : "CASH");
+        if (selectedIdAdresse != null) {
+            params.put("idAdresse", selectedIdAdresse);
+        }
         
         if (resumingOrderReference != null) {
             params.put("reference", resumingOrderReference);
@@ -563,6 +583,10 @@ public class CheckoutController {
         params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
         params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
         params.put("statut", "EN_ATTENTE");
+        params.put("methodePaiement", radioCard.isSelected() ? "CARD" : "CASH");
+        if (selectedIdAdresse != null) {
+            params.put("idAdresse", selectedIdAdresse);
+        }
         
         if (resumingOrderReference != null) {
             params.put("reference", resumingOrderReference);
