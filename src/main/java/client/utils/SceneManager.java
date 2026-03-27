@@ -90,4 +90,14 @@ public class SceneManager {
     public static void pushHistory(String fxml, String title) {
         history.push(new NavigationRecord(fxml, title));
     }
+
+    /**
+     * Nettoie le cache pour une vue spécifique.
+     * Dans cette version simplifiée, les vues sont rechargées à chaque switchTo,
+     * donc cette méthode est présente pour la compatibilité avec les contrôleurs.
+     */
+    public static void clearCache(String fxml) {
+        // No-op : le rechargement est déjà forcé par switchToInternal
+        System.out.println("[SceneManager] Cache 'clear' demandé pour : " + fxml);
+    }
 }

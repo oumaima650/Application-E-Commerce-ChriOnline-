@@ -223,7 +223,7 @@
     -fx-faint-focus-color: transparent;
 }
 
-.form-scroll > .viewport {
+.form-scroll>.viewport {
     -fx-background-color: transparent;
 }
 
