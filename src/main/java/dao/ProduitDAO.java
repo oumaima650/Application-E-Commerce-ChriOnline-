@@ -12,7 +12,9 @@ public class ProduitDAO {
     // Récupère tous les produits
     public List<Produit> getAll() {
         List<Produit> produits = new ArrayList<>();
-        String query = "SELECT * FROM Produit WHERE deletedAt IS NULL";
+        String query = "SELECT p.*, c.nom AS nomCategorie FROM Produit p " +
+                       "LEFT JOIN Categorie c ON p.idCategorie = c.idCategorie " +
+                       "WHERE p.deletedAt IS NULL";
         
         System.out.println("[ProduitDAO] Tentative de récupération des produits...");
         
@@ -34,7 +36,8 @@ public class ProduitDAO {
 
     public List<Produit> getAllIncludeDeleted() {
         List<Produit> produits = new ArrayList<>();
-        String query = "SELECT * FROM Produit";
+        String query = "SELECT p.*, c.nom AS nomCategorie FROM Produit p " +
+                       "LEFT JOIN Categorie c ON p.idCategorie = c.idCategorie";
         Connection conn = ConnexionBDD.getConnection();
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
@@ -49,7 +52,9 @@ public class ProduitDAO {
 
     // Récupère un produit par son ID
     public Produit getById(int id) {
-        String query = "SELECT * FROM Produit WHERE idProduit = ?";
+        String query = "SELECT p.*, c.nom AS nomCategorie FROM Produit p " +
+                       "LEFT JOIN Categorie c ON p.idCategorie = c.idCategorie " +
+                       "WHERE p.idProduit = ?";
         Connection conn = ConnexionBDD.getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, id);
@@ -67,7 +72,9 @@ public class ProduitDAO {
     // Recherche des produits par nom
     public List<Produit> getByNom(String nom) {
         List<Produit> produits = new ArrayList<>();
-        String query = "SELECT * FROM Produit WHERE nom LIKE ? AND deletedAt IS NULL";
+        String query = "SELECT p.*, c.nom AS nomCategorie FROM Produit p " +
+                       "LEFT JOIN Categorie c ON p.idCategorie = c.idCategorie " +
+                       "WHERE p.nom LIKE ? AND p.deletedAt IS NULL";
         Connection conn = ConnexionBDD.getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, "%" + nom + "%");
@@ -84,7 +91,9 @@ public class ProduitDAO {
 
     public List<Produit> getByNomIncludeDeleted(String nom) {
         List<Produit> produits = new ArrayList<>();
-        String query = "SELECT * FROM Produit WHERE nom LIKE ?";
+        String query = "SELECT p.*, c.nom AS nomCategorie FROM Produit p " +
+                       "LEFT JOIN Categorie c ON p.idCategorie = c.idCategorie " +
+                       "WHERE p.nom LIKE ?";
         Connection conn = ConnexionBDD.getConnection();
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, "%" + nom + "%");
@@ -104,8 +113,8 @@ public class ProduitDAO {
 
         String query = "INSERT INTO Produit (idCategorie, nom, description) VALUES (?, ?, ?)";
 
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setInt(1, produit.getIdCategorie());
             pstmt.setString(2, produit.getNom());
             pstmt.setString(3, produit.getDescription());
@@ -130,8 +139,8 @@ public class ProduitDAO {
         String query = "UPDATE Produit SET idCategorie = ?, nom = ?, description = ? WHERE idProduit = ?";
 
 
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
 
             pstmt.setInt(1, produit.getIdCategorie());
             pstmt.setString(2, produit.getNom());        
@@ -172,7 +181,7 @@ public class ProduitDAO {
             pstmt.setInt(1, id);
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
-            throw new RuntimeException("Erreur lors de la suppression physique du produit id=" + id, e);
+            throw new RuntimeException("Erreur lors de la suppression physiq    ue du produit id=" + id, e);
         }
     }
 
@@ -262,6 +271,13 @@ public class ProduitDAO {
         prod.setIdCategorie(rs.getInt("idCategorie"));
         prod.setNom(rs.getString("nom"));
         prod.setDescription(rs.getString("description"));
+        
+        // Fetch category name if present in ResultSet
+        try {
+            prod.setNomCategorie(rs.getString("nomCategorie"));
+        } catch (SQLException e) {
+            // nomCategorie might not be in all queries
+        }
         
         Timestamp ts = null;
         try { ts = rs.getTimestamp("createdAt"); } catch (SQLException e) {

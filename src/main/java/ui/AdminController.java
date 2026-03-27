@@ -304,11 +304,23 @@ public class AdminController {
         header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         
         VBox titles = new VBox(5);
+        
+        HBox nameAndBadge = new HBox(10);
+        nameAndBadge.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        
         Label lblName = new Label(p.getNom());
         lblName.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;");
+        
+        if (p.getNomCategorie() != null && !p.getNomCategorie().isEmpty()) {
+            Label badge = new Label(p.getNomCategorie());
+            badge.setStyle("-fx-background-color: #E0E7FF; -fx-text-fill: #4F46E5; -fx-padding: 2 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;");
+            nameAndBadge.getChildren().add(badge);
+        }
+        nameAndBadge.getChildren().add(0, lblName);
+
         Label lblDesc = new Label(p.getDescription());
         lblDesc.setStyle("-fx-font-size: 14px; -fx-text-fill: #666;");
-        titles.getChildren().addAll(lblName, lblDesc);
+        titles.getChildren().addAll(nameAndBadge, lblDesc);
         
         Region spacer = new Region();
         HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);

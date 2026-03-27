@@ -10,6 +10,7 @@ public class Produit implements Serializable {
     private String description;
     private LocalDateTime createdAt;
     private LocalDateTime deletedAt;
+    private String nomCategorie;
 
     public Produit() {}
 
@@ -27,6 +28,9 @@ public class Produit implements Serializable {
 
     public int getIdCategorie() { return idCategorie; }
     public void setIdCategorie(int idCategorie) { this.idCategorie = idCategorie; }
+
+    public String getNomCategorie() { return nomCategorie; }
+    public void setNomCategorie(String nomCategorie) { this.nomCategorie = nomCategorie; }
 
     public String getNom() { return nom; }
     public void setNom(String nom) { this.nom = nom; }

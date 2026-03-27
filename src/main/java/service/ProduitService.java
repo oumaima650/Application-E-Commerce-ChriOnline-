@@ -302,6 +302,7 @@ public class ProduitService {
             Object idObj = requete.getParametres().get("idProduit");
             Object nomObj = requete.getParametres().get("nom");
             Object descObj = requete.getParametres().get("description");
+            Object catObj = requete.getParametres().get("idCategorie");
             
             if (idObj == null) {
                 return new Reponse(false, "ERREUR: ID Produit (idProduit) manquant dans la requête.", null);
@@ -313,11 +314,13 @@ public class ProduitService {
             Integer id = (idObj instanceof Number) ? ((Number) idObj).intValue() : Integer.parseInt(idObj.toString());
             String nom = nomObj.toString();
             String desc = (descObj != null) ? descObj.toString() : "";
+            Integer idCategorie = (catObj != null) ? ((Number) catObj).intValue() : 0;
             
             Produit p = new Produit();
             p.setIdProduit(id);
             p.setNom(nom);
             p.setDescription(desc);
+            p.setIdCategorie(idCategorie);
             
             modifier(p); // Calls internal modifier(Produit p)
             return new Reponse(true, "Produit mis à jour avec succès.", null);

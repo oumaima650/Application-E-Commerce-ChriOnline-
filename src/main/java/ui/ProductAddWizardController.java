@@ -453,6 +453,11 @@ public class ProductAddWizardController {
         Produit p = new Produit();
         p.setNom(txtName.getText());
         p.setDescription(txtDescription.getText());
+        
+        Categorie selectedCat = cbCategory.getValue();
+        if (selectedCat != null) {
+            p.setIdCategorie(selectedCat.getIdCategorie());
+        }
 
         List<Map<String, Object>> variantsData = new ArrayList<>();
         for (Map.Entry<Integer, List<String>> entry : variantValuesMap.entrySet()) {
