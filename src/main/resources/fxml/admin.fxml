@@ -5,7 +5,7 @@
 <?import javafx.scene.control.cell.PropertyValueFactory?>
 <?import javafx.scene.shape.Circle?>
 
-<BorderPane style="-fx-background-color: #F4F4F8;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AdminController">
+<BorderPane style="-fx-background-color: #F4F4F8" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.AdminController">
     <!-- Header Admin -->
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20" styleClass="navbar" style="-fx-padding: 15px 30px;">

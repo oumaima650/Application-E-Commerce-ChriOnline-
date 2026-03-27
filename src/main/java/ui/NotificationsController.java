@@ -96,11 +96,10 @@ public class NotificationsController {
                         if (notifCount != null) notifCount.setText(String.valueOf(unreadCount));
                         if (notifBadge != null) notifBadge.setVisible(unreadCount > 0);
                         
-                        // Synchroniser avec le dashboard global
-                        AdminController.refreshBadge();
                     }
                     
                     // Si aucune notification
+
                     if (notificationsBox.getChildren().isEmpty()) {
                         System.out.println("[NotificationsController] Aucune notification trouvée pour cet utilisateur.");
                         Label empty = new Label("Aucune notification pour le moment.");
@@ -193,7 +192,6 @@ public class NotificationsController {
         };
         
         task.setOnSucceeded(e -> {
-            AdminController.refreshBadge();
             Platform.runLater(this::loadNotifications); // Recharger la liste
         });
         new Thread(task).start();
@@ -210,7 +208,6 @@ public class NotificationsController {
             }
         };
         task.setOnSucceeded(e -> {
-            AdminController.refreshBadge();
             Platform.runLater(this::loadNotifications); // Recharger pour mettre à jour les styles et le badge
         });
         new Thread(task).start();
