@@ -4,7 +4,6 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
 <?import javafx.geometry.Insets?>
-
 <?import javafx.scene.image.ImageView?>
 <BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.MainHomeController">
     
@@ -37,6 +36,9 @@
                     </StackPane>
                 </graphic>
             </Button>
+            
+            <!-- Spacer -->
+            <Region prefWidth="16"/>
             
             <!-- Notification Bell -->
             <StackPane fx:id="notifBadge" visible="true" onMouseClicked="#ouvrirNotifications" style="-fx-cursor: hand; -fx-padding: 0 10;">
@@ -121,9 +123,7 @@
                         </FlowPane>
                     </children>
                 </VBox>
-                
             </VBox>
-        </ScrollPane>
-    </center>
-    
-</BorderPane>
+        </VBox>
+    </ScrollPane>
+</StackPane>

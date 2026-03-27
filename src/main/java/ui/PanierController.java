@@ -9,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 
 import javafx.scene.layout.Priority;
@@ -47,6 +48,10 @@ public class PanierController implements Initializable {
     private Label lblTotalTTC;
     @FXML
     private Button btnValider;
+    @FXML
+    private ScrollPane panierScrollPane;
+    @FXML
+    private StackPane rootStackPane;
 
     private final ExecutorService dbExecutor = Executors.newSingleThreadExecutor();
     private final Map<String, Double> unitPrices = new HashMap<>();
@@ -62,36 +67,34 @@ public class PanierController implements Initializable {
             return;
         }
 
-        // --- PERFORMANCE OPTIMIZATION: PRE-CHARGEMENT DU CHECKOUT ---
-        // Démarrer immédiatement avant même de charger le panier
-        SceneManager.loadAsync("checkout.fxml");
+        if (panierScrollPane != null) {
+            panierScrollPane.setFitToHeight(false);
+            panierScrollPane.setFitToWidth(true);
+        }
+    }
 
-        chargerPanier();
+    @FXML
+    private void handleValiderCommande() {
+        if (selectedItems == null) return;
+        List<String> skus = selectedItems.entrySet().stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .toList();
 
-        if (btnValider != null) {
-            btnValider.setOnAction(e -> {
-                List<String> skus = selectedItems.entrySet().stream()
-                        .filter(Map.Entry::getValue)
-                        .map(Map.Entry::getKey)
-                        .toList();
-
-                if (skus.isEmpty()) {
-                    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-                            javafx.scene.control.Alert.AlertType.ERROR);
-                    alert.setTitle("Panier Vide");
-                    alert.setHeaderText("Action impossible");
-                    alert.setContentText(
-                            "Votre panier est vide ou aucun article n'est sélectionné. Veuillez ajouter des produits pour pouvoir passer une commande.");
-                    alert.showAndWait();
-                    return;
-                }
-
-                System.out.println("Navigation vers le checkout avec " + skus.size() + " articles...");
-                CheckoutController.setSelectedSkus(skus);
-                SceneManager.switchTo("checkout.fxml", "ChriOnline - Paiement Sécurisé");
-            });
+        if (skus.isEmpty()) {
+            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+                    javafx.scene.control.Alert.AlertType.ERROR);
+            alert.setTitle("Panier Vide");
+            alert.setHeaderText("Action impossible");
+            alert.setContentText(
+                    "Votre panier est vide ou aucun article n'est sélectionné. Veuillez ajouter des produits pour passer une commande.");
+            alert.showAndWait();
+            return;
         }
 
+        System.out.println("Navigation vers le checkout avec " + skus.size() + " articles...");
+        CheckoutController.setSelectedSkus(skus);
+        SceneManager.switchTo("checkout.fxml", "ChriOnline - Paiement Sécurisé");
     }
 
     private void chargerPanier() {

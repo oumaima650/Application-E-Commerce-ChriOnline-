@@ -30,6 +30,10 @@ public class IconLibrary {
     public static final String TAG       = "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z M7 7h.01";
     public static final String TRUCK     = "M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z M18.5 21a2.5 2.5 0 100-5 2.5 2.5 0 000 5z";
     public static final String PACKAGE   = "M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z M3.27 6.96L12 12.01l8.73-5.05 M12 22.08V12";
+    public static final String SHIRT     = "M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H6v10a2 2 0 002 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z";
+    public static final String SHOE      = "M2 14h20v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z M2 14l4-8h7l3 5 2-1 3 4";
+    public static final String SOFA      = "M20 9V6a2 2 0 00-2-2H6a2 2 0 00-2 2v3 M2 11a2 2 0 012-2h16a2 2 0 012 2v8H2v-8z M6 19v2 M18 19v2";
+    public static final String PERCENT   = "M19 5L5 19 M6.5 8a1.5 1.5 0 100-3 1.5 1.5 0 000 3z M17.5 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3z";
 
     public static SVGPath getIcon(String pathData, double size, String hexColor) {
         SVGPath svg = new SVGPath();

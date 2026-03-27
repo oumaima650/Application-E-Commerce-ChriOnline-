@@ -26,23 +26,23 @@ INSERT INTO Admin (IdUtilisateur) VALUES (1), (2);
 -- ------------------------------------------------------------
 -- Clients
 -- ------------------------------------------------------------
-INSERT INTO Client (IdUtilisateur, nom, prenom, telephone) VALUES
-(3, 'Dupont',   'Alice',  '0612345678'),
-(4, 'Martin',   'Bob',    '0623456789'),
-(5, 'Bernard',  'Clara',  '0634567890'),
-(6, 'Alaoui',   'Driss',  '0645678901'),
-(7, 'Leroy',    'Emma',   NULL);
+INSERT INTO Client (IdUtilisateur, nom, prenom, telephone, statut) VALUES
+(3, 'Dupont',   'Alice',  '0612345678', 'ACTIF'),
+(4, 'Martin',   'Bob',    '0623456789', 'ACTIF'),
+(5, 'Bernard',  'Clara',  '0634567890', 'ACTIF'),
+(6, 'Alaoui',   'Driss',  '0645678901', 'ACTIF'),
+(7, 'Leroy',    'Emma',   NULL,         'ACTIF');
 
 -- ------------------------------------------------------------
 -- Adresses
 -- ------------------------------------------------------------
-INSERT INTO Adresse (idAdresse, IdClient, addresseComplete, ville) VALUES
-(1, 3, '12 Rue des Fleurs',       'Rabat'),
-(2, 3, '5 Avenue Hassan II',      'Casablanca'),
-(3, 4, '8 Rue Ibn Battouta',      'Fès'),
-(4, 5, '23 Boulevard Mohammed V', 'Marrakech'),
-(5, 6, '14 Rue Allal Ben Abdallah','Rabat'),
-(6, 7, '9 Rue de la Paix',        'Tanger');
+INSERT INTO Adresse (idAdresse, IdClient, addresseComplete, ville, codePostal) VALUES
+(1, 3, '12 Rue des Fleurs',       'Rabat',      '10010'),
+(2, 3, '5 Avenue Hassan II',      'Casablanca', '20000'),
+(3, 4, '8 Rue Ibn Battouta',      'Fès',        '30000'),
+(4, 5, '23 Boulevard Mohammed V', 'Marrakech',  '40000'),
+(5, 6, '14 Rue Allal Ben Abdallah','Rabat',      '10020'),
+(6, 7, '9 Rue de la Paix',        'Tanger',     '90000');
 
 -- ------------------------------------------------------------
 -- Cartes bancaires
@@ -87,12 +87,12 @@ INSERT INTO CategorieVariante (idCategorie, idVariante) VALUES
 -- ------------------------------------------------------------
 -- Produits
 -- ------------------------------------------------------------
-INSERT INTO Produit (idProduit, nom, description) VALUES
-(1, 'T-shirt Basique',    'T-shirt en coton 100% bio'),
-(2, 'Jean Slim',          'Jean coupe slim stretch'),
-(3, 'Smartphone ProMax',  'Smartphone dernière génération'),
-(4, 'Sneakers Classic',   'Chaussures de sport casual'),
-(5, 'Vase Décoratif',     'Vase en céramique artisanal');
+INSERT INTO Produit (idProduit, idCategorie, nom, description) VALUES
+(1, 1, 'T-shirt Basique',    'T-shirt en coton 100% bio'),
+(2, 1, 'Jean Slim',          'Jean coupe slim stretch'),
+(3, 2, 'Smartphone ProMax',  'Smartphone dernière génération'),
+(4, 3, 'Sneakers Classic',   'Chaussures de sport casual'),
+(5, 4, 'Vase Décoratif',     'Vase en céramique artisanal');
 
 -- ------------------------------------------------------------
 -- ProduitVarValeur

@@ -5,14 +5,16 @@ import java.io.Serializable;
 
 public class Produit implements Serializable {
     private int idProduit;
+    private int idCategorie;
     private String nom;
     private String description;
     private LocalDateTime createdAt;
 
     public Produit() {}
 
-    public Produit(int idProduit, String nom, String description, LocalDateTime createdAt) {
+    public Produit(int idProduit, int idCategorie, String nom, String description, LocalDateTime createdAt) {
         this.idProduit = idProduit;
+        this.idCategorie = idCategorie;
         this.nom = nom;
         this.description = description;
         this.createdAt = createdAt;
@@ -20,6 +22,9 @@ public class Produit implements Serializable {
 
     public int getIdProduit() { return idProduit; }
     public void setIdProduit(int idProduit) { this.idProduit = idProduit; }
+
+    public int getIdCategorie() { return idCategorie; }
+    public void setIdCategorie(int idCategorie) { this.idCategorie = idCategorie; }
 
     public String getNom() { return nom; }
     public void setNom(String nom) { this.nom = nom; }

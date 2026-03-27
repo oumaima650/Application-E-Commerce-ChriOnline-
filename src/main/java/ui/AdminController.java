@@ -54,7 +54,6 @@ public class AdminController {
 
     @FXML
     private void ouvrirNotifications() {
-        SceneManager.clearCache("notifications.fxml");
         SceneManager.switchTo("notifications.fxml", "ChriOnline - Notifications");
     }
 
@@ -69,7 +68,6 @@ public class AdminController {
     @FXML
     public void initialize() {
         // Configurer les colonnes
-
         setupColumns();
         
         // Charger les données depuis le backend via TCP
