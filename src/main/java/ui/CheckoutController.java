@@ -82,6 +82,8 @@ public class CheckoutController {
     @FXML
     private TextField txtExpiry;
     @FXML
+    private TextField txtCvv;
+    @FXML
     private Label lblExpiryPreview;
 
     // Stored addresses data
@@ -327,28 +329,99 @@ public class CheckoutController {
     @FXML
     @SuppressWarnings("unchecked")
     private void goToStep3() {
-        step1Form.setVisible(false);
-        step1Form.setManaged(false);
-        step2Form.setVisible(false);
-        step2Form.setManaged(false);
-        step3Form.setVisible(true);
-        step3Form.setManaged(true);
-        step1Circle.getStyleClass().setAll("step-circle-done");
-        step2Circle.getStyleClass().setAll("step-circle-done");
-        step3Circle.getStyleClass().setAll("step-circle-done");
+        boolean isCard = radioCard.isSelected();
+        String cardNumber = "";
+        String expiry = "";
+        String cvv = "";
 
+        if (isCard) {
+            cardNumber = txtCardNumber.getText() != null ? txtCardNumber.getText().replaceAll("\\s+", "") : "";
+            expiry = txtExpiry.getText() != null ? txtExpiry.getText().trim() : "";
+            cvv = txtCvv.getText() != null ? txtCvv.getText().trim() : "";
+
+            if (cardNumber.length() < 13 || cardNumber.length() > 19) {
+                showAlertErreur("Le numéro de carte est invalide.");
+                return;
+            }
+            if (!expiry.matches("\\d{2}/\\d{2}")) {
+                showAlertErreur("La date d'expiration doit être au format MM/YY.");
+                return;
+            }
+            if (cvv.length() < 3 || cvv.length() > 4) {
+                showAlertErreur("Le code CVV est invalide (3 ou 4 chiffres).");
+                return;
+            }
+        }
+
+        // 1. Création de la commande
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
         params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
         params.put("statut", "VALIDEE");
 
-        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
+        String token = SessionManager.getInstance().getSession().getAccessToken();
+        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, token);
         shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
 
         if (rep.isSucces() && rep.getDonnees() != null) {
             Map<String, Object> data = (Map<String, Object>) rep.getDonnees();
             String ref = (String) data.get("reference");
             double total = ((Number) data.get("total")).doubleValue();
+            int idCommande = ((Number) data.get("idCommande")).intValue();
+            
+            Integer idCarte = null;
+
+            // 2. Traitement de la carte bancaire si nécessaire
+            if (isCard) {
+                java.util.Map<String, Object> cardParams = new java.util.HashMap<>();
+                cardParams.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
+                cardParams.put("numeroCarte", cardNumber);
+                cardParams.put("typeCarte", "VISA"); // Type par défaut pour la simulation
+                
+                shared.Requete cardReq = new shared.Requete(shared.RequestType.ADD_CARD, cardParams, token);
+                shared.Reponse cardRep = client.ClientSocket.getInstance().envoyer(cardReq);
+                
+                if (cardRep.isSucces() && cardRep.getDonnees() != null) {
+                    Map<String, Object> cardData = (Map<String, Object>) cardRep.getDonnees();
+                    model.CarteBancaire carte = (model.CarteBancaire) cardData.get("carte");
+                    if (carte != null) {
+                        idCarte = carte.getIdCarte();
+                    }
+                } else {
+                    showAlertErreur("L'enregistrement de la carte a échoué : " + cardRep.getMessage());
+                    return; // Stoppe ici si le paiement par carte est impossible
+                }
+            }
+
+            // 3. Traitement du paiement (PROCESS_PAYMENT)
+            java.util.Map<String, Object> paymentParams = new java.util.HashMap<>();
+            paymentParams.put("idCommande", idCommande);
+            paymentParams.put("montant", String.valueOf(total));
+            paymentParams.put("methodePaiement", isCard ? "CARD" : "CASH");
+            if (idCarte != null) {
+                paymentParams.put("idCarte", idCarte);
+            }
+
+            shared.Requete paymentReq = new shared.Requete(shared.RequestType.PROCESS_PAYMENT, paymentParams, token);
+            shared.Reponse paymentRep = client.ClientSocket.getInstance().envoyer(paymentReq);
+
+            if (!paymentRep.isSucces()) {
+                showAlertErreur("Échec du paiement : " + paymentRep.getMessage() + "\nCependant, votre commande a bien été enregistrée.");
+                // Dans un système réel on pourrait annuler ou mettre en attente, 
+                // mais la commande est déjà créée. Continuons l'affichage.
+            }
+
+            // 4. Affichage de l'interface finale de confirmation
+            step1Form.setVisible(false);
+            step1Form.setManaged(false);
+            step2Form.setVisible(false);
+            step2Form.setManaged(false);
+            step3Form.setVisible(true);
+            step3Form.setManaged(true);
+            step1Circle.getStyleClass().setAll("step-circle-done");
+            step2Circle.getStyleClass().setAll("step-circle-done");
+            step3Circle.getStyleClass().setAll("step-circle-done");
+
             lblOrderId.setText("#" + ref);
             lblOrderTotal.setText("Montant : " + String.format("%,.2f MAD", total));
 
@@ -371,7 +444,6 @@ public class CheckoutController {
                     row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
                     row.setStyle("-fx-padding: 5; -fx-background-color: white; -fx-background-radius: 8;");
 
-                    // Photo ou Icone (Support Cloudinary)
                     javafx.scene.Node visual;
                     if (imgPath != null && !imgPath.isEmpty() && (imgPath.startsWith("http") || imgPath.startsWith("https"))) {
                         try {
@@ -380,7 +452,6 @@ public class CheckoutController {
                             iv.setFitHeight(45);
                             iv.setPreserveRatio(true);
 
-                            // Rounded corners
                             javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(45, 45);
                             clip.setArcWidth(10);
                             clip.setArcHeight(10);
@@ -391,7 +462,6 @@ public class CheckoutController {
                             visual = ui.utils.IconLibrary.getIcon(ui.utils.IconLibrary.PHONE, 24, "#95A5A6");
                         }
                     } else {
-                        // Fallback icone si pas de photo ou pas une URL
                         String iconPath = (imgPath == null || imgPath.isEmpty() || imgPath.endsWith(".jpg") || imgPath.endsWith(".png"))
                                 ? ui.utils.IconLibrary.PHONE : imgPath;
                         visual = ui.utils.IconLibrary.getIcon(iconPath, 24, "#95A5A6");
@@ -420,12 +490,9 @@ public class CheckoutController {
                 }
             }
 
-            // Forcer le rafraîchissement du panier lors du prochain accès
             SceneManager.clearCache("panier.fxml");
         } else {
-            lblOrderId.setText("Erreur");
-            double baseTotal = (selectedSkus != null) ? selectedSkus.size() * 500.0 : 0.0;
-            lblOrderTotal.setText("Montant : " + String.format("%,.2f MAD", baseTotal));
+            showAlertErreur("La création de la commande a échoué : " + rep.getMessage());
         }
     }
 

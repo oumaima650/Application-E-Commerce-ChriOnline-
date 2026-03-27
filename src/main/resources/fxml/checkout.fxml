@@ -66,7 +66,7 @@
                 </HBox>
 
                 <!-- STEP PANELS -->
-                <StackPane maxWidth="600">
+                <StackPane maxWidth="600" style="-fx-background-color: white;">
                     <!-- PANEL 1: ADRESSE -->
                     <VBox fx:id="step1Form" spacing="24">
                         <Label text="Informations de livraison" styleClass="header-title"/>
@@ -135,7 +135,7 @@
                             <GridPane hgap="16" vgap="16">
                                 <TextField fx:id="txtCardNumber" promptText="Numéro de carte" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2" onKeyReleased="#updateCardPreview"/>
                                 <TextField fx:id="txtExpiry" promptText="MM/YY" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                                <TextField promptText="CVV" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                                <TextField fx:id="txtCvv" promptText="CVV" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
                             </GridPane>
                         </VBox>
 
