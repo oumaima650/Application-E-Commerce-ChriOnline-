@@ -297,6 +297,8 @@ public class ClientHandler implements Runnable {
                     case ADD_ADDRESS   -> clientService.addAdresse(requete);
                     
                     case ADD_AVIS      -> avisService.addAvis(requete);
+                    case GET_USER_AVIS_FOR_PRODUCT -> avisService.getUserAvisForProduct(requete);
+                    case UPDATE_AVIS   -> avisService.updateAvis(requete);
 
 
                     

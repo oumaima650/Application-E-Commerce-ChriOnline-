@@ -41,6 +41,10 @@ public class CheckoutController {
     private Circle step2Circle;
     @FXML
     private Circle step3Circle;
+    @FXML
+    private ScrollPane checkoutScrollPane;
+    @FXML
+    private StackPane rootStackPane;
 
     // --- Step 1 fields ---
     @FXML
@@ -105,6 +109,11 @@ public class CheckoutController {
         setupPaymentOptions();
         prefillUserData();
         loadAddresses();
+        
+        if (checkoutScrollPane != null) {
+            checkoutScrollPane.setFitToHeight(false);
+            checkoutScrollPane.setFitToWidth(true);
+        }
     }
 
     // ──────────────────────────────────────────
@@ -528,7 +537,6 @@ public class CheckoutController {
                 shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
                 client.ClientSocket.getInstance().envoyer(req);
 
-                SceneManager.clearCache("panier.fxml");
                 SceneManager.switchTo("panier.fxml", "ChriOnline - Mon Panier");
                 return;
             }

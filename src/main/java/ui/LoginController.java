@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
+import javafx.scene.control.TextInputDialog;
 
 
 public class LoginController implements Initializable {
@@ -67,6 +68,7 @@ public class LoginController implements Initializable {
 
     @FXML private HBox  strengthBarBox;
     @FXML private Label strengthLabel;
+    @FXML private Hyperlink forgotPasswordLink;
 
 
     @Override
@@ -92,6 +94,12 @@ public class LoginController implements Initializable {
     @FXML
     private void handleBackToHome() {
         SceneManager.switchTo("main-home.fxml", "Boutique - ChriOnline");
+    }
+
+    @FXML
+    private void handleForgotPassword() {
+        System.out.println("[LoginController] Mot de passe oublié cliqué.");
+        // Pour l'instant, on se contente d'un log. Une future implémentation pourrait ouvrir une popup.
     }
 
     @FXML
@@ -121,7 +129,7 @@ public class LoginController implements Initializable {
         params.put("email",      email);
         params.put("motDePasse", password);
 
-        Requete requete = new Requete(RequestType.LOGIN, params, null);
+        shared.Requete requete = new shared.Requete(shared.RequestType.LOGIN, params, null);
 
         setLoginLoading(true);
         runAsync(requete, reponse -> {
@@ -224,7 +232,7 @@ public class LoginController implements Initializable {
         params.put("prenom",     prenom);
         params.put("telephone",  phone);
 
-        Requete requete = new Requete(RequestType.REGISTER, params, null);
+        shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER, params, null);
 
         setRegisterLoading(true);
         runAsync(requete, reponse -> {
@@ -308,10 +316,10 @@ public class LoginController implements Initializable {
      * Runs the network call on a daemon thread, then calls the callback
      * on the JavaFX Application Thread when done.
      */
-    private void runAsync(Requete requete, java.util.function.Consumer<Reponse> onDone) {
-        Task<Reponse> task = new Task<>() {
+    private void runAsync(shared.Requete requete, java.util.function.Consumer<shared.Reponse> onDone) {
+        Task<shared.Reponse> task = new Task<>() {
             @Override
-            protected Reponse call() {
+            protected shared.Reponse call() {
                 return client.ClientSocket.getInstance().envoyer(requete);
             }
         };

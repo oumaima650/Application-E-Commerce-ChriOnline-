@@ -6,102 +6,105 @@
 <?import javafx.geometry.Insets?>
 <?import java.lang.String?>
 
-<BorderPane stylesheets="@../com/chrionline/css/panier.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.PanierController" style="-fx-background-color: #FFFFFF;">
-    <top>
-        <!-- Navbar Placeholder -->
-        <HBox styleClass="navbar" spacing="24" alignment="CENTER_LEFT">
-            <Label text="ChriOnline" styleClass="nav-title"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <HBox spacing="16" alignment="CENTER">
-                <Button text="📋 Mes Commandes" styleClass="nav-button" onAction="#goToCommandes"/>
-                <SVGPath content="M 11 4 a 7 7 0 1 0 14 7 a 7 7 0 0 0 0 -14 z M 21 21 l -4.35 -4.35" styleClass="nav-icon"/>
-                <SVGPath content="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" styleClass="nav-icon"/>
-                <Button styleClass="nav-button" onAction="#goToProfile">
-                    <graphic>
-                        <SVGPath content="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" styleClass="nav-icon" fill="WHITE" stroke="WHITE" strokeWidth="2"/>
-                    </graphic>
-                </Button>
-            </HBox>
-        </HBox>
-    </top>
-    
-    <center>
-        <HBox spacing="24" styleClass="cart-container">
-            <!-- LEFT (60%) -->
-            <VBox spacing="12" HBox.hgrow="ALWAYS" prefWidth="600">
-                <!-- Title HBox -->
-                <HBox alignment="CENTER_LEFT" spacing="12">
-                    <Label text="Mon Panier" styleClass="cart-title"/>
-                    <Label fx:id="badgeArticles" text="0 articles" styleClass="cart-badge"/>
-                </HBox>
+<StackPane stylesheets="@../css/panier.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.PanierController" style="-fx-background-color: #F4F4F8;" fx:id="rootStackPane">
+    <ScrollPane 
+        fx:id="panierScrollPane" 
+        fitToWidth="true" 
+        fitToHeight="false" 
+        vbarPolicy="ALWAYS" 
+        style="-fx-background-color: transparent; -fx-background: #F4F4F8; -fx-border-width: 0;">
+        
+        <VBox alignment="TOP_CENTER" style="-fx-background-color: #F4F4F8;">
+            <VBox maxWidth="1200" style="-fx-background-color: #FFFFFF;">
                 
-                <!-- Items VBox -->
-                <VBox fx:id="panierItemsBox" spacing="8">
-                    <!-- Les éléments du panier seront injectés ici dynamiquement par PanierController -->
-                </VBox>
-                
-                <!-- Bottom HBox -->
-                <HBox alignment="CENTER_LEFT" style="-fx-padding: 10 0 0 0;">
-                    <Hyperlink text="← Continuer mes achats" styleClass="continue-shopping" onAction="#goToHome"/>
-                </HBox>
-            </VBox>
-            
-            <!-- RIGHT (40%) -->
-            <VBox styleClass="summary-card" prefWidth="350" minWidth="300">
-                <!-- HEADER -->
-                <HBox styleClass="summary-header" alignment="CENTER_LEFT">
-                    <VBox>
-                        <Label text="Résumé de commande" styleClass="summary-title"/>
-                        <Label text="3 articles · livraison gratuite" styleClass="summary-subtitle"/>
-                    </VBox>
+                <!-- Navbar (Part of the scrollable content) -->
+                <HBox styleClass="navbar" spacing="24" alignment="CENTER_LEFT">
+                    <Label text="ChriOnline" styleClass="nav-title"/>
                     <Region HBox.hgrow="ALWAYS"/>
-                    <SVGPath content="M5 12h14 M12 5l7 7-7 7" styleClass="summary-arrow"/>
+                    <HBox spacing="16" alignment="CENTER">
+                        <Button text="📋 Mes Commandes" styleClass="nav-button" onAction="#goToCommandes"/>
+                        <SVGPath content="M 11 4 a 7 7 0 1 0 14 7 a 7 7 0 0 0 0 -14 z M 21 21 l -4.35 -4.35" styleClass="nav-icon"/>
+                        <SVGPath content="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" styleClass="nav-icon"/>
+                        <Button styleClass="nav-button" onAction="#goToProfile">
+                            <graphic>
+                                <SVGPath content="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" styleClass="nav-icon" fill="WHITE" stroke="WHITE" strokeWidth="2"/>
+                            </graphic>
+                        </Button>
+                    </HBox>
                 </HBox>
-                <!-- BODY -->
-                <VBox styleClass="summary-body" spacing="13">
-                    <HBox alignment="CENTER_LEFT">
-                        <Label text="Sous-total" styleClass="summary-row-label"/>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Label fx:id="lblSousTotal" text="0.00 MAD" styleClass="summary-row-val"/>
-                    </HBox>
 
-                    <HBox alignment="CENTER_LEFT" spacing="6">
-                        <Label text="Livraison" styleClass="summary-row-label"/>
-                        <SVGPath content="M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M17 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" styleClass="icon-truck"/>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Label text="GRATUITE" styleClass="summary-free-val"/>
-                    </HBox>
+                <!-- Center Content -->
+                <HBox spacing="24" styleClass="cart-container" style="-fx-padding: 24;">
+                    <!-- LEFT (60%) -->
+                    <VBox spacing="12" HBox.hgrow="ALWAYS" prefWidth="600">
+                        <!-- Title HBox -->
+                        <HBox alignment="CENTER_LEFT" spacing="12">
+                            <Label text="Mon Panier" styleClass="cart-title"/>
+                            <Label fx:id="badgeArticles" text="0 articles" styleClass="cart-badge"/>
+                        </HBox>
+                        
+                        <!-- Items VBox -->
+                        <VBox fx:id="panierItemsBox" spacing="8">
+                            <!-- Les éléments du panier seront injectés ici dynamiquement -->
+                        </VBox>
+                        
+                        <!-- Bottom HBox -->
+                        <HBox alignment="CENTER_LEFT" style="-fx-padding: 10 0 0 0;">
+                            <Hyperlink text="← Continuer mes achats" styleClass="continue-shopping" onAction="#goToHome"/>
+                        </HBox>
+                    </VBox>
                     
-                    <Region styleClass="separator"/>
-                    
-                    <HBox alignment="CENTER_LEFT">
-                        <Label text="TOTAL TTC" styleClass="summary-total-label"/>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Label fx:id="lblTotalTTC" text="0.00 MAD" styleClass="summary-total-val"/>
-                    </HBox>
-                                        
-                    <Button fx:id="btnValider" styleClass="btn-cta" maxWidth="Infinity">
-                        <graphic>
-                            <HBox alignment="CENTER" spacing="8">
-                                <Label text="Valider la commande" styleClass="btn-cta-text"/>
-                                <SVGPath content="M5 12h14 M12 5l7 7-7 7" styleClass="icon-arrow-r"/>
+                    <!-- RIGHT (40%) -->
+                    <VBox styleClass="summary-card" prefWidth="350" minWidth="300">
+                        <!-- HEADER -->
+                        <HBox styleClass="summary-header" alignment="CENTER_LEFT">
+                            <VBox>
+                                <Label text="Résumé de commande" styleClass="summary-title"/>
+                                <Label text="livraison gratuite" styleClass="summary-subtitle"/>
+                            </VBox>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <SVGPath content="M5 12h14 M12 5l7 7-7 7" styleClass="summary-arrow"/>
+                        </HBox>
+                        <!-- BODY -->
+                        <VBox styleClass="summary-body" spacing="13">
+                            <HBox alignment="CENTER_LEFT">
+                                <Label text="Sous-total" styleClass="summary-row-label"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="lblSousTotal" text="0.00 MAD" styleClass="summary-row-val"/>
                             </HBox>
-                        </graphic>
-                    </Button>
-                    
-                    <HBox alignment="CENTER" spacing="6" styleClass="secure-container">
-                        <SVGPath content="M7 11V7a5 5 0 0 1 10 0v4 M5 11h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" styleClass="icon-lock"/>
-                        <Label text="Paiement 100% sécurisé" styleClass="secure-text"/>
-                    </HBox>
-                    
-                    <HBox alignment="CENTER" spacing="8">
-                        <Label text="VISA" styleClass="payment-icon"/>
-                        <Label text="MC" styleClass="payment-icon"/>
-                        <Label text="PayPal" styleClass="payment-icon"/>
-                        <Label text="CMI" styleClass="payment-icon"/>
-                    </HBox>
-                </VBox>
+
+                            <HBox alignment="CENTER_LEFT" spacing="6">
+                                <Label text="Livraison" styleClass="summary-row-label"/>
+                                <SVGPath content="M1 3h15v13H1z M16 8h4l3 3v5h-7V8z M5 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M17 21a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" styleClass="icon-truck"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label text="GRATUITE" styleClass="summary-free-val"/>
+                            </HBox>
+                            
+                            <Region styleClass="separator"/>
+                            
+                            <HBox alignment="CENTER_LEFT">
+                                <Label text="TOTAL TTC" styleClass="summary-total-label"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="lblTotalTTC" text="0.00 MAD" styleClass="summary-total-val"/>
+                            </HBox>
+                                                
+                            <Button fx:id="btnValider" styleClass="btn-cta" maxWidth="Infinity" onAction="#handleValiderCommande">
+                                <graphic>
+                                    <HBox alignment="CENTER" spacing="8">
+                                        <Label text="Valider la commande" styleClass="btn-cta-text"/>
+                                        <SVGPath content="M5 12h14 M12 5l7 7-7 7" styleClass="icon-arrow-r"/>
+                                    </HBox>
+                                </graphic>
+                            </Button>
+                            
+                            <HBox alignment="CENTER" spacing="6" styleClass="secure-container">
+                                <SVGPath content="M7 11V7a5 5 0 0 1 10 0v4 M5 11h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" styleClass="icon-lock"/>
+                                <Label text="Paiement 100% sécurisé" styleClass="secure-text"/>
+                            </HBox>
+                        </VBox>
+                    </VBox>
+                </HBox>
             </VBox>
-        </HBox>
-    </center>
-</BorderPane>
+        </VBox>
+    </ScrollPane>
+</StackPane>

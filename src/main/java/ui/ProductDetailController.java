@@ -1,9 +1,12 @@
 package ui;
 
+import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.util.Duration;
+import javafx.scene.Parent;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -21,6 +24,7 @@ import shared.RequestType;
 import client.utils.SessionManager;
 import client.utils.SceneManager;
 import service.ProduitDetailService;
+import model.Avis;
 import ui.utils.IconLibrary;
 
 import java.net.URL;
@@ -39,6 +43,10 @@ public class ProductDetailController implements Initializable {
         System.out.println("[ProductDetailController] setSelectedProductId called with ID: " + id);
     }
 
+    @FXML
+    private StackPane rootStackPane;
+    @FXML
+    private VBox rootPane;
     @FXML
     private Label logoLabel;
     @FXML
@@ -85,6 +93,10 @@ public class ProductDetailController implements Initializable {
     private TextArea avisContentField;
     @FXML
     private Label avisStatusLabel;
+    @FXML
+    private VBox avisFormContainer;
+    @FXML
+    private VBox loginRequiredContainer;
 
     private int quantity = 1;
     private Map<String, Object> produitData;
@@ -150,7 +162,14 @@ public class ProductDetailController implements Initializable {
             loadProductComplet();
         }
 
+        if (productScrollPane != null) {
+            productScrollPane.setFitToHeight(false);
+            productScrollPane.setFitToWidth(true);
+        }
+
         updateCartBadge();
+        loadReviews();
+        updateAvisVisibility();
     }
 
     private void loadProductComplet() {
@@ -167,12 +186,23 @@ public class ProductDetailController implements Initializable {
             uiData = task.getValue();
             if (uiData != null) {
                 Platform.runLater(() -> {
+                    // Fix: Data mapping was incorrect. These keys are inside "produit" Map
                     produitData = (Map<String, Object>) uiData.get("produit");
                     currentSelections = (Map<String, String>) uiData.get("selections");
                     currentSku = (Map<String, Object>) uiData.get("skuActuel");
+                    
+                    // Extraire les Listes brutes depuis produitData si non présentes à la racine
+                    if (uiData.get("skusBruts") == null && produitData != null) {
+                        uiData.put("skusBruts", produitData.get("skusBruts"));
+                    }
+                    if (uiData.get("variantesOrganisees") == null && produitData != null) {
+                        uiData.put("variantes", produitData.get("variantesOrganisees"));
+                    }
+                    
                     displayProductInfo();
                     setupVariantSelectors();
                     loadProductImage();
+                    loadReviews();
                 });
             }
         });
@@ -188,22 +218,30 @@ public class ProductDetailController implements Initializable {
 
         productNameLabel.setText((String) produitData.get("nomProduit"));
 
-        // Récupérer tous les SKU pour la galerie
+        // Fix: Use "skusBruts" from uiData (which we just patched) or produitData
+        Object skusObj = uiData.get("skusBruts");
+        if (skusObj == null && produitData != null) skusObj = produitData.get("skusBruts");
+        
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> skus = (List<Map<String, Object>>) uiData.get("skusBruts");
-        allSkus = skus != null ? skus : new ArrayList<>();
+        java.util.List<java.util.Map<java.lang.String, java.lang.Object>> skus = 
+            (java.util.List<java.util.Map<java.lang.String, java.lang.Object>>) skusObj;
+        
+        allSkus = skus != null ? skus : new java.util.ArrayList<>();
 
         // Récupérer les variantes organisées pour les sélecteurs
+        Object varOrg = uiData.get("variantes");
+        if (varOrg == null && produitData != null) varOrg = produitData.get("variantesOrganisees");
+        
         @SuppressWarnings("unchecked")
-        Map<String, List<String>> variantesOrganisees = (Map<String, List<String>>) uiData.get("variantesOrganisees");
+        Map<String, List<String>> variantesOrganisees = (Map<String, List<String>>) varOrg;
         if (variantesOrganisees != null) {
             uiData.put("variantes", variantesOrganisees);
         }
 
         // Afficher la plage de prix si plusieurs SKU
         if (produitData.containsKey("prixMinimum") && produitData.containsKey("prixMaximum")) {
-            double min = (Double) produitData.get("prixMinimum");
-            double max = (Double) produitData.get("prixMaximum");
+            double min = (java.lang.Double) produitData.get("prixMinimum");
+            double max = (java.lang.Double) produitData.get("prixMaximum");
             if (min == max) {
                 priceLabel.setText((int) min + " MAD");
                 originalPriceLabel.setVisible(false);
@@ -218,7 +256,7 @@ public class ProductDetailController implements Initializable {
 
         // Afficher le stock total
         if (produitData.containsKey("stockTotal")) {
-            int stockTotal = (Integer) produitData.get("stockTotal");
+            int stockTotal = (java.lang.Integer) produitData.get("stockTotal");
             if (stockTotal <= 0) {
                 stockLabel.setText("Rupture de stock");
                 stockLabel.setStyle("-fx-text-fill: #EF4444; -fx-font-weight: bold;");
@@ -241,7 +279,7 @@ public class ProductDetailController implements Initializable {
         for (int i = 0; i < 5; i++) {
             ratingBox.getChildren().add(IconLibrary.getFilledIcon(IconLibrary.STAR, 14, "#FDBF50"));
         }
-        reviewsLabel.setText("(12 avis)");
+        reviewsLabel.setText("(0 avis)");
     }
 
     private void setupImageGallery() {
@@ -375,7 +413,6 @@ public class ProductDetailController implements Initializable {
         Map<String, List<String>> variantes = (Map<String, List<String>>) uiData.get("variantes");
 
         if (variantes == null || variantes.isEmpty()) {
-            // Pas de variantes, afficher un message
             Label noVariants = new Label("Ce produit n'a pas de variantes");
             noVariants.setStyle("-fx-text-fill: #999; -fx-font-style: italic;");
             variantsContainer.getChildren().add(noVariants);
@@ -392,114 +429,97 @@ public class ProductDetailController implements Initializable {
             Label titre = new Label(nomVariante + ":");
             titre.setStyle("-fx-font-weight: bold; -fx-text-fill: " + BLEU_NUIT + "; -fx-font-size: 14px;");
 
-            if (nomVariante.equalsIgnoreCase("Couleur")) {
-                HBox colorBox = new HBox(10);
-                ToggleGroup colorGroup = new ToggleGroup();
+            FlowPane optionsPane = new FlowPane(10, 10);
+            ToggleGroup group = new ToggleGroup();
 
-                for (String val : valeurs) {
-                    ToggleButton btn = new ToggleButton();
-                    btn.setToggleGroup(colorGroup);
-                    btn.setTooltip(new Tooltip(val));
+            boolean hasVisibleOption = false;
 
-                    String imgUrl = findImageForColor(val);
-                    if (imgUrl != null) {
-                        try {
-                            Image img = new Image(imgUrl, 40, 40, true, true, true);
-                            ImageView imageView = new ImageView(img);
-                            javafx.scene.shape.Circle clip = new javafx.scene.shape.Circle(20, 20, 20);
-                            imageView.setClip(clip);
-                            btn.setGraphic(imageView);
-                            btn.setStyle(
-                                    "-fx-background-color: transparent; -fx-border-color: #DDD; -fx-border-radius: 50%; -fx-cursor: hand; -fx-padding: 2;");
-                        } catch (Exception e) {
-                            btn.setText(val);
-                            btn.setStyle(
-                                    "-fx-background-color: white; -fx-border-color: #DDD; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand;");
-                        }
-                    } else {
+            for (String val : valeurs) {
+                // Vérifier si cette option est compatible avec les autres sélections
+                if (!isVariantOptionCompatible(nomVariante, val)) {
+                    continue; // Cacher si non compatible
+                }
+
+                hasVisibleOption = true;
+                ToggleButton btn = new ToggleButton();
+                btn.setToggleGroup(group);
+                
+                String imgUrl = nomVariante.equalsIgnoreCase("Couleur") ? findImageForColor(val) : null;
+                
+                if (imgUrl != null) {
+                    try {
+                        Image img = new Image(imgUrl, 40, 40, true, true, true);
+                        ImageView iv = new ImageView(img);
+                        iv.setClip(new javafx.scene.shape.Circle(20, 20, 20));
+                        btn.setGraphic(iv);
+                        btn.setTooltip(new Tooltip(val));
+                        btn.setStyle("-fx-background-color: transparent; -fx-border-color: #DDD; -fx-border-radius: 50%; -fx-cursor: hand; -fx-padding: 2;");
+                    } catch (Exception e) {
                         btn.setText(val);
-                        btn.setStyle(
-                                "-fx-background-color: white; -fx-border-color: #DDD; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand;");
+                        applyButtonStyle(btn, false);
                     }
+                } else {
+                    btn.setText(val);
+                    applyButtonStyle(btn, false);
+                }
 
-                    // Default selection
-                    if (currentSelections != null && val.equals(currentSelections.get(nomVariante))) {
+                if (currentSelections != null && val.equals(currentSelections.get(nomVariante))) {
+                    btn.setSelected(true);
+                    applyButtonStyle(btn, true);
+                }
+
+                btn.setOnAction(e -> {
+                    if (btn.isSelected()) {
+                        mettreAJourVariante(nomVariante, val);
+                    } else {
                         btn.setSelected(true);
-                        if (imgUrl == null) {
-                            btn.setStyle("-fx-background-color: " + CORAIL
-                                    + "; -fx-text-fill: white; -fx-border-color: " + CORAIL
-                                    + "; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand;");
-                        } else {
-                            btn.setStyle("-fx-background-color: transparent; -fx-border-color: " + CORAIL
-                                    + "; -fx-border-width: 2px; -fx-border-radius: 50%; -fx-cursor: hand; -fx-padding: 2;");
-                        }
-                    }
-
-                    btn.setOnAction(e -> {
-                        if (btn.isSelected()) {
-                            for (Toggle t : colorGroup.getToggles()) {
-                                ToggleButton tb = (ToggleButton) t;
-                                if (tb.getGraphic() != null) {
-                                    tb.setStyle(
-                                            "-fx-background-color: transparent; -fx-border-color: #DDD; -fx-border-width: 1px; -fx-border-radius: 50%; -fx-cursor: hand; -fx-padding: 2;");
-                                } else {
-                                    tb.setStyle(
-                                            "-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #DDD; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand;");
-                                }
-                            }
-                            if (btn.getGraphic() != null) {
-                                btn.setStyle("-fx-background-color: transparent; -fx-border-color: " + CORAIL
-                                        + "; -fx-border-width: 2px; -fx-border-radius: 50%; -fx-cursor: hand; -fx-padding: 2;");
-                            } else {
-                                btn.setStyle("-fx-background-color: " + CORAIL
-                                        + "; -fx-text-fill: white; -fx-border-color: " + CORAIL
-                                        + "; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand;");
-                            }
-                            mettreAJourVariante(nomVariante, val);
-                        } else {
-                            btn.setSelected(true);
-                        }
-                    });
-
-                    if (!valeurs.isEmpty() && currentSelections == null && btn.getText().equals(valeurs.get(0))) {
-                        btn.setSelected(true);
-                    }
-                    colorBox.getChildren().add(btn);
-                }
-                if (currentSelections == null && !valeurs.isEmpty()) {
-                    currentSelections = new HashMap<>();
-                    currentSelections.put(nomVariante, valeurs.get(0));
-                }
-                varianteBox.getChildren().addAll(titre, colorBox);
-            } else {
-                ComboBox<String> combo = new ComboBox<>(FXCollections.observableArrayList(valeurs));
-                combo.setPrefWidth(200);
-                combo.setStyle(
-                        "-fx-background-color: white; -fx-border-color: #DDD; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 5 10;");
-
-                // Sélectionner la valeur par défaut
-                if (currentSelections != null && currentSelections.containsKey(nomVariante)) {
-                    String defaultValue = currentSelections.get(nomVariante);
-                    combo.setValue(defaultValue);
-                } else if (!valeurs.isEmpty()) {
-                    combo.setValue(valeurs.get(0));
-                    if (currentSelections == null)
-                        currentSelections = new HashMap<>();
-                    currentSelections.put(nomVariante, valeurs.get(0));
-                }
-
-                // Écouter les changements
-                combo.setOnAction(e -> {
-                    String nouvelleValeur = combo.getValue();
-                    if (nouvelleValeur != null) {
-                        mettreAJourVariante(nomVariante, nouvelleValeur);
                     }
                 });
 
-                varianteBox.getChildren().addAll(titre, combo);
+                optionsPane.getChildren().add(btn);
             }
-            variantsContainer.getChildren().add(varianteBox);
+
+            if (hasVisibleOption) {
+                varianteBox.getChildren().addAll(titre, optionsPane);
+                variantsContainer.getChildren().add(varianteBox);
+            }
         }
+    }
+
+    private void applyButtonStyle(ToggleButton btn, boolean selected) {
+        if (btn.getGraphic() != null) {
+            btn.setStyle("-fx-background-color: transparent; -fx-border-color: " + (selected ? CORAIL : "#DDD")
+                    + "; -fx-border-width: " + (selected ? "2px" : "1px") + "; -fx-border-radius: 50%; -fx-cursor: hand; -fx-padding: 2;");
+        } else {
+            btn.setStyle("-fx-background-color: " + (selected ? CORAIL : "white")
+                    + "; -fx-text-fill: " + (selected ? "white" : "black")
+                    + "; -fx-border-color: " + (selected ? CORAIL : "#DDD")
+                    + "; -fx-border-radius: 20px; -fx-background-radius: 20px; -fx-padding: 5 15; -fx-cursor: hand;");
+        }
+    }
+
+    private boolean isVariantOptionCompatible(String targetType, String targetValue) {
+        if (allSkus == null || allSkus.isEmpty()) return true;
+
+        for (Map<String, Object> sku : allSkus) {
+            @SuppressWarnings("unchecked")
+            Map<String, String> skuVariants = (Map<String, String>) sku.get("variantes");
+            if (skuVariants == null) continue;
+
+            if (!targetValue.equals(skuVariants.get(targetType))) continue;
+
+            boolean matchesOthers = true;
+            for (Map.Entry<String, String> selection : currentSelections.entrySet()) {
+                String type = selection.getKey();
+                if (type.equals(targetType)) continue;
+                if (!selection.getValue().equals(skuVariants.get(type))) {
+                    matchesOthers = false;
+                    break;
+                }
+            }
+            if (matchesOthers) return true;
+        }
+        return false;
     }
 
     private void mettreAJourVariante(String nomVariante, String nouvelleValeur) {
@@ -507,14 +527,19 @@ public class ProductDetailController implements Initializable {
             currentSelections = new HashMap<>();
         currentSelections.put(nomVariante, nouvelleValeur);
 
-        // Trouver le SKU correspondant aux sélections actuelles
+        // Ajuster les autres sélections si elles deviennent invalides
+        ajusterSelectionsInvalides(nomVariante);
+
+        // Refresh UI to hide incompatible options
+        setupVariantSelectors();
+
+        // Trouver le SKU correspondant aux sélections finales
         Map<String, Object> nouveauSku = trouverSkuParVariantes(currentSelections);
 
         if (nouveauSku != null) {
             currentSku = nouveauSku;
             updateSkuDisplay();
 
-            // Mettre à jour l'image principale et la sélection dans la galerie
             String imageUrl = (String) nouveauSku.get("image");
             if (imageUrl != null && !imageUrl.isBlank() && productImageView != null) {
                 new Thread(() -> {
@@ -530,11 +555,28 @@ public class ProductDetailController implements Initializable {
                     }
                 }).start();
             }
-
-            // Mettre à jour la sélection dans la galerie
             updateGallerySelection(nouveauSku);
-        } else {
-            System.out.println("Aucun SKU trouvé pour la combinaison: " + currentSelections);
+        }
+    }
+
+    private void ajusterSelectionsInvalides(String skipType) {
+        @SuppressWarnings("unchecked")
+        Map<String, List<String>> variantes = (Map<String, List<String>>) uiData.get("variantes");
+        if (variantes == null) return;
+
+        for (String type : variantes.keySet()) {
+            if (type.equals(skipType)) continue;
+
+            String currentVal = currentSelections.get(type);
+            if (currentVal != null && !isVariantOptionCompatible(type, currentVal)) {
+                // Trouver la première option compatible pour ce type
+                for (String val : variantes.get(type)) {
+                    if (isVariantOptionCompatible(type, val)) {
+                        currentSelections.put(type, val);
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -688,19 +730,20 @@ public class ProductDetailController implements Initializable {
             return;
         }
 
-        Task<Reponse> task = new Task<>() {
+        final int currentUserId = SessionManager.getInstance().getCurrentUser().getIdUtilisateur();
+        Task<shared.Reponse> task = new Task<>() {
             @Override
-            protected Reponse call() {
+            protected shared.Reponse call() {
                 Map<String, Object> params = new HashMap<>();
-                params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
+                params.put("idClient", currentUserId);
                 params.put("sku", skuCode);
                 params.put("quantite", quantity);
                 
-                return sendRequest(new Requete(RequestType.ADD_TO_CART, params, SessionManager.getInstance().getSession().getAccessToken()));
+                return sendRequest(new shared.Requete(shared.RequestType.ADD_TO_CART, params, SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
         task.setOnSucceeded(e -> {
-            Reponse rep = task.getValue();
+            shared.Reponse rep = task.getValue();
             if (rep != null && rep.isSucces()) {
                 showToast("Produit ajouté au panier !");
                 updateCartBadge();
@@ -715,19 +758,19 @@ public class ProductDetailController implements Initializable {
     }
 
     private void updateCartBadge() {
-        Task<Reponse> task = new Task<>() {
-            @Override protected Reponse call() {
+        Task<shared.Reponse> task = new Task<>() {
+            @Override protected shared.Reponse call() {
                 if (!SessionManager.getInstance().isAuthenticated()) return null;
                 int idClient = (SessionManager.getInstance().getCurrentUser() != null) ? SessionManager.getInstance().getCurrentUser().getIdUtilisateur() : -1;
                 if (idClient == -1) return null;
                 Map<String, Object> params = new HashMap<>();
                 params.put("idClient", idClient);
                 
-                return sendRequest(new Requete(RequestType.GET_CART, params, SessionManager.getInstance().getSession().getAccessToken()));
+                return sendRequest(new shared.Requete(shared.RequestType.GET_CART, params, SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
         task.setOnSucceeded(e -> {
-            Reponse rep = task.getValue();
+            shared.Reponse rep = task.getValue();
             if (rep != null && rep.isSucces()) {
                 List<?> items = (List<?>) rep.getDonnees().get("lignes");
                 int count = (items != null) ? items.size() : 0;
@@ -741,52 +784,54 @@ public class ProductDetailController implements Initializable {
         if (reviewsContainer == null)
             return;
 
-        Task<Reponse> task = new Task<>() {
+        javafx.concurrent.Task<shared.Reponse> task = new javafx.concurrent.Task<>() {
             @Override
-            protected Reponse call() {
-                Map<String, Object> params = new HashMap<>();
+            protected shared.Reponse call() {
+                java.util.Map<java.lang.String, java.lang.Object> params = new java.util.HashMap<>();
                 params.put("idProduit", selectedProductId);
-                return sendRequest(new Requete(RequestType.GET_AVIS_BY_PRODUIT, params, null));
+                return sendRequest(new shared.Requete(shared.RequestType.GET_AVIS_BY_PRODUIT, params, null));
             }
         };
 
         task.setOnSucceeded(e -> {
-            Reponse rep = task.getValue();
-            Platform.runLater(() -> {
+            shared.Reponse rep = task.getValue();
+            javafx.application.Platform.runLater(() -> {
                 reviewsContainer.getChildren().clear();
                 if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
-                    List<Map<String, Object>> avisList = (List<Map<String, Object>>) rep.getDonnees().get("avis");
-                    reviewsLabel.setText("(" + (avisList != null ? avisList.size() : 0) + " avis)");
+                    List<?> rawList = (List<?>) rep.getDonnees().get("avis");
+                    int count = (rawList != null) ? rawList.size() : 0;
+                    reviewsLabel.setText("(" + count + " avis)");
 
-                    if (avisList == null || avisList.isEmpty()) {
+                    if (rawList == null || rawList.isEmpty()) {
                         Label noAvis = new Label("Aucun avis pour ce produit pour le moment. Soyez le premier !");
                         noAvis.setStyle("-fx-text-fill: #888; -fx-font-style: italic;");
                         reviewsContainer.getChildren().add(noAvis);
                     } else {
-                        for (Map<String, Object> avis : avisList) {
-                            VBox avisBox = new VBox(5);
-                            avisBox.setStyle(
-                                    "-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10px; -fx-border-color: #EEE; -fx-border-radius: 10px;");
+                        for (Object o : rawList) {
+                            if (!(o instanceof Avis)) continue;
+                            Avis avis = (Avis) o;
+                            VBox avisBox = new VBox(8);
+                            avisBox.setStyle("-fx-background-color: white; -fx-padding: 18; -fx-background-radius: 12px; -fx-border-color: #EEE; -fx-border-width: 1px;");
 
-                            HBox header = new HBox(10);
+                            HBox header = new HBox(12);
                             header.setAlignment(Pos.CENTER_LEFT);
-                            Label nameLbl = new Label((String) avis.get("nomClient"));
-                            nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #2A2C41;");
+                            
+                            Label nameLbl = new Label(avis.getNomClient() != null ? avis.getNomClient() : "Client ChriOnline");
+                            nameLbl.setStyle("-fx-font-weight: bold; -fx-text-fill: #2A2C41; -fx-font-size: 14px;");
 
                             HBox stars = new HBox(2);
-                            int eval = avis.get("evaluation") != null ? ((Number) avis.get("evaluation")).intValue()
-                                    : 5;
+                            int eval = avis.getEvaluation() != null ? avis.getEvaluation() : 5;
                             for (int i = 0; i < 5; i++) {
                                 if (i < eval)
-                                    stars.getChildren().add(IconLibrary.getFilledIcon(IconLibrary.STAR, 12, "#FDBF50"));
+                                    stars.getChildren().add(IconLibrary.getFilledIcon(IconLibrary.STAR, 14, "#FDBF50"));
                                 else
-                                    stars.getChildren().add(IconLibrary.getIcon(IconLibrary.STAR, 12, "#DDD"));
+                                    stars.getChildren().add(IconLibrary.getIcon(IconLibrary.STAR, 14, "#DDD"));
                             }
                             header.getChildren().addAll(nameLbl, stars);
 
-                            Label contentLbl = new Label((String) avis.get("contenu"));
+                            Label contentLbl = new Label(avis.getContenu());
                             contentLbl.setWrapText(true);
-                            contentLbl.setStyle("-fx-text-fill: #555;");
+                            contentLbl.setStyle("-fx-text-fill: #555; -fx-line-spacing: 2;");
 
                             avisBox.getChildren().addAll(header, contentLbl);
                             reviewsContainer.getChildren().add(avisBox);
@@ -794,6 +839,11 @@ public class ProductDetailController implements Initializable {
                     }
                 }
             });
+        });
+
+        task.setOnFailed(e -> {
+            System.err.println("[ProductDetail] Erreur chargement avis: " + task.getException());
+            Platform.runLater(() -> reviewsLabel.setText("(Erreur avis)"));
         });
 
         new Thread(task).start();
@@ -815,68 +865,112 @@ public class ProductDetailController implements Initializable {
             return;
         }
 
-        int eval = 5;
-        try {
-            eval = Integer.parseInt(evaluationComboBox.getValue());
-        } catch (Exception ignored) {
-        }
+        final int currentUserId = SessionManager.getInstance().getCurrentUser().getIdUtilisateur();
+        final int finalEval = Integer.parseInt(evaluationComboBox.getValue());
+        final boolean hasExistingReview = false; // TODO: Implémenter la vérification
 
-        final int finalEval = eval;
-
-        Task<Reponse> task = new Task<>() {
+        // Soumettre l'avis (nouveau ou modifié)
+        javafx.concurrent.Task<shared.Reponse> submitTask = new javafx.concurrent.Task<>() {
             @Override
-            protected Reponse call() {
-                Map<String, Object> params = new HashMap<>();
+            protected shared.Reponse call() {
+                java.util.Map<java.lang.String, java.lang.Object> params = new java.util.HashMap<>();
                 params.put("idProduit", selectedProductId);
-                params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
+                params.put("idClient", currentUserId);
                 params.put("contenu", contenu.trim());
                 params.put("evaluation", finalEval);
-                return sendRequest(new Requete(RequestType.ADD_AVIS, params,
-                        SessionManager.getInstance().getSession().getAccessToken()));
+
+                shared.RequestType requestType = hasExistingReview ? shared.RequestType.UPDATE_AVIS : shared.RequestType.ADD_AVIS;
+                return sendRequest(new shared.Requete(requestType, params, SessionManager.getInstance().getSession().getAccessToken()));
             }
         };
 
-        task.setOnSucceeded(e -> {
-            Reponse rep = task.getValue();
+        submitTask.setOnSucceeded(e2 -> {
+            shared.Reponse rep = submitTask.getValue();
             if (rep != null && rep.isSucces()) {
+                String successMsg = hasExistingReview ? "Votre avis a été mis à jour avec succès !" : "Merci pour votre avis !";
                 avisContentField.clear();
-                avisStatusLabel.setText("Merci pour votre avis !");
+                evaluationComboBox.setValue("5");
+                avisStatusLabel.setText(successMsg);
                 avisStatusLabel.setStyle("-fx-text-fill: green;");
                 avisStatusLabel.setVisible(true);
-                loadReviews(); // Refresh the list
+                loadReviews(); // Refresh the reviews list
             } else {
-                avisStatusLabel.setText("Erreur: " + (rep != null ? rep.getMessage() : "Inconnue"));
+                String errorMsg = hasExistingReview ? "Erreur lors de la mise à jour de votre avis" : "Erreur lors de l'ajout de votre avis";
+                avisStatusLabel.setText(errorMsg + ": " + (rep != null ? rep.getMessage() : "Inconnue"));
                 avisStatusLabel.setStyle("-fx-text-fill: red;");
                 avisStatusLabel.setVisible(true);
             }
         });
 
-        new Thread(task).start();
+        submitTask.setOnFailed(e2 -> {
+            String errorMsg = hasExistingReview ? "Erreur de connexion lors de la mise à jour" : "Erreur de connexion lors de l'ajout";
+            avisStatusLabel.setText(errorMsg);
+            avisStatusLabel.setStyle("-fx-text-fill: red;");
+            avisStatusLabel.setVisible(true);
+        });
+
+        new Thread(submitTask).start();
     }
 
-    private Reponse sendRequest(Requete req) {
+
+    private void updateAvisVisibility() {
+        boolean loggedIn = SessionManager.getInstance().isAuthenticated();
+        if (avisFormContainer != null) {
+            avisFormContainer.setVisible(loggedIn);
+            avisFormContainer.setManaged(loggedIn);
+        }
+        if (loginRequiredContainer != null) {
+            loginRequiredContainer.setVisible(!loggedIn);
+            loginRequiredContainer.setManaged(!loggedIn);
+        }
+    }
+
+    @FXML
+    private void handleLoginRedirect() {
+        SessionManager.getInstance().setPendingRedirect("product-detail.fxml", "Détail Produit - ChriOnline");
+        SceneManager.switchTo("login.fxml", "Connexion - ChriOnline");
+    }
+
+    private shared.Reponse sendRequest(shared.Requete req) {
         return client.ClientSocket.getInstance().envoyer(req);
     }
 
     private void showToast(String msg) {
-        // Implémentation simple pour démo
         System.out.println("TOAST: " + msg);
 
-        // Version visuelle simple
-        if (mainContent != null && mainContent.getScene() != null) {
-            Label toast = new Label(msg);
-            toast.setStyle("-fx-background-color: " + BLEU_NUIT
-                    + "; -fx-text-fill: white; -fx-padding: 10 20; -fx-background-radius: 50px;");
+        javafx.application.Platform.runLater(() -> {
+            if (rootStackPane == null && mainContent != null && mainContent.getScene() != null) {
+                javafx.scene.Parent root = mainContent.getScene().getRoot();
+                if (root instanceof javafx.scene.layout.StackPane) {
+                    rootStackPane = (javafx.scene.layout.StackPane) root;
+                }
+            }
 
-            StackPane stackPane = new StackPane(toast);
-            stackPane.setAlignment(Pos.BOTTOM_CENTER);
-            StackPane.setMargin(toast, new Insets(20));
+            if (rootStackPane != null) {
+                javafx.scene.control.Label toast = new javafx.scene.control.Label(msg);
+                toast.setStyle("-fx-background-color: " + BLEU_NUIT + "; -fx-text-fill: white; -fx-padding: 10 20; " +
+                               "-fx-background-radius: 50px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0);");
 
-            VBox root = (VBox) mainContent.getScene().getRoot();
-            root.getChildren().add(stackPane);
+                javafx.scene.layout.StackPane toastWrapper = new javafx.scene.layout.StackPane(toast);
+                toastWrapper.setAlignment(javafx.geometry.Pos.BOTTOM_CENTER);
+                javafx.scene.layout.StackPane.setMargin(toast, new javafx.geometry.Insets(0, 0, 50, 0));
+                toastWrapper.setMouseTransparent(true);
 
-            new Timeline(new KeyFrame(javafx.util.Duration.seconds(3), ev -> root.getChildren().remove(stackPane)))
-                    .play();
-        }
+                rootStackPane.getChildren().add(toastWrapper);
+
+                javafx.animation.FadeTransition fadeIn = new javafx.animation.FadeTransition(javafx.util.Duration.millis(300), toastWrapper);
+                fadeIn.setFromValue(0);
+                fadeIn.setToValue(1);
+
+                javafx.animation.FadeTransition fadeOut = new javafx.animation.FadeTransition(javafx.util.Duration.millis(500), toastWrapper);
+                fadeOut.setFromValue(1);
+                fadeOut.setToValue(0);
+                fadeOut.setDelay(javafx.util.Duration.seconds(2));
+                fadeOut.setOnFinished(e -> rootStackPane.getChildren().remove(toastWrapper));
+
+                fadeIn.play();
+                fadeOut.play();
+            }
+        });
     }
 }
