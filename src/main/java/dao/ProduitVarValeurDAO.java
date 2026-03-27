@@ -11,8 +11,8 @@ public class ProduitVarValeurDAO {
     public List<ProduitVarValeur> getAll() {
         List<ProduitVarValeur> list = new ArrayList<>();
         String query = "SELECT * FROM ProduitVarValeur";
-        try (Connection conn = ConnexionBDD.getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = ConnexionBDD.getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 list.add(mapResultSetToPVV(rs));
@@ -26,8 +26,8 @@ public class ProduitVarValeurDAO {
     // Récupère une valeur par son ID
     public ProduitVarValeur getById(int id) {
         String query = "SELECT * FROM ProduitVarValeur WHERE idPVV = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, id);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -43,8 +43,8 @@ public class ProduitVarValeurDAO {
     // Enregistre une valeur de variante
     public boolean save(ProduitVarValeur pvv) {
         String query = "INSERT INTO ProduitVarValeur (idProduit, idVariante, valeur) VALUES (?, ?, ?)";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setInt(1, pvv.getIdProduit());
             pstmt.setInt(2, pvv.getIdVariante());
             pstmt.setString(3, pvv.getValeur());
@@ -66,8 +66,8 @@ public class ProduitVarValeurDAO {
     // Met à jour une valeur de variante
     public boolean update(ProduitVarValeur pvv) {
         String query = "UPDATE ProduitVarValeur SET idProduit = ?, idVariante = ?, valeur = ? WHERE idPVV = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, pvv.getIdProduit());
             pstmt.setInt(2, pvv.getIdVariante());
             pstmt.setString(3, pvv.getValeur());
@@ -81,8 +81,8 @@ public class ProduitVarValeurDAO {
     // Supprime une valeur de variante
     public boolean delete(int id) {
         String query = "DELETE FROM ProduitVarValeur WHERE idPVV = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, id);
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -94,8 +94,8 @@ public class ProduitVarValeurDAO {
     public List<ProduitVarValeur> getByProduit(int idProduit) {
         List<ProduitVarValeur> list = new ArrayList<>();
         String query = "SELECT * FROM ProduitVarValeur WHERE idProduit = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, idProduit);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {

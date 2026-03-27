@@ -268,15 +268,18 @@ public class ClientHandler implements Runnable {
                     case PROCESS_PAYMENT -> paiementService.processPayment(requete);
                     
                     // Admin operations
-                    //case ADMIN_GET_ALL_PRODUCTS -> adminService.getAllProducts(requete);
+                    case ADMIN_GET_ALL_PRODUCTS -> produitService.adminGetAll(requete);
                     case ADMIN_GET_ALL_ORDERS -> adminService.getAllOrders(requete);
                     case ADMIN_GET_ALL_USERS -> adminService.getAllClients(requete);
-                    //case ADMIN_UPDATE_PRODUCT -> adminService.updateProduct(requete);
-                    //case ADMIN_DELETE_PRODUCT -> adminService.deleteProduct(requete);
+                    case ADMIN_UPDATE_PRODUCT -> produitService.adminUpdateProduct(requete);
+                    case ADMIN_DELETE_PRODUCT -> produitService.supprimer(requete);
                     case ADMIN_UPDATE_ORDER_STATUS -> adminService.updateOrderStatus(requete);
                     case ADMIN_SEARCH_ORDERS -> adminService.searchOrders(requete);
-                    case ADMIN_BAN_USER -> adminService.banUser(requete);
+                    case ADMIN_BAN_USER -> adminService.unbanUser(requete);
                     case ADMIN_UNBAN_USER -> adminService.unbanUser(requete);
+                    case ADMIN_GET_SKU_BY_PRODUIT -> skuService.adminGetByProduit(requete);
+                    case ADMIN_ADD_PRODUCT_COMPLET -> produitService.creerProduitComplet(requete);
+                    case ADMIN_GET_VARIANTES_BY_CATEGORIE -> categorieService.getVariantes(requete);
                     
 
                     // ───────────────────────────────

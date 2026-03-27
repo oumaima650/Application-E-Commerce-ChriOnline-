@@ -12,8 +12,8 @@ public class CategorieDAO {
     public List<Categorie> getAll() {
         List<Categorie> categories = new ArrayList<>();
         String query = "SELECT * FROM Categorie";
-        try (Connection conn = ConnexionBDD.getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = ConnexionBDD.getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 categories.add(mapResultSetToCategorie(rs));
@@ -27,8 +27,8 @@ public class CategorieDAO {
     // Récupère une catégorie par son ID
     public Categorie getById(int id) {
         String query = "SELECT * FROM Categorie WHERE idCategorie = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, id);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -44,8 +44,8 @@ public class CategorieDAO {
     // Enregistre une nouvelle catégorie
     public boolean save(Categorie cat) {
         String query = "INSERT INTO Categorie (nom, description) VALUES (?, ?)";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, cat.getNom());
             pstmt.setString(2, cat.getDescription());
             int affectedRows = pstmt.executeUpdate();
@@ -66,8 +66,8 @@ public class CategorieDAO {
     // Met à jour une catégorie
     public boolean update(Categorie cat) {
         String query = "UPDATE Categorie SET nom = ?, description = ? WHERE idCategorie = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, cat.getNom());
             pstmt.setString(2, cat.getDescription());
             pstmt.setInt(3, cat.getIdCategorie());
@@ -80,8 +80,8 @@ public class CategorieDAO {
     // Supprime une catégorie
     public boolean delete(int id) {
         String query = "DELETE FROM Categorie WHERE idCategorie = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, id);
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -92,8 +92,8 @@ public class CategorieDAO {
     // Lie une variante à une catégorie
     public boolean addVariante(int idCategorie, int idVariante) {
         String query = "INSERT INTO CategorieVariante (idCategorie, idVariante) VALUES (?, ?)";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, idCategorie);
             pstmt.setInt(2, idVariante);
             return pstmt.executeUpdate() > 0;
@@ -105,14 +105,37 @@ public class CategorieDAO {
     // Retire le lien entre une variante et une catégorie
     public boolean removeVariante(int idCategorie, int idVariante) {
         String query = "DELETE FROM CategorieVariante WHERE idCategorie = ? AND idVariante = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, idCategorie);
             pstmt.setInt(2, idVariante);
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new RuntimeException("Erreur lors de la suppression d'une variante de la catégorie", e);
         }
+    }
+
+    // Récupère les variantes liées à une catégorie
+    public List<Variante> getVariantes(int idCategorie) {
+        List<Variante> variantes = new ArrayList<>();
+        String query = "SELECT v.* FROM Variante v " +
+                       "JOIN CategorieVariante cv ON v.idVariante = cv.idVariante " +
+                       "WHERE cv.idCategorie = ?";
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setInt(1, idCategorie);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Variante v = new Variante();
+                    v.setIdVariante(rs.getInt("idVariante"));
+                    v.setNom(rs.getString("nom"));
+                    variantes.add(v);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erreur lors de la récupération des variantes pour la catégorie id=" + idCategorie, e);
+        }
+        return variantes;
     }
 
     // Convertit un résultat SQL en objet Categorie

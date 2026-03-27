@@ -138,6 +138,18 @@ public class SKUService {
         }
     }
 
+    public Reponse adminGetByProduit(Requete requete) {
+        try {
+            Object idParam = requete.getParametres().get("idProduit");
+            if (!(idParam instanceof Integer)) {
+                return new Reponse(false, "Type de données invalide (idProduit doit être Integer).", null);
+            }
+            return new Reponse(true, "Liste complète des SKUs pour le produit.", java.util.Map.of("skus", skuDAO.getByProduitIncludeDeleted((Integer) idParam)));
+        } catch (Exception e) {
+            return new Reponse(false, e.getMessage(), null);
+        }
+    }
+
     public Reponse creer(Requete requete) {
         try {
             Object skuObj = requete.getParametres().get("sku");
@@ -172,10 +184,19 @@ public class SKUService {
             if (!(skuParam instanceof String)) {
                 return new Reponse(false, "Type de données invalide (sku doit être String).", null);
             }
-            supprimer((String) skuParam);
-            return new Reponse(true, "SKU supprimé avec succès.", null);
+            String sku = (String) skuParam;
+            SKU s = skuDAO.getBySku(sku);
+            if (s == null) return new Reponse(false, "SKU inexistant.", null);
+            
+            if (s.getDeletedAt() != null) {
+                skuDAO.restore(sku);
+                return new Reponse(true, "SKU restauré avec succès.", null);
+            } else {
+                skuDAO.delete(sku);
+                return new Reponse(true, "SKU supprimé avec succès.", null);
+            }
         } catch (Exception e) {
-            return new Reponse(false, e.getMessage(), null);
+            return new Reponse(false, "Erreur lors de la suppression/restauration du SKU: " + e.getMessage(), null);
         }
     }
 
