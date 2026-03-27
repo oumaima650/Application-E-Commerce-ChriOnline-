@@ -9,15 +9,18 @@ public class Produit implements Serializable {
     private String nom;
     private String description;
     private LocalDateTime createdAt;
+    private LocalDateTime deletedAt;
+    private String nomCategorie;
 
     public Produit() {}
 
-    public Produit(int idProduit, int idCategorie, String nom, String description, LocalDateTime createdAt) {
+    public Produit(int idProduit, int idCategorie, String nom, String description, LocalDateTime createdAt, LocalDateTime deletedAt) {
         this.idProduit = idProduit;
         this.idCategorie = idCategorie;
         this.nom = nom;
         this.description = description;
         this.createdAt = createdAt;
+        this.deletedAt = deletedAt;
     }
 
     public int getIdProduit() { return idProduit; }
@@ -25,6 +28,9 @@ public class Produit implements Serializable {
 
     public int getIdCategorie() { return idCategorie; }
     public void setIdCategorie(int idCategorie) { this.idCategorie = idCategorie; }
+
+    public String getNomCategorie() { return nomCategorie; }
+    public void setNomCategorie(String nomCategorie) { this.nomCategorie = nomCategorie; }
 
     public String getNom() { return nom; }
     public void setNom(String nom) { this.nom = nom; }
@@ -35,6 +41,9 @@ public class Produit implements Serializable {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+
     @Override
     public String toString() {
         return "Produit{" +
@@ -42,6 +51,7 @@ public class Produit implements Serializable {
                 ", nom='" + nom + '\'' +
                 ", description='" + description + '\'' +
                 ", createdAt=" + createdAt +
+                ", deletedAt=" + deletedAt +
                 '}';
     }
 }

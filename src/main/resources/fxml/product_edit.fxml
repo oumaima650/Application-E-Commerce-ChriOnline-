@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="ui.ProductEditController"
+      style="-fx-background-color: #F8F9FA; -fx-padding: 30;">
+    
+    <Label text="Modifier le Produit" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>
+    
+    <GridPane vgap="15" hgap="10">
+        <columnConstraints>
+            <ColumnConstraints minWidth="100"/>
+            <ColumnConstraints hgrow="ALWAYS"/>
+        </columnConstraints>
+        
+        <Label text="Nom :" GridPane.rowIndex="0" GridPane.columnIndex="0" style="-fx-text-fill: #555;"/>
+        <TextField fx:id="nameField" GridPane.rowIndex="0" GridPane.columnIndex="1" styleClass="input-field"/>
+        
+        <Label text="Catégorie :" GridPane.rowIndex="1" GridPane.columnIndex="0" style="-fx-text-fill: #555;"/>
+        <ComboBox fx:id="categoryComboBox" GridPane.rowIndex="1" GridPane.columnIndex="1" maxWidth="Infinity" styleClass="combo-box"/>
+
+        <Label text="Description :" GridPane.rowIndex="2" GridPane.columnIndex="0" style="-fx-text-fill: #555;"/>
+        <TextArea fx:id="descriptionField" GridPane.rowIndex="2" GridPane.columnIndex="1" prefHeight="100" wrapText="true" styleClass="text-area"/>
+    </GridPane>
+    
+    <HBox spacing="15" alignment="CENTER_RIGHT">
+        <Button text="Annuler" onAction="#handleCancel" style="-fx-background-color: #6C757D; -fx-text-fill: white; -fx-padding: 10 20;"/>
+        <Button text="Enregistrer" onAction="#handleSave" style="-fx-background-color: #FDBF50; -fx-text-fill: #2A2C41; -fx-padding: 10 20; -fx-font-weight: bold;"/>
+    </HBox>
+</VBox>

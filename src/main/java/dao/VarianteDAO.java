@@ -11,8 +11,8 @@ public class VarianteDAO {
     public List<Variante> getAll() {
         List<Variante> variantes = new ArrayList<>();
         String query = "SELECT * FROM Variante";
-        try (Connection conn = ConnexionBDD.getConnection();
-             Statement stmt = conn.createStatement();
+        Connection conn = ConnexionBDD.getConnection();
+        try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 variantes.add(mapResultSetToVariante(rs));
@@ -26,8 +26,8 @@ public class VarianteDAO {
     // Récupère une variante par son ID
     public Variante getById(int id) {
         String query = "SELECT * FROM Variante WHERE idVariante = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, id);
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
@@ -43,8 +43,8 @@ public class VarianteDAO {
     // Enregistre une nouvelle variante
     public boolean save(Variante var) {
         String query = "INSERT INTO Variante (nom, description) VALUES (?, ?)";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, var.getNom());
             pstmt.setString(2, var.getDescription());
             int affectedRows = pstmt.executeUpdate();
@@ -65,8 +65,8 @@ public class VarianteDAO {
     // Met à jour une variante
     public boolean update(Variante var) {
         String query = "UPDATE Variante SET nom = ?, description = ? WHERE idVariante = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, var.getNom());
             pstmt.setString(2, var.getDescription());
             pstmt.setInt(3, var.getIdVariante());
@@ -79,8 +79,8 @@ public class VarianteDAO {
     // Supprime une variante
     public boolean delete(int id) {
         String query = "DELETE FROM Variante WHERE idVariante = ?";
-        try (Connection conn = ConnexionBDD.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(query)) {
+        Connection conn = ConnexionBDD.getConnection();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setInt(1, id);
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -93,8 +93,8 @@ public List<Variante> getByCategorie(int idCategorie) {
     String query = "SELECT v.* FROM Variante v " +
                    "JOIN CategorieVariante cv ON v.idVariante = cv.idVariante " +
                    "WHERE cv.idCategorie = ?";
-    try (Connection conn = ConnexionBDD.getConnection();
-         PreparedStatement pstmt = conn.prepareStatement(query)) {
+    Connection conn = ConnexionBDD.getConnection();
+    try (PreparedStatement pstmt = conn.prepareStatement(query)) {
         pstmt.setInt(1, idCategorie);
         try (ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
@@ -112,8 +112,8 @@ public List<Variante> getByProduit(int idProduit) {
     String query = "SELECT DISTINCT v.* FROM Variante v " +
                    "JOIN ProduitVarValeur pvv ON v.idVariante = pvv.idVariante " +
                    "WHERE pvv.idProduit = ?";
-    try (Connection conn = ConnexionBDD.getConnection();
-         PreparedStatement pstmt = conn.prepareStatement(query)) {
+    Connection conn = ConnexionBDD.getConnection();
+    try (PreparedStatement pstmt = conn.prepareStatement(query)) {
         pstmt.setInt(1, idProduit);
         try (ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {

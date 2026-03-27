@@ -24,39 +24,20 @@
     <center>
         <TabPane tabClosingPolicy="UNAVAILABLE" style="-fx-background-color: transparent;">
             
-            <!-- TAB 1 : PRODUITS (Commenté)
+            <!-- TAB 1 : PRODUITS -->
             <Tab text="📦 Produits">
                 <VBox spacing="15" style="-fx-padding: 20px;">
                     <HBox spacing="15" alignment="CENTER_LEFT">
-                        <TextField promptText="Rechercher un produit..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
-                        <Button text="+ Ajouter produit" styleClass="btn-primary"/>
+                        <TextField fx:id="searchProduitField" promptText="Rechercher un produit..." styleClass="input-field" HBox.hgrow="ALWAYS"/>
+                        <Button text="+ Ajouter produit" styleClass="btn-primary" onAction="#handleNewProduit"/>
                     </HBox>
-                    <TableView fx:id="tableProduits" VBox.vgrow="ALWAYS" styleClass="table-view">
-                        <columns>
-                            <TableColumn text="ID" prefWidth="50" >
-                                <cellValueFactory><PropertyValueFactory property="id" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Image" prefWidth="60">
-                                <cellValueFactory><PropertyValueFactory property="image" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Nom du Produit" prefWidth="200">
-                                <cellValueFactory><PropertyValueFactory property="nom" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Catégorie" prefWidth="120">
-                                <cellValueFactory><PropertyValueFactory property="categorie" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Prix" prefWidth="100">
-                                <cellValueFactory><PropertyValueFactory property="prix" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn text="Stock" prefWidth="80">
-                                <cellValueFactory><PropertyValueFactory property="stock" /></cellValueFactory>
-                            </TableColumn>
-                            <TableColumn fx:id="colActionsProduit" text="Actions" prefWidth="150"/>
-                        </columns>
-                    </TableView>
+                    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;">
+                        <content>
+                            <VBox fx:id="productContainer" spacing="30" style="-fx-padding: 10px;"/>
+                        </content>
+                    </ScrollPane>
                 </VBox>
             </Tab>
-            -->
 
             <!-- TAB 2 : COMMANDES -->
             <Tab text="🛒 Commandes">

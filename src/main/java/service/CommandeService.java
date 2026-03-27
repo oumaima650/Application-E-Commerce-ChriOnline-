@@ -11,6 +11,9 @@ import model.Adresse;
 import model.Client;
 import model.SKU;
 import model.enums.StatutCommande;
+import model.enums.StatutPaiement;
+import model.enums.MethodePaiement;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -184,6 +187,9 @@ public class CommandeService {
         List<String> selectedSkus = (List<String>) params.get("skus");
         String statutParam = (String) params.get("statut");
         String existingReference = (String) params.get("reference");
+        String methodePaiementStr = (String) params.get("methodePaiement");
+        Object idAdresseObj = params.get("idAdresse");
+        Integer idAdresse = idAdresseObj instanceof Number ? ((Number) idAdresseObj).intValue() : null;
 
         if (idClient == null) {
             return new shared.Reponse(false, "Parametres manquants : idClient.", null);
@@ -227,6 +233,11 @@ public class CommandeService {
                 idCommande = commande.getIdCommande();
                 commande.setStatut(statutFinal);
                 commandeDAO.updateStatus(idCommande, statutFinal);
+                // Update address if provided
+                if (idAdresse != null) {
+                    commande.setIdAdresse(idAdresse);
+                    commandeDAO.updateAdresse(idCommande, idAdresse);
+                }
             } else {
                 // --- CREATION D'UNE NOUVELLE COMMANDE ---
                 reference = "CHR-" + java.time.LocalDate.now().toString().replace("-", "") + "-" +
@@ -237,6 +248,7 @@ public class CommandeService {
                 commande.setReference(reference);
                 commande.setStatut(statutFinal);
                 commande.setDateLivraisonPrevue(java.time.LocalDateTime.now().plusDays(5));
+                commande.setIdAdresse(idAdresse); // set before create so it is persisted
 
                 Commande nouvelleCommande = commandeDAO.create(commande);
                 idCommande = nouvelleCommande.getIdCommande();
@@ -246,6 +258,43 @@ public class CommandeService {
                 for (model.LignePanier lp : lignesPanier) {
                     double prixAchat = lp.getSousTotal().doubleValue() / lp.getQuantite();
                     commandeDAO.addLigneCommande(idCommande, lp.getSku(), lp.getQuantite(), prixAchat);
+                }
+            }
+
+            // --- GESTION DU PAIEMENT ---
+            if (methodePaiementStr != null) {
+                PaiementDAO paiementDAO = new PaiementDAO();
+                // Vérifier s'il existe déjà un paiement pour cette commande (cas de reprise de brouillon)
+                List<Paiement> existingPaiements = paiementDAO.findByCommande(idCommande);
+                
+                if (existingPaiements.isEmpty()) {
+                    Paiement p = new Paiement();
+                    p.setIdCommande(idCommande);
+                    p.setMontant(BigDecimal.valueOf(commandeDAO.getMontantTotal(idCommande)));
+                    
+                    try {
+                        MethodePaiement mp = MethodePaiement.valueOf(methodePaiementStr.toUpperCase());
+                        p.setMethodePaiement(mp);
+                        
+                        // Statut initial du paiement
+                        if (mp == MethodePaiement.CARD && statutFinal == StatutCommande.VALIDEE) {
+                            p.setStatutPaiement(StatutPaiement.APPROUVE);
+                        } else {
+                            p.setStatutPaiement(StatutPaiement.EN_ATTENTE);
+                        }
+                    } catch (Exception e) {
+                        p.setMethodePaiement(MethodePaiement.CARD);
+                        p.setStatutPaiement(StatutPaiement.EN_ATTENTE);
+                    }
+                    
+                    p.setDatePaiement(java.time.LocalDateTime.now());
+                    paiementDAO.create(p);
+                } else if (statutFinal == StatutCommande.VALIDEE) {
+                    // Si on valide un brouillon, on peut mettre à jour le statut du paiement si c'est par carte
+                    Paiement p = existingPaiements.get(0);
+                    if (p.getMethodePaiement() == MethodePaiement.CARD) {
+                        paiementDAO.updateStatut(p.getIdPaiement(), StatutPaiement.APPROUVE);
+                    }
                 }
             }
 
@@ -265,7 +314,10 @@ public class CommandeService {
                         System.out.println("[CommandeService] Alerte stock: SKU " + lc.getSku() + " est en rupture.");
                     }
                 }
-                // Vider les articles du panier apres validation
+            }
+            
+            // Vider les articles du panier apres validation OU mise en brouillon
+            if (statutFinal == StatutCommande.VALIDEE || statutFinal == StatutCommande.EN_ATTENTE) {
                 if (selectedSkus != null && !selectedSkus.isEmpty()) {
                     panierService.supprimerArticles(idClient, selectedSkus);
                 } else {
@@ -279,13 +331,16 @@ public class CommandeService {
             SKUDAO skuDAO = new SKUDAO();
             for (model.LigneCommande lc : commandeDAO.findLignesByCommandeId(idCommande)) {
                 Map<String, Object> item = new HashMap<>();
-                item.put("nom", lc.getSku());
+                item.put("nom", lc.getNomProduit());
                 item.put("quantite", lc.getQuantite());
                 item.put("prixUnitaire", lc.getPrixAchat());
-                try {
-                    model.SKU s = skuDAO.getBySku(lc.getSku());
-                    if (s != null) item.put("image", s.getImage());
-                } catch (Exception ignored) {}
+                
+                // Récupérer l'image depuis le SKU
+                model.SKU sku = skuDAO.getBySku(lc.getSku());
+                if (sku != null) {
+                    item.put("image", sku.getImage());
+                }
+                
                 itemsSummary.add(item);
             }
 

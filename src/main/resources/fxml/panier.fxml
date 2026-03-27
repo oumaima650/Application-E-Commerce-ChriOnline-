@@ -3,6 +3,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.shape.SVGPath?>
+<?import javafx.scene.shape.Circle?>
 <?import javafx.geometry.Insets?>
 <?import java.lang.String?>
 
@@ -22,14 +23,21 @@
                     <Label text="ChriOnline" styleClass="nav-title"/>
                     <Region HBox.hgrow="ALWAYS"/>
                     <HBox spacing="16" alignment="CENTER">
-                        <Button text="📋 Mes Commandes" styleClass="nav-button" onAction="#goToCommandes"/>
-                        <SVGPath content="M 11 4 a 7 7 0 1 0 14 7 a 7 7 0 0 0 0 -14 z M 21 21 l -4.35 -4.35" styleClass="nav-icon"/>
-                        <SVGPath content="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" styleClass="nav-icon"/>
-                        <Button styleClass="nav-button" onAction="#goToProfile">
-                            <graphic>
-                                <SVGPath content="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" styleClass="nav-icon" fill="WHITE" stroke="WHITE" strokeWidth="2"/>
-                            </graphic>
-                        </Button>
+                        <!-- User Auth Section -->
+                        <StackPane alignment="CENTER_RIGHT">
+                            <children>
+                                <!-- Login Button -->
+                                <Button fx:id="loginButton" text="Connexion / Inscription" onAction="#handleLoginClick" 
+                                        style="-fx-background-color: #FF724C; -fx-text-fill: white; -fx-background-radius: 8px; -fx-font-weight: bold; -fx-padding: 8 16; -fx-cursor: hand;"
+                                        visible="false"/>
+                                
+                                <!-- User Avatar -->
+                                <StackPane fx:id="userAvatarContainer" onMouseClicked="#handleUserClick" style="-fx-cursor: hand;" visible="true">
+                                    <Circle fx:id="userAvatar" radius="18" fill="#FF724C"/>
+                                    <Label fx:id="userInitial" text="U" style="-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                                </StackPane>
+                            </children>
+                        </StackPane>
                     </HBox>
                 </HBox>
 
