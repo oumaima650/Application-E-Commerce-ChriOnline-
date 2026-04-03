@@ -120,9 +120,6 @@ public class NotificationsController {
         new Thread(task).start();
     }
 
-    /**
-     * Méthode à appeler depuis le vrai `ClientUDP.java` au lieu d'une Alert Box.
-     */
     public void addNotification(String titre, String messageUdp) {
         // Fallback pour les notifications UDP directes (on met un ID factice ou on gère autrement)
         addNotification(-1, titre, messageUdp, LocalDateTime.now(), true);
