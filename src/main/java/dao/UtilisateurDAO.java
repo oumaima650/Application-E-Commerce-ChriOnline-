@@ -116,4 +116,20 @@ public class UtilisateurDAO {
         }
         return ids;
     }
+
+    /**
+     * Updates the password for a user with the given email.
+     * @param email The user's email.
+     * @param newHash The new hashed password.
+     * @return true if updated, false otherwise.
+     */
+    public static boolean updatePassword(String email, String newHash) throws SQLException {
+        String sql = "UPDATE Utilisateur SET motDePasse = ?, updatedAt = NOW() WHERE email = ?";
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newHash);
+            ps.setString(2, email);
+            return ps.executeUpdate() > 0;
+        }
+    }
 }

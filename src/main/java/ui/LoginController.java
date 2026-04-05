@@ -5,6 +5,9 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
@@ -15,16 +18,13 @@ import client.ClientSocket;
 import model.Utilisateur;
 import client.utils.SceneManager;
 import client.utils.SessionManager;
-import javax.net.ssl.*;
 
-import java.io.*;
-import java.net.Socket;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
-
 
 public class LoginController implements Initializable {
 
@@ -56,8 +56,8 @@ public class LoginController implements Initializable {
     @FXML private HBox          registerEmailWrapper;
     @FXML private HBox          registerPasswordWrapper;
     @FXML private HBox          registerConfirmWrapper;
-    @FXML private TextField     registerNomField;        // Last name
-    @FXML private TextField     registerPrenomField;     // First name
+    @FXML private TextField     registerNomField;        
+    @FXML private TextField     registerPrenomField;     
     @FXML private TextField     registerPhoneField;
     @FXML private TextField     registerEmailField;
     @FXML private PasswordField registerPasswordField;
@@ -69,10 +69,8 @@ public class LoginController implements Initializable {
     @FXML private Label strengthLabel;
     @FXML private Hyperlink forgotPasswordLink;
 
-
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Assurer que le CSS spécifique à Login est toujours chargé, même en cache
         if (rootPane != null) {
             try {
                 rootPane.getStylesheets().add(getClass().getResource("/css/global.css").toExternalForm());
@@ -81,7 +79,6 @@ public class LoginController implements Initializable {
                 System.err.println("[LoginController] Erreur de chargement du CSS : " + e.getMessage());
             }
         }
-
         setupTabSwitching();
         setupFocusEffects();
         setupLiveValidation();
@@ -97,461 +94,330 @@ public class LoginController implements Initializable {
 
     @FXML
     private void handleForgotPassword() {
-        System.out.println("[LoginController] Mot de passe oublié cliqué.");
-        // Pour l'instant, on se contente d'un log. Une future implémentation pourrait ouvrir une popup.
+        TextInputDialog emailDialog = new TextInputDialog();
+        emailDialog.setTitle("Réinitialisation - Étape 1");
+        emailDialog.setHeaderText("Mot de passe oublié ?");
+        emailDialog.setContentText("Entrez votre adresse e-mail :");
+        emailDialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/global.css").toExternalForm());
+        emailDialog.getDialogPane().getStyleClass().add("custom-dialog");
+
+        Optional<String> emailResult = emailDialog.showAndWait();
+        if (emailResult.isPresent()) {
+            String email = emailResult.get().trim();
+            if (email.isEmpty() || !EMAIL_REGEX.matcher(email).matches()) {
+                showAlert(Alert.AlertType.ERROR, "Erreur", "Veuillez entrer une adresse e-mail valide.");
+                return;
+            }
+            Map<String, Object> params = new HashMap<>();
+            params.put("email", email);
+            Requete req = new Requete(RequestType.REQUEST_PASSWORD_RESET, params, null);
+            setLoginLoading(true);
+            runAsync(req, res -> {
+                setLoginLoading(false);
+                if (res != null && res.isSucces()) {
+                    showResetConfirmationDialog(email);
+                } else {
+                    String msg = (res != null) ? res.getMessage() : "Serveur injoignable.";
+                    showAlert(Alert.AlertType.ERROR, "Erreur", msg);
+                }
+            });
+        }
+    }
+
+    private void showResetConfirmationDialog(String email) {
+        Dialog<Map<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Réinitialisation - Étape 2");
+        dialog.setHeaderText("Un code a été envoyé à : " + email);
+        ButtonType confirmButtonType = new ButtonType("Valider", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10); grid.setVgap(10);
+        grid.setPadding(new Insets(20, 50, 10, 10));
+
+        TextField codeField = new TextField();
+        codeField.setPromptText("Code OTP (6 chiffres)");
+        PasswordField newPasswordField = new PasswordField();
+        newPasswordField.setPromptText("Nouveau mot de passe");
+        PasswordField confirmField = new PasswordField();
+        confirmField.setPromptText("Confirmer le mot de passe");
+
+        grid.add(new Label("Code reçu :"), 0, 0);
+        grid.add(codeField, 1, 0);
+        grid.add(new Label("Nouveau mot de passe :"), 0, 1);
+        grid.add(newPasswordField, 1, 1);
+
+        VBox strengthContainer = new VBox(5);
+        HBox dialogStrengthBar = new HBox(5);
+        dialogStrengthBar.setPrefHeight(4);
+        for (int i = 0; i < 4; i++) {
+            Region seg = new Region();
+            HBox.setHgrow(seg, Priority.ALWAYS);
+            seg.setStyle("-fx-background-color: #e8e8ef; -fx-background-radius: 2;");
+            dialogStrengthBar.getChildren().add(seg);
+        }
+        Label dialogStrengthText = new Label();
+        dialogStrengthText.setStyle("-fx-font-size: 11px;");
+        Label dialogHint = new Label("Min. 8 carac. (A-Z, 0-9, !@#...)");
+        dialogHint.setStyle("-fx-font-size: 10px; -fx-text-fill: #8892A4;");
+        strengthContainer.getChildren().addAll(dialogStrengthBar, new HBox(10, dialogStrengthText, dialogHint));
+        grid.add(strengthContainer, 1, 2);
+
+        grid.add(new Label("Confirmer :"), 0, 3);
+        grid.add(confirmField, 1, 3);
+
+        dialog.getDialogPane().setContent(grid);
+        Node confirmButton = dialog.getDialogPane().lookupButton(confirmButtonType);
+        confirmButton.setDisable(true);
+
+        Runnable updateButton = () -> {
+            boolean pwOk = validatePassword(newPasswordField.getText()) == null;
+            boolean match = newPasswordField.getText().equals(confirmField.getText());
+            boolean codeOk = !codeField.getText().trim().isEmpty();
+            confirmButton.setDisable(!codeOk || !pwOk || !match);
+        };
+
+        codeField.textProperty().addListener((obs, old, val) -> updateButton.run());
+        confirmField.textProperty().addListener((obs, old, val) -> updateButton.run());
+        newPasswordField.textProperty().addListener((obs, old, val) -> {
+            updateStrengthDisplay(val, dialogStrengthBar, dialogStrengthText);
+            updateButton.run();
+        });
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == confirmButtonType) {
+                Map<String, String> results = new HashMap<>();
+                results.put("code", codeField.getText().trim());
+                results.put("newPassword", newPasswordField.getText());
+                results.put("confirm", confirmField.getText());
+                return results;
+            }
+            return null;
+        });
+
+        Optional<Map<String, String>> result = dialog.showAndWait();
+        result.ifPresent(results -> {
+            String code = results.get("code");
+            String newPass = results.get("newPassword");
+            Map<String, Object> confirmParams = new HashMap<>();
+            confirmParams.put("email", email);
+            confirmParams.put("code", code);
+            confirmParams.put("newPassword", newPass);
+
+            Requete confirmReq = new Requete(RequestType.CONFIRM_PASSWORD_RESET, confirmParams, null);
+            setLoginLoading(true);
+            runAsync(confirmReq, res -> {
+                setLoginLoading(false);
+                if (res != null && res.isSucces()) {
+                    showAlert(Alert.AlertType.INFORMATION, "Succès", res.getMessage());
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Erreur", (res != null) ? res.getMessage() : "Échec.");
+                }
+            });
+        });
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String content) {
+        Alert alert = new Alert(type);
+        alert.setTitle(title); alert.setHeaderText(null); alert.setContentText(content);
+        alert.showAndWait();
     }
 
     @FXML
     private void handleLogin() {
-        String email    = trim(loginEmailField);
+        String email = trim(loginEmailField);
         String password = loginPasswordField.getText();
-
-        if (email.isEmpty()) {
-            showError(loginErrorLabel, "⚠ L'adresse e-mail est obligatoire.");
-            shake(loginEmailWrapper);
-            loginEmailField.requestFocus();
-            return;
-        }
-        if (!EMAIL_REGEX.matcher(email).matches()) {
-            showError(loginErrorLabel, "⚠ Adresse e-mail invalide.");
-            shake(loginEmailWrapper);
-            loginEmailField.requestFocus(); return;
-        }
-        if (password.isEmpty()) {
-            showError(loginErrorLabel, "⚠ Le mot de passe est obligatoire.");
-            shake(loginPasswordWrapper);
-            loginPasswordField.requestFocus();
-            return;
-        }
+        if (email.isEmpty()) { showError(loginErrorLabel, "⚠ Email requis."); shake(loginEmailWrapper); return; }
+        if (!EMAIL_REGEX.matcher(email).matches()) { showError(loginErrorLabel, "⚠ Email invalide."); shake(loginEmailWrapper); return; }
+        if (password.isEmpty()) { showError(loginErrorLabel, "⚠ Mot de passe requis."); shake(loginPasswordWrapper); return; }
 
         Map<String, Object> params = new HashMap<>();
-        params.put("email",      email);
-        params.put("motDePasse", password);
-
-        shared.Requete requete = new shared.Requete(shared.RequestType.LOGIN, params, null);
-
+        params.put("email", email); params.put("motDePasse", password);
         setLoginLoading(true);
-        runAsync(requete, reponse -> {
+        runAsync(new Requete(RequestType.LOGIN, params, null), reponse -> {
             setLoginLoading(false);
-            try {
-                if (reponse == null) {
-                    showError(loginErrorLabel, "⚠ Impossible de joindre le serveur.");
-                    return;
-                }
-                if (reponse.isSucces()) {
-                    Map<String, Object> donnees = reponse.getDonnees();
-                    if (donnees == null) {
-                        System.err.println("[Login] Erreur : donnees est null dans la réponse.");
-                        showError(loginErrorLabel, "⚠ Erreur de données serveur.");
-                        return;
-                    }
-
-                    String accessToken  = (String) donnees.get("accessToken");
-                    String refreshToken = (String) donnees.get("refreshToken");
-                    Object userObj      = donnees.get("utilisateur");
-                    String type         = (String) donnees.get("typeUtilisateur");
-
-                    System.out.println("[Login] Données reçues : userObj type=" + (userObj != null ? userObj.getClass().getName() : "null"));
-
-                    if (!(userObj instanceof Utilisateur user)) {
-                        System.err.println("[Login] Erreur de cast : l'objet utilisateur n'est pas une instance de model.Utilisateur");
-                        showError(loginErrorLabel, "⚠ Erreur de session client.");
-                        return;
-                    }
-
-                    client.utils.SessionManager.getInstance().ouvrir(accessToken, refreshToken, user);
-                    
-                    // Enregistrer le port UDP pour les notifications
-                    client.ClientApp.getInstance().registerUdpPort(accessToken);
-
-                    System.out.println("[Login] Connecté — email=" + user.getEmail() + " role=" + type);
-                    navigateToMain(type);
-                } else {
-                    showError(loginErrorLabel, "⚠ " + reponse.getMessage());
-                    shake(loginEmailWrapper);
-                    shake(loginPasswordWrapper);
-                    loginPasswordField.clear();
-                }
-            } catch (Exception e) {
-                System.err.println("[Login] Exception critique lors du traitement du login : " + e.getMessage());
-                e.printStackTrace();
-                showError(loginErrorLabel, "⚠ Erreur interne : " + e.getClass().getSimpleName());
+            if (reponse != null && reponse.isSucces()) {
+                Map<String, Object> donnees = reponse.getDonnees();
+                SessionManager.getInstance().ouvrir((String)donnees.get("accessToken"), (String)donnees.get("refreshToken"), (Utilisateur)donnees.get("utilisateur"));
+                navigateToMain((String)donnees.get("typeUtilisateur"));
+            } else {
+                showError(loginErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Erreur"));
+                shake(loginEmailWrapper); shake(loginPasswordWrapper);
             }
         });
     }
 
     @FXML
     private void handleRegister() {
-        String nom      = trim(registerNomField);
-        String prenom   = trim(registerPrenomField);
-        String phone    = trim(registerPhoneField);
-        String email    = trim(registerEmailField);
+        String nom = trim(registerNomField);
+        String prenom = trim(registerPrenomField);
+        String phone = trim(registerPhoneField);
+        String email = trim(registerEmailField);
         String password = registerPasswordField.getText();
-        String confirm  = registerConfirmPasswordField.getText();
+        String confirm = registerConfirmPasswordField.getText();
 
-        if (nom.isEmpty() || nom.length() < 2) {
-            showError(registerErrorLabel, "⚠ Le nom doit contenir au moins 2 caractères.");
-            shake(registerNameWrapper);
-            return;
-        }
-        if (prenom.isEmpty() || prenom.length() < 2) {
-            showError(registerErrorLabel, "⚠ Le prénom doit contenir au moins 2 caractères.");
-            shake(registerFirstNameWrapper);
-            return;
-        }
-        if (email.isEmpty() || !EMAIL_REGEX.matcher(email).matches()) {
-            showError(registerErrorLabel, "⚠ Adresse e-mail invalide.");
-            shake(registerEmailWrapper);
-            return;
-        }
-        if (!phone.isEmpty() && !phone.matches("^[+0-9\\s\\-]{7,15}$")) {
-            showError(registerErrorLabel, "⚠ Numéro de téléphone invalide.");
-            shake(registerPhoneWrapper);
-            return;
-        }
-
+        if (nom.isEmpty()) { showError(registerErrorLabel, "⚠ Nom requis."); shake(registerNameWrapper); return; }
+        if (prenom.isEmpty()) { showError(registerErrorLabel, "⚠ Prénom requis."); shake(registerFirstNameWrapper); return; }
+        if (!EMAIL_REGEX.matcher(email).matches()) { showError(registerErrorLabel, "⚠ Email invalide."); shake(registerEmailWrapper); return; }
+        
         String pwError = validatePassword(password);
-        if (pwError != null) {
-            showError(registerErrorLabel, pwError);
-            shake(registerPasswordWrapper);
-            registerPasswordField.requestFocus();
-            return;
-        }
-        if (!password.equals(confirm)) {
-            showError(registerErrorLabel, "⚠ Les mots de passe ne correspondent pas.");
-            shake(registerConfirmWrapper);
-            registerConfirmPasswordField.clear();
-            return;
-        }
+        if (pwError != null) { showError(registerErrorLabel, pwError); shake(registerPasswordWrapper); return; }
+        if (!password.equals(confirm)) { showError(registerErrorLabel, "⚠ Confirmation différente."); shake(registerConfirmWrapper); return; }
 
         Map<String, Object> params = new HashMap<>();
-        params.put("email",      email);
-        params.put("motDePasse", password);
-        params.put("nom",        nom);
-        params.put("prenom",     prenom);
-        params.put("telephone",  phone);
-
-        shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER, params, null);
+        params.put("email", email); params.put("motDePasse", password);
+        params.put("nom", nom); params.put("prenom", prenom); params.put("telephone", phone);
 
         setRegisterLoading(true);
-        runAsync(requete, reponse -> {
+        runAsync(new Requete(RequestType.REGISTER, params, null), reponse -> {
             setRegisterLoading(false);
-            if (reponse == null) {
-                showError(registerErrorLabel, "⚠ Impossible de joindre le serveur.");
-                return;
-            }
-            if (reponse.isSucces()) {
-                showSuccess(registerErrorLabel,
-                        "✓ Compte créé ! Connectez-vous.");
-                loginEmailField.setText(email);
-                delay(1600, () -> mainTabPane.getSelectionModel().select(loginTab));
+            if (reponse != null && reponse.isSucces()) {
+                showSuccess(registerErrorLabel, "✓ Compte créé ! Connectez-vous.");
+                mainTabPane.getSelectionModel().select(loginTab);
             } else {
-                showError(registerErrorLabel, "⚠ " + reponse.getMessage());
+                showError(registerErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Serveur error"));
             }
         });
     }
 
-    @FXML
-    private void handleSwitchToRegister() {
-        mainTabPane.getSelectionModel().select(registerTab);
-    }
-
+    @FXML private void handleSwitchToRegister() { mainTabPane.getSelectionModel().select(registerTab); }
 
     private String validatePassword(String pw) {
-        if (pw == null || pw.isEmpty())
-            return "⚠ Le mot de passe est obligatoire.";
-        if (pw.length() < PW_MIN)
-            return "⚠ Mot de passe trop court (min " + PW_MIN + " caractères).";
-        if (pw.length() > PW_MAX)
-            return "⚠ Mot de passe trop long (max " + PW_MAX + " caractères).";
-        if (!HAS_UPPER.matcher(pw).matches())
-            return "⚠ Ajoutez au moins une lettre majuscule (A-Z).";
-        if (!HAS_DIGIT.matcher(pw).matches())
-            return "⚠ Ajoutez au moins un chiffre (0-9).";
-        if (!HAS_SPECIAL.matcher(pw).matches())
-            return "⚠ Ajoutez au moins un caractère spécial (!@#$%...).";
-        return null; // ← valid
+        if (pw == null || pw.isEmpty()) return "⚠ Requis.";
+        if (pw.length() < PW_MIN) return "⚠ Min " + PW_MIN + " caractères.";
+        if (!HAS_UPPER.matcher(pw).matches()) return "⚠ Majuscule requise (A-Z).";
+        if (!HAS_DIGIT.matcher(pw).matches()) return "⚠ Chiffre requis (0-9).";
+        if (!HAS_SPECIAL.matcher(pw).matches()) return "⚠ Caractère spécial requis.";
+        return null;
     }
 
-    /**
-     * Scores password strength 0–4.
-     * 0 = empty, 1 = weak, 2 = fair, 3 = strong, 4 = very strong
-     */
     private int scorePassword(String pw) {
         if (pw == null || pw.isEmpty()) return 0;
         int score = 0;
-        if (pw.length() >= PW_MIN)                score++;
-        if (HAS_UPPER.matcher(pw).matches())       score++;
-        if (HAS_DIGIT.matcher(pw).matches())       score++;
-        if (HAS_SPECIAL.matcher(pw).matches())     score++;
+        if (pw.length() >= PW_MIN) score++;
+        if (HAS_UPPER.matcher(pw).matches()) score++;
+        if (HAS_DIGIT.matcher(pw).matches()) score++;
+        if (HAS_SPECIAL.matcher(pw).matches()) score++;
         return score;
     }
 
     private void setupPasswordStrengthMeter() {
-        if (registerPasswordField == null || strengthBarBox == null) return;
+        if (registerPasswordField != null && strengthBarBox != null)
+            registerPasswordField.textProperty().addListener((obs, old, val) -> updateStrengthDisplay(val, strengthBarBox, strengthLabel));
+    }
 
-        registerPasswordField.textProperty().addListener((obs, old, val) -> {
-            int score = scorePassword(val);
-
-            String[] barColors = { "#e8e8ef", "#E74C3C", "#E67E22", "#FDBF50", "#27AE60" };
-            var segs = strengthBarBox.getChildren();
-            for (int i = 0; i < segs.size(); i++) {
-                Region seg = (Region) segs.get(i);
+    private void updateStrengthDisplay(String pw, HBox barBox, Label textLabel) {
+        int score = scorePassword(pw);
+        String[] barColors = { "#e8e8ef", "#E74C3C", "#E67E22", "#FDBF50", "#27AE60" };
+        var segs = barBox.getChildren();
+        for (int i = 0; i < segs.size(); i++) {
+            if (segs.get(i) instanceof Region seg) {
                 String color = (i < score && score > 0) ? barColors[score] : "#e8e8ef";
                 seg.setStyle("-fx-background-color:" + color + ";-fx-background-radius:3;");
             }
-
-            if (strengthLabel != null) {
-                String[] labels = { "", "Faible", "Moyen", "Fort", "Très fort" };
-                String[] txtColors = { "transparent", "#E74C3C", "#E67E22", "#c89600", "#27AE60" };
-                strengthLabel.setText(val.isEmpty() ? "" : labels[score]);
-                strengthLabel.setStyle("-fx-text-fill:" + txtColors[score] + ";-fx-font-weight:bold;");
-            }
-        });
-    }
-
-
-    /**
-     * Runs the network call on a daemon thread, then calls the callback
-     * on the JavaFX Application Thread when done.
-     */
-    private void runAsync(shared.Requete requete, java.util.function.Consumer<shared.Reponse> onDone) {
-        Task<shared.Reponse> task = new Task<>() {
-            @Override
-            protected shared.Reponse call() {
-                return client.ClientSocket.getInstance().envoyer(requete);
-            }
-        };
-
-        task.setOnSucceeded(e -> Platform.runLater(() -> onDone.accept(task.getValue())));
-        task.setOnFailed(e -> Platform.runLater(() -> {
-            System.err.println("[LoginController] Task failed: " + task.getException());
-            onDone.accept(null);
-        }));
-
-        Thread thread = new Thread(task);
-        thread.setDaemon(true);
-        thread.start();
-    }
-
-
-        private void navigateToMain(String type) {
-        // Vider l'historique pour ne pas revenir au Login avec le bouton "Retour"
-        SceneManager.clearHistory();
-        
-        // --- IMPORTANT : Enregistrer le port UDP pour les notifications ---
-        registerUdpPort(SessionManager.getInstance().getSession().getAccessToken());
-
-        if ("ADMIN".equals(type)) {
-            SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
-        } else {
-            // Vérifier si une redirection était prévue (ex: vers Checkout)
-            String redirect = SessionManager.getInstance().getPendingRedirect();
-            if (redirect != null && !redirect.isEmpty()) {
-                String title = SessionManager.getInstance().getPendingRedirectTitle();
-                SessionManager.getInstance().clearPendingRedirect();
-                SceneManager.switchTo(redirect, title != null ? title : "ChriOnline");
-            } else {
-                SceneManager.clearCache("main-home.fxml"); // Forcer le rafraîchissement
-                SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
-            }
+        }
+        if (textLabel != null) {
+            String[] labels = { "", "Faible", "Moyen", "Fort", "Très fort" };
+            String[] txtColors = { "transparent", "#E74C3C", "#E67E22", "#c89600", "#27AE60" };
+            textLabel.setText(pw.isEmpty() ? "" : labels[score]);
+            textLabel.setStyle("-fx-text-fill:" + txtColors[score] + ";-fx-font-weight:bold;");
         }
     }
 
-    /**
-     * Enregistre le port UDP du client auprès du serveur pour activer les notifications
-     */
-    private void registerUdpPort(String token) {
-        if (token == null) return;
-        
-        Task<Void> udpTask = new Task<>() {
-            @Override
-            protected Void call() {
-                try {
-                    Map<String, Object> params = new HashMap<>();
-                    params.put("udpPort", client.ClientApp.UDP_PORT);
-                    
-                    shared.Requete req = new shared.Requete(shared.RequestType.REGISTER_UDP_PORT, params, token);
-                    shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
-                    
-                    if (rep != null && rep.isSucces()) {
-                        System.out.println("[LoginController] Port UDP " + client.ClientApp.UDP_PORT + " enregistré.");
-                    }
-                } catch (Exception e) {
-                    System.err.println("[LoginController] Erreur UDP: " + e.getMessage());
-                }
-                return null;
-            }
+    private void runAsync(Requete requete, java.util.function.Consumer<Reponse> onDone) {
+        Task<Reponse> task = new Task<>() {
+            @Override protected Reponse call() { return ClientSocket.getInstance().envoyer(requete); }
         };
-        Thread t = new Thread(udpTask);
-        t.setDaemon(true);
-        t.start();
+        task.setOnSucceeded(e -> Platform.runLater(() -> onDone.accept(task.getValue())));
+        task.setOnFailed(e -> Platform.runLater(() -> onDone.accept(null)));
+        Thread t = new Thread(task); t.setDaemon(true); t.start();
     }
 
+    private void navigateToMain(String type) {
+        SceneManager.clearHistory();
+        registerUdpPort(SessionManager.getInstance().getSession().getAccessToken());
+        if ("ADMIN".equals(type)) SceneManager.switchTo("admin.fxml", "Administration");
+        else SceneManager.switchTo("panier.fxml", "Panier");
+    }
+
+    private void registerUdpPort(String token) {
+        if (token == null) return;
+        new Thread(() -> {
+            try {
+                Map<String, Object> p = new HashMap<>(); 
+                p.put("udpPort", client.ClientApp.UDP_PORT);
+                ClientSocket.getInstance().envoyer(new Requete(RequestType.REGISTER_UDP_PORT, p, token));
+            } catch (Exception e) {}
+        }).start();
+    }
 
     private void setupTabSwitching() {
-        mainTabPane.getSelectionModel().selectedItemProperty().addListener(
-                (obs, old, selected) -> {
-                    clearErrors();
-                    VBox form = (selected == loginTab) ? loginFormBox : registerFormBox;
-                    if (form != null) slideIn(form);
-                }
-        );
+        mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, old, selected) -> {
+            clearErrors();
+            VBox form = (selected == loginTab) ? loginFormBox : registerFormBox;
+            if (form != null) slideIn(form);
+        });
     }
 
     private void setupFocusEffects() {
-        bindFocus(loginEmailField,              loginEmailWrapper);
-        bindFocus(loginPasswordField,           loginPasswordWrapper);
-        bindFocus(registerNomField,             registerNameWrapper);
-        bindFocus(registerPrenomField,          registerFirstNameWrapper);
-        bindFocus(registerPhoneField,           registerPhoneWrapper);
-        bindFocus(registerEmailField,           registerEmailWrapper);
-        bindFocus(registerPasswordField,        registerPasswordWrapper);
+        bindFocus(loginEmailField, loginEmailWrapper);
+        bindFocus(loginPasswordField, loginPasswordWrapper);
+        bindFocus(registerNomField, registerNameWrapper);
+        bindFocus(registerPrenomField, registerFirstNameWrapper);
+        bindFocus(registerPhoneField, registerPhoneWrapper);
+        bindFocus(registerEmailField, registerEmailWrapper);
+        bindFocus(registerPasswordField, registerPasswordWrapper);
         bindFocus(registerConfirmPasswordField, registerConfirmWrapper);
     }
-
-    private void bindFocus(TextField field, HBox wrapper) {
-        if (field == null || wrapper == null) return;
-        field.focusedProperty().addListener((obs, was, is) -> {
-            if (is) wrapper.getStyleClass().add("input-wrapper-focused");
-            else    wrapper.getStyleClass().remove("input-wrapper-focused");
+    private void bindFocus(TextField f, HBox w) {
+        if (f == null || w == null) return;
+        f.focusedProperty().addListener((obs, was, is) -> {
+            if (is) w.getStyleClass().add("input-wrapper-focused");
+            else w.getStyleClass().remove("input-wrapper-focused");
         });
     }
-
     private void setupLiveValidation() {
-        for (TextField f : new TextField[]{loginEmailField, loginPasswordField}) {
-            if (f != null) f.textProperty().addListener((o, old, n) -> loginErrorLabel.setText(""));
-        }
-        for (TextField f : new TextField[]{
-                registerNomField, registerPrenomField, registerPhoneField,
-                registerEmailField, registerPasswordField, registerConfirmPasswordField
-        }) {
-            if (f != null) f.textProperty().addListener((o, old, n) -> {
-                registerErrorLabel.getStyleClass().removeAll("error-label-success");
-                registerErrorLabel.getStyleClass().add("error-label");
-                registerErrorLabel.setText("");
-            });
+        for (TextField f : new TextField[]{loginEmailField, loginPasswordField, registerNomField, registerPrenomField, registerPhoneField, registerEmailField, registerPasswordField, registerConfirmPasswordField}) {
+            if (f != null) f.textProperty().addListener((o, old, n) -> clearErrors());
         }
     }
-
     private void setupEnterNavigation() {
-        // Login tab
-        onEnter(loginEmailField,    () -> loginPasswordField.requestFocus());
-        onEnter(loginPasswordField, this::handleLogin);
-
-        // Register tab
-        onEnter(registerNomField,             () -> registerPrenomField.requestFocus());
-        onEnter(registerPrenomField,          () -> registerPhoneField.requestFocus());
-        onEnter(registerPhoneField,           () -> registerEmailField.requestFocus());
-        onEnter(registerEmailField,           () -> registerPasswordField.requestFocus());
-        onEnter(registerPasswordField,        () -> registerConfirmPasswordField.requestFocus());
-        onEnter(registerConfirmPasswordField, this::handleRegister);
+        if (loginEmailField != null) loginEmailField.setOnAction(e -> loginPasswordField.requestFocus());
+        if (loginPasswordField != null) loginPasswordField.setOnAction(e -> handleLogin());
+        if (registerConfirmPasswordField != null) registerConfirmPasswordField.setOnAction(e -> handleRegister());
     }
-
-    private void onEnter(TextField field, Runnable action) {
-        if (field != null) field.setOnAction(e -> action.run());
+    private void setLoginLoading(boolean l) { if (loginButton != null) loginButton.setDisable(l); }
+    private void setRegisterLoading(boolean l) { if (registerButton != null) registerButton.setDisable(l); }
+    private void showError(Label l, String m) { if (l != null) { l.setText(m); l.getStyleClass().add("error-label"); fadeIn(l); } }
+    private void showSuccess(Label l, String m) { if (l != null) { l.setText(m); l.getStyleClass().add("error-label-success"); fadeIn(l); } }
+    private void clearErrors() { 
+        if (loginErrorLabel != null) loginErrorLabel.setText(""); 
+        if (registerErrorLabel != null) registerErrorLabel.setText(""); 
     }
-
-    private void setLoginLoading(boolean loading) {
-        loginButton.setDisable(loading);
-        loginButton.setText(loading ? "Connexion…" : "Se connecter");
-        loginEmailField.setDisable(loading);
-        loginPasswordField.setDisable(loading);
-    }
-
-    private void setRegisterLoading(boolean loading) {
-        registerButton.setDisable(loading);
-        registerButton.setText(loading ? "Création…" : "Créer un compte");
-        registerNomField.setDisable(loading);
-        registerPrenomField.setDisable(loading);
-        registerPhoneField.setDisable(loading);
-        registerEmailField.setDisable(loading);
-        registerPasswordField.setDisable(loading);
-        registerConfirmPasswordField.setDisable(loading);
-    }
-
-    private void showError(Label label, String msg) {
-        label.setText(msg);
-        label.getStyleClass().remove("error-label-success");
-        if (!label.getStyleClass().contains("error-label"))
-            label.getStyleClass().add("error-label");
-        fadeIn(label);
-    }
-
-    private void showSuccess(Label label, String msg) {
-        label.setText(msg);
-        label.getStyleClass().remove("error-label");
-        if (!label.getStyleClass().contains("error-label-success"))
-            label.getStyleClass().add("error-label-success");
-        fadeIn(label);
-    }
-
-    private void clearErrors() {
-        if (loginErrorLabel    != null) loginErrorLabel.setText("");
-        if (registerErrorLabel != null) registerErrorLabel.setText("");
-    }
-
-
     private void animateCardEntrance() {
         if (loginCard == null) return;
-        loginCard.setOpacity(0);
-        loginCard.setTranslateY(28);
-
-        FadeTransition ft = new FadeTransition(Duration.millis(480), loginCard);
+        loginCard.setOpacity(0); loginCard.setTranslateY(20);
+        FadeTransition ft = new FadeTransition(Duration.millis(500), loginCard);
         ft.setFromValue(0); ft.setToValue(1);
-
-        TranslateTransition tt = new TranslateTransition(Duration.millis(480), loginCard);
-        tt.setFromY(28); tt.setToY(0);
-        tt.setInterpolator(Interpolator.EASE_OUT);
-
+        TranslateTransition tt = new TranslateTransition(Duration.millis(500), loginCard);
+        tt.setFromY(20); tt.setToY(0);
         new ParallelTransition(ft, tt).play();
     }
-
-    private void slideIn(VBox form) {
-        form.setOpacity(0);
-        form.setTranslateY(10);
-
-        FadeTransition ft = new FadeTransition(Duration.millis(300), form);
+    private void slideIn(VBox f) {
+        if (f == null) return;
+        f.setOpacity(0); f.setTranslateY(10);
+        FadeTransition ft = new FadeTransition(Duration.millis(300), f);
         ft.setFromValue(0); ft.setToValue(1);
-
-        TranslateTransition tt = new TranslateTransition(Duration.millis(300), form);
+        TranslateTransition tt = new TranslateTransition(Duration.millis(300), f);
         tt.setFromY(10); tt.setToY(0);
-        tt.setInterpolator(Interpolator.EASE_OUT);
-
         new ParallelTransition(ft, tt).play();
     }
-
-    /** Horizontal shake — called on invalid input wrappers. */
-    private void shake(Region node) {
-        if (node == null) return;
-        TranslateTransition t = new TranslateTransition(Duration.millis(50), node);
-        t.setFromX(0); t.setByX(8);
-        t.setCycleCount(6);
-        t.setAutoReverse(true);
-        t.setOnFinished(e -> node.setTranslateX(0));
-        t.play();
+    private void shake(Region n) {
+        if (n == null) return;
+        TranslateTransition t = new TranslateTransition(Duration.millis(50), n);
+        t.setFromX(0); t.setByX(5); t.setCycleCount(6); t.setAutoReverse(true); t.play();
     }
-
-    private void fadeIn(javafx.scene.Node node) {
-        FadeTransition ft = new FadeTransition(Duration.millis(220), node);
-        ft.setFromValue(0); ft.setToValue(1);
-        ft.play();
-    }
-
-    private void delay(int millis, Runnable action) {
-        PauseTransition p = new PauseTransition(Duration.millis(millis));
-        p.setOnFinished(e -> action.run());
-        p.play();
-    }
-
-    private String trim(TextField f) {
-        return (f == null || f.getText() == null) ? "" : f.getText().trim();
-    }
-
-    private int toInt(Object obj) {
-        if (obj instanceof Integer i) return i;
-        if (obj instanceof Number  n) return n.intValue();
-        try { return Integer.parseInt(String.valueOf(obj)); }
-        catch (Exception e) { return -1; }
-    }
+    private void fadeIn(Node n) { if (n != null) { FadeTransition ft = new FadeTransition(Duration.millis(300), n); ft.setFromValue(0); ft.setToValue(1); ft.play(); } }
+    private void delay(int ms, Runnable a) { PauseTransition p = new PauseTransition(Duration.millis(ms)); p.setOnFinished(e -> a.run()); p.play(); }
+    private String trim(TextField f) { return (f == null || f.getText() == null) ? "" : f.getText().trim(); }
 }

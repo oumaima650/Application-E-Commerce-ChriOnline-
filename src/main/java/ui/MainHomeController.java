@@ -535,14 +535,14 @@ public class MainHomeController implements Initializable {
                 List<?> prods = (List<?>) rep.getDonnees().get("produits");
                 Platform.runLater(() -> processProducts(prods));
             } else {
-                showError("Impossible de charger les produits", this::loadProducts);
+                showErrorFromResponse(rep, this::loadProducts);
             }
         });
         pTask.setOnFailed(e -> {
             Throwable ex = pTask.getException();
             System.err.println("[MainHome] Erreur critique chargement produits : " + (ex != null ? ex.getMessage() : "Inconnue"));
             if (ex != null) ex.printStackTrace();
-            showError("Erreur réseau ou désérialisation", this::loadProducts);
+            showError("Impossible de contacter le serveur. Vérifiez qu'il est bien lancé.", this::loadProducts);
         });
         new Thread(pTask).start();
     }
@@ -923,18 +923,36 @@ public class MainHomeController implements Initializable {
     }
 
     private void showError(String msg, Runnable retry) {
-        VBox b = new VBox(10);
-        b.setAlignment(Pos.CENTER);
-        b.setPadding(new Insets(40));
-        Label l = new Label("⚠️ " + msg);
-        l.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold;");
-        Button r = new Button("Réessayer");
-        r.setOnAction(e -> {
-            productContent.getChildren().remove(b);
-            retry.run();
+        Platform.runLater(() -> {
+            if (productGrid == null) return;
+            
+            VBox b = new VBox(20);
+            b.setAlignment(Pos.CENTER);
+            b.setPadding(new Insets(60, 40, 60, 40));
+            b.setStyle("-fx-background-color: #FFF5F5; -fx-background-radius: 20px; -fx-border-color: #FFE0E0; -fx-border-width: 1px;");
+            
+            Label l = new Label(msg);
+            l.setStyle("-fx-text-fill: " + CORAIL + "; -fx-font-weight: bold; -fx-font-size: 16px;");
+            l.setWrapText(true);
+            l.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+            
+            Button r = new Button("Réessayer");
+            r.setStyle("-fx-background-color: " + CORAIL + "; -fx-text-fill: white; -fx-background-radius: 50px; -fx-padding: 8 25; -fx-cursor: hand; -fx-font-weight: bold;");
+            r.setOnAction(e -> {
+                productGrid.getChildren().clear();
+                retry.run();
+            });
+
+            b.getChildren().addAll(l, r);
+            
+            productGrid.getChildren().clear();
+            productGrid.getChildren().add(b);
         });
-        b.getChildren().addAll(l, r);
-        productContent.getChildren().add(0, b); // Add at top of scrollable area
+    }
+
+    private void showErrorFromResponse(shared.Reponse rep, Runnable retry) {
+        String msg = (rep != null && rep.getMessage() != null) ? rep.getMessage() : "Impossible de charger les produits";
+        showError(msg, retry);
     }
 
     private void showToast(String msg) {
