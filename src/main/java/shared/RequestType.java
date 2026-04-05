@@ -7,6 +7,8 @@ public enum RequestType {
     LOGOUT_ALL,
     REGISTER_UDP_PORT,
     REFRESH,
+    REQUEST_PASSWORD_RESET,
+    CONFIRM_PASSWORD_RESET,
 
     
     //produits
