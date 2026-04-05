@@ -5,6 +5,7 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
@@ -24,6 +25,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import netscape.javascript.JSObject;
 
 
 public class LoginController implements Initializable {
@@ -69,6 +73,12 @@ public class LoginController implements Initializable {
     @FXML private Label strengthLabel;
     @FXML private Hyperlink forgotPasswordLink;
 
+    // --- reCAPTCHA ---
+    @FXML private StackPane loginRecaptchaContainer;
+    @FXML private StackPane registerRecaptchaContainer;
+    private String loginRecaptchaToken = "";
+    private String registerRecaptchaToken = "";
+
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -88,6 +98,10 @@ public class LoginController implements Initializable {
         setupEnterNavigation();
         setupPasswordStrengthMeter();
         animateCardEntrance();
+        
+        // Initialize reCAPTCHA
+        setupRecaptcha(loginRecaptchaContainer, true);
+        setupRecaptcha(registerRecaptchaContainer, false);
     }
 
     @FXML
@@ -112,10 +126,17 @@ public class LoginController implements Initializable {
             loginEmailField.requestFocus();
             return;
         }
+
+        // --- reCAPTCHA Validation ---
+        if (loginRecaptchaToken == null || loginRecaptchaToken.isEmpty()) {
+            showError(loginErrorLabel, "⚠ Veuillez valider le reCAPTCHA.");
+            return;
+        }
         if (!EMAIL_REGEX.matcher(email).matches()) {
             showError(loginErrorLabel, "⚠ Adresse e-mail invalide.");
             shake(loginEmailWrapper);
-            loginEmailField.requestFocus(); return;
+            loginEmailField.requestFocus();
+            return;
         }
         if (password.isEmpty()) {
             showError(loginErrorLabel, "⚠ Le mot de passe est obligatoire.");
@@ -127,6 +148,7 @@ public class LoginController implements Initializable {
         Map<String, Object> params = new HashMap<>();
         params.put("email",      email);
         params.put("motDePasse", password);
+        params.put("recaptchaToken", loginRecaptchaToken);
 
         shared.Requete requete = new shared.Requete(shared.RequestType.LOGIN, params, null);
 
@@ -210,6 +232,12 @@ public class LoginController implements Initializable {
             return;
         }
 
+        // --- reCAPTCHA Validation ---
+        if (registerRecaptchaToken == null || registerRecaptchaToken.isEmpty()) {
+            showError(registerErrorLabel, "⚠ Veuillez valider le reCAPTCHA.");
+            return;
+        }
+
         String pwError = validatePassword(password);
         if (pwError != null) {
             showError(registerErrorLabel, pwError);
@@ -230,6 +258,7 @@ public class LoginController implements Initializable {
         params.put("nom",        nom);
         params.put("prenom",     prenom);
         params.put("telephone",  phone);
+        params.put("recaptchaToken", registerRecaptchaToken);
 
         shared.Requete requete = new shared.Requete(shared.RequestType.REGISTER, params, null);
 
@@ -273,17 +302,13 @@ public class LoginController implements Initializable {
         return null; // ← valid
     }
 
-    /**
-     * Scores password strength 0–4.
-     * 0 = empty, 1 = weak, 2 = fair, 3 = strong, 4 = very strong
-     */
     private int scorePassword(String pw) {
         if (pw == null || pw.isEmpty()) return 0;
         int score = 0;
-        if (pw.length() >= PW_MIN)                score++;
-        if (HAS_UPPER.matcher(pw).matches())       score++;
-        if (HAS_DIGIT.matcher(pw).matches())       score++;
-        if (HAS_SPECIAL.matcher(pw).matches())     score++;
+        if (pw.length() >= PW_MIN) score++;
+        if (HAS_UPPER.matcher(pw).matches()) score++;
+        if (HAS_DIGIT.matcher(pw).matches()) score++;
+        if (HAS_SPECIAL.matcher(pw).matches()) score++;
         return score;
     }
 
@@ -292,18 +317,22 @@ public class LoginController implements Initializable {
 
         registerPasswordField.textProperty().addListener((obs, old, val) -> {
             int score = scorePassword(val);
-
-            String[] barColors = { "#e8e8ef", "#E74C3C", "#E67E22", "#FDBF50", "#27AE60" };
-            var segs = strengthBarBox.getChildren();
+            String[] barColors = {"#e8e8ef", "#E74C3C", "#E67E22", "#FDBF50", "#27AE60"};
+            
+            javafx.collections.ObservableList<javafx.scene.Node> segs = strengthBarBox.getChildren();
             for (int i = 0; i < segs.size(); i++) {
-                Region seg = (Region) segs.get(i);
-                String color = (i < score && score > 0) ? barColors[score] : "#e8e8ef";
-                seg.setStyle("-fx-background-color:" + color + ";-fx-background-radius:3;");
+                Node node = segs.get(i);
+                if (node instanceof Region) {
+                    Region seg = (Region) node;
+                    String color = (i < score && score > 0) ? barColors[score] : "#e8e8ef";
+                    seg.setStyle("-fx-background-color:" + color + ";-fx-background-radius:3;");
+                }
             }
 
             if (strengthLabel != null) {
-                String[] labels = { "", "Faible", "Moyen", "Fort", "Très fort" };
-                String[] txtColors = { "transparent", "#E74C3C", "#E67E22", "#c89600", "#27AE60" };
+                String tresForLabel = "Tr" + "\u00e8" + "s fort";
+                String[] labels = {"", "Faible", "Moyen", "Fort", tresForLabel};
+                String[] txtColors = {"transparent", "#E74C3C", "#E67E22", "#c89600", "#27AE60"};
                 strengthLabel.setText(val.isEmpty() ? "" : labels[score]);
                 strengthLabel.setStyle("-fx-text-fill:" + txtColors[score] + ";-fx-font-weight:bold;");
             }
@@ -549,9 +578,125 @@ public class LoginController implements Initializable {
     }
 
     private int toInt(Object obj) {
-        if (obj instanceof Integer i) return i;
-        if (obj instanceof Number  n) return n.intValue();
-        try { return Integer.parseInt(String.valueOf(obj)); }
-        catch (Exception e) { return -1; }
+        if (obj instanceof Integer) return (Integer) obj;
+        if (obj instanceof Number) return ((Number) obj).intValue();
+        try {
+            return Integer.parseInt(String.valueOf(obj));
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private void setupRecaptcha(StackPane container, boolean isLogin) {
+        if (container == null) return;
+        container.getChildren().clear();
+
+        // Create a stylized button to trigger the modal
+        Button verifyBtn = new Button("🛡\uFE0F Valider la s\u00E9curit\u00E9 (reCAPTCHA)");
+        verifyBtn.setStyle("-fx-background-color: #f7f9fc; -fx-text-fill: #333333; -fx-border-color: #dcdde1; -fx-border-radius: 6; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 18; -fx-cursor: hand;");
+        verifyBtn.setOnAction(e -> openRecaptchaModal(isLogin, verifyBtn));
+        container.getChildren().add(verifyBtn);
+    }
+
+    private void openRecaptchaModal(boolean isLogin, Button triggerBtn) {
+        javafx.stage.Stage modalStage = new javafx.stage.Stage();
+        modalStage.setTitle("V\u00E9rification de S\u00E9curit\u00E9");
+        modalStage.initOwner(rootPane.getScene().getWindow());
+        modalStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+
+        WebView webView = new WebView();
+        // Give it plenty of room for Google's image challenge popup (typically ~400x580)
+        webView.setPrefSize(420, 600);
+        webView.setMaxSize(420, 600);
+        
+        WebEngine engine = webView.getEngine();
+        engine.setUserAgent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/120.0.0.0 Safari/537.36"
+        );
+        engine.setJavaScriptEnabled(true);
+
+        engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+            if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
+                JSObject window = (JSObject) engine.executeScript("window");
+                window.setMember("javaConnector", new RecaptchaBridge(isLogin, modalStage, triggerBtn));
+                System.out.println("[reCAPTCHA] Modal loaded for " + (isLogin ? "login" : "register"));
+            } else if (newState == javafx.concurrent.Worker.State.FAILED) {
+                System.err.println("[reCAPTCHA] Modal load FAILED: " + engine.getLoadWorker().getException());
+            }
+        });
+
+        String recaptchaUrl = client.utils.RecaptchaLocalServer.getUrl();
+        if (recaptchaUrl != null) {
+            engine.load(recaptchaUrl);
+        } else {
+            URL resource = getClass().getResource("/html/recaptcha.html");
+            if (resource != null) engine.load(resource.toExternalForm());
+        }
+
+        VBox layout = new VBox(webView);
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+        layout.setStyle("-fx-background-color: #ffffff;");
+        
+        javafx.scene.Scene scene = new javafx.scene.Scene(layout);
+        modalStage.setScene(scene);
+        modalStage.showAndWait();
+    }
+
+    /** Bridge class between JavaScript and Java for reCAPTCHA. */
+    public class RecaptchaBridge {
+        private final boolean isLogin;
+        private final javafx.stage.Stage modalStage;
+        private final Button triggerBtn;
+
+        public RecaptchaBridge(boolean isLogin, javafx.stage.Stage modalStage, Button triggerBtn) {
+            this.isLogin = isLogin;
+            this.modalStage = modalStage;
+            this.triggerBtn = triggerBtn;
+        }
+
+        public void onTokenReceived(String token) {
+            Platform.runLater(() -> {
+                if (isLogin) {
+                    loginRecaptchaToken = token;
+                    loginErrorLabel.setText("");
+                } else {
+                    registerRecaptchaToken = token;
+                    registerErrorLabel.setText("");
+                }
+                
+                // Update Button UI to show success
+                triggerBtn.setText("\u2705 S\u00E9curit\u00E9 valid\u00E9e");
+                triggerBtn.setStyle("-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32; -fx-border-color: #c8e6c9; -fx-border-radius: 6; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 18;");
+                triggerBtn.setDisable(true); // Don't let them click it again
+                
+                // Close the modal!
+                if(modalStage != null && modalStage.isShowing()) {
+                    modalStage.close();
+                }
+                
+                System.out.println("[reCAPTCHA] Token received & Modal closed.");
+            });
+        }
+
+        public void onTokenExpired() {
+            Platform.runLater(() -> {
+                if (isLogin) loginRecaptchaToken = "";
+                else registerRecaptchaToken = "";
+                // Reset button if token expires
+                triggerBtn.setDisable(false);
+                triggerBtn.setText("\u26A0\uFE0F Jeton expir\u00E9, revalider");
+                triggerBtn.setStyle("-fx-background-color: #fff3e0; -fx-text-fill: #e65100; -fx-border-color: #ffe0b2; -fx-border-radius: 6; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 18; -fx-cursor: hand;");
+            });
+        }
+
+        public void onTokenError() {
+            Platform.runLater(() -> {
+                if (isLogin) loginRecaptchaToken = "";
+                else registerRecaptchaToken = "";
+                System.err.println("[reCAPTCHA] Error occurred");
+            });
+        }
     }
 }

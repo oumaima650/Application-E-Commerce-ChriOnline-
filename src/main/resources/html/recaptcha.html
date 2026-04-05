@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>reCAPTCHA</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #recaptcha-container {
+            width: 304px;
+            height: 78px;
+        }
+    </style>
+    <script type="text/javascript">
+        var recaptchaToken = "";
+
+        var verifyCallback = function(token) {
+            recaptchaToken = token;
+            try {
+                if (window.javaConnector) {
+                    window.javaConnector.onTokenReceived(token);
+                }
+            } catch(e) { console.error("Bridge error: " + e); }
+        };
+
+        var expiredCallback = function() {
+            recaptchaToken = "";
+            try {
+                if (window.javaConnector) {
+                    window.javaConnector.onTokenExpired();
+                }
+            } catch(e) { console.error("Bridge error: " + e); }
+        };
+
+        var errorCallback = function() {
+            recaptchaToken = "";
+            try {
+                if (window.javaConnector) {
+                    window.javaConnector.onTokenError();
+                }
+            } catch(e) { console.error("Bridge error: " + e); }
+        };
+
+        var onloadCallback = function() {
+            grecaptcha.render('recaptcha-container', {
+              'sitekey' : '6LcS3qQsAAAAAAWz9c2T-BjiWTPVWctTW3RyQJr5',
+              'callback' : verifyCallback,
+              'expired-callback': expiredCallback,
+              'error-callback': errorCallback,
+              'theme': 'light'
+            });
+        };
+        
+        function resetRecaptcha() {
+            if (typeof grecaptcha !== 'undefined') {
+                grecaptcha.reset();
+            }
+            recaptchaToken = "";
+        }
+
+        function getRecaptchaToken() {
+            return recaptchaToken;
+        }
+    </script>
+    <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit" async defer></script>
+</head>
+<body>
+    <div id="recaptcha-container"></div>
+</body>
+</html>

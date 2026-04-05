@@ -26,6 +26,9 @@ public class ClientApp extends Application {
         // INITIALISER LE SCENE MANAGER
         SceneManager.init(primaryStage);
 
+        // Start embedded reCAPTCHA server on localhost
+        client.utils.RecaptchaLocalServer.start();
+
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-home.fxml"));
             Parent root = loader.load();

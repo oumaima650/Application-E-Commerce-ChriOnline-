@@ -155,6 +155,9 @@
                         wrapText="true"
                         maxWidth="Infinity"/>
 
+                    <!-- ── reCAPTCHA Container ── -->
+                    <StackPane fx:id="loginRecaptchaContainer" minHeight="80" maxWidth="Infinity" />
+
                     <!-- ── Login Button ───────────────────────── -->
                     <Button
                         fx:id="loginButton"
@@ -348,6 +351,9 @@
                             styleClass="error-label"
                             wrapText="true"
                             maxWidth="Infinity"/>
+
+                        <!-- ── reCAPTCHA Container ── -->
+                        <StackPane fx:id="registerRecaptchaContainer" minHeight="80" maxWidth="Infinity" />
 
                         <!-- ── Register Button ────────────────── -->
                         <Button

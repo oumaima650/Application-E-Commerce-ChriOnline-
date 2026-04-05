@@ -30,6 +30,13 @@ public class AuthService {
 
             String email      = (String) params.get("email");
             String motDePasse = (String) params.get("motDePasse");
+            String recaptchaToken = (String) params.get("recaptchaToken");
+
+            // --- reCAPTCHA Verification ---
+            RecaptchaService recaptchaService = new RecaptchaService();
+            if (!recaptchaService.verify(recaptchaToken)) {
+                return new Reponse(false, "Vérification reCAPTCHA échouée. Veuillez réessayer.", null);
+            }
 
             UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
 
@@ -93,6 +100,13 @@ public class AuthService {
             String nom        = (String) params.get("nom");
             String prenom     = (String) params.get("prenom");
             String telephone  = (String) params.get("telephone");
+            String recaptchaToken = (String) params.get("recaptchaToken");
+
+            // --- reCAPTCHA Verification ---
+            RecaptchaService recaptchaService = new RecaptchaService();
+            if (!recaptchaService.verify(recaptchaToken)) {
+                return new Reponse(false, "Vérification reCAPTCHA échouée. Veuillez réessayer.", null);
+            }
 
             // Password strength validation
             PasswordService.ValidationResult strength = PasswordService.validateStrength(motDePasse);
