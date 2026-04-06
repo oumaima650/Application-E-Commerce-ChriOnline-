@@ -12,6 +12,7 @@ import java.util.Map;
 public class SecurityManager {
 
     private final LoginAttemptLimitService loginAttemptService = new LoginAttemptLimitService();
+    private final ReplayProtectionService replayProtectionService = new ReplayProtectionService();
 
     /**
      * Valide une requête entrante avant son traitement par les services métiers.
@@ -36,6 +37,11 @@ public class SecurityManager {
                     return new Reponse(false, emailCheck.message, null);
                 }
             }
+        }
+
+        // 3. Vérification de l'attaque par Rejeu (Replay Attack)
+        if (replayProtectionService.isReplayAttack(requete)) {
+            return new Reponse(false, "REPLAY_ATTACK_DETECTED", null);
         }
 
         // Ici, les autres membres de l'équipe pourront ajouter leurs propres vérifications :

@@ -7,6 +7,8 @@ public class Requete implements Serializable {
     private RequestType type;
     private Map<String, Object> parametres;
     private String tokenSession;
+    private long timestamp;
+    private String nonce;
 
     public Requete() {}
 
@@ -24,4 +26,10 @@ public class Requete implements Serializable {
 
     public String getTokenSession() { return tokenSession; }
     public void setTokenSession(String tokenSession) { this.tokenSession = tokenSession; }
+
+    public long getTimestamp() { return timestamp; }
+    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+
+    public String getNonce() { return nonce; }
+    public void setNonce(String nonce) { this.nonce = nonce; }
 }
