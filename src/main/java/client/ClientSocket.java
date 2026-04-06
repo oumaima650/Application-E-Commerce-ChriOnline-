@@ -69,6 +69,10 @@ public class ClientSocket {
             req.setTokenSession(session.getAccessToken());
         }
 
+        // 2. ATTACH REPLAY PROTECTION DATA
+        req.setTimestamp(System.currentTimeMillis());
+        req.setNonce(java.util.UUID.randomUUID().toString());
+
         try {
             Reponse res = executeRequest(req);
 

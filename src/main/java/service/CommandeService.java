@@ -197,16 +197,19 @@ public class CommandeService {
 
         try {
             PanierService panierService = new PanierService();
-            List<model.LignePanier> lignesPanier;
+            List<model.LignePanier> lignesPanier = null;
 
-            if (selectedSkus != null && !selectedSkus.isEmpty()) {
-                lignesPanier = panierService.getLignesPanier(idClient, selectedSkus);
-            } else {
-                lignesPanier = panierService.getLignesPanier(idClient);
-            }
+            // On ne vérifie le panier que si on crée une NOUVELLE commande
+            if (existingReference == null || existingReference.isEmpty()) {
+                if (selectedSkus != null && !selectedSkus.isEmpty()) {
+                    lignesPanier = panierService.getLignesPanier(idClient, selectedSkus);
+                } else {
+                    lignesPanier = panierService.getLignesPanier(idClient);
+                }
 
-            if (lignesPanier == null || lignesPanier.isEmpty()) {
-                return new shared.Reponse(false, "Aucun article selectionne ou panier vide.", null);
+                if (lignesPanier == null || lignesPanier.isEmpty()) {
+                    return new shared.Reponse(false, "Aucun article selectionne ou panier vide.", null);
+                }
             }
 
             // Determiner le statut final
