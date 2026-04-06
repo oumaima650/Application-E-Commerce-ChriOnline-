@@ -7,24 +7,25 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import client.ClientSocket;
+import shared.Reponse;
+import shared.RequestType;
+import shared.Requete;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
-import shared.Reponse;
-import shared.Requete;
-import shared.RequestType;
-import client.ClientSocket;
 import model.Utilisateur;
 import client.utils.SceneManager;
 import client.utils.SessionManager;
-
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
 
 public class LoginController implements Initializable {
 
@@ -69,6 +70,14 @@ public class LoginController implements Initializable {
     @FXML private Label strengthLabel;
     @FXML private Hyperlink forgotPasswordLink;
 
+    // --- reCAPTCHA ---
+    @FXML private StackPane loginRecaptchaContainer;
+    @FXML private StackPane registerRecaptchaContainer;
+    private String loginRecaptchaToken = "";
+    private String registerRecaptchaToken = "";
+    private WebView loginWebView;
+    private WebView registerWebView;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         if (rootPane != null) {
@@ -84,6 +93,8 @@ public class LoginController implements Initializable {
         setupLiveValidation();
         setupEnterNavigation();
         setupPasswordStrengthMeter();
+        setupRecaptcha(loginRecaptchaContainer, true);
+        setupRecaptcha(registerRecaptchaContainer, false);
         animateCardEntrance();
     }
 
@@ -231,8 +242,15 @@ public class LoginController implements Initializable {
         if (!EMAIL_REGEX.matcher(email).matches()) { showError(loginErrorLabel, "⚠ Email invalide."); shake(loginEmailWrapper); return; }
         if (password.isEmpty()) { showError(loginErrorLabel, "⚠ Mot de passe requis."); shake(loginPasswordWrapper); return; }
 
+        // --- reCAPTCHA Validation ---
+        if (loginRecaptchaToken == null || loginRecaptchaToken.isEmpty()) {
+            showError(loginErrorLabel, "⚠ Veuillez valider le reCAPTCHA.");
+            return;
+        }
+
         Map<String, Object> params = new HashMap<>();
         params.put("email", email); params.put("motDePasse", password);
+        params.put("recaptchaToken", loginRecaptchaToken);
         setLoginLoading(true);
         runAsync(new Requete(RequestType.LOGIN, params, null), reponse -> {
             setLoginLoading(false);
@@ -243,6 +261,8 @@ public class LoginController implements Initializable {
             } else {
                 showError(loginErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Erreur"));
                 shake(loginEmailWrapper); shake(loginPasswordWrapper);
+                loginRecaptchaToken = "";
+                if (loginWebView != null) loginWebView.getEngine().reload();
             }
         });
     }
@@ -259,7 +279,12 @@ public class LoginController implements Initializable {
         if (nom.isEmpty()) { showError(registerErrorLabel, "⚠ Nom requis."); shake(registerNameWrapper); return; }
         if (prenom.isEmpty()) { showError(registerErrorLabel, "⚠ Prénom requis."); shake(registerFirstNameWrapper); return; }
         if (!EMAIL_REGEX.matcher(email).matches()) { showError(registerErrorLabel, "⚠ Email invalide."); shake(registerEmailWrapper); return; }
-        
+
+        // --- reCAPTCHA Validation ---
+        if (registerRecaptchaToken == null || registerRecaptchaToken.isEmpty()) {
+            showError(registerErrorLabel, "⚠ Veuillez valider le reCAPTCHA.");
+            return;
+        }
         String pwError = validatePassword(password);
         if (pwError != null) { showError(registerErrorLabel, pwError); shake(registerPasswordWrapper); return; }
         if (!password.equals(confirm)) { showError(registerErrorLabel, "⚠ Confirmation différente."); shake(registerConfirmWrapper); return; }
@@ -267,6 +292,7 @@ public class LoginController implements Initializable {
         Map<String, Object> params = new HashMap<>();
         params.put("email", email); params.put("motDePasse", password);
         params.put("nom", nom); params.put("prenom", prenom); params.put("telephone", phone);
+        params.put("recaptchaToken", registerRecaptchaToken);
 
         setRegisterLoading(true);
         runAsync(new Requete(RequestType.REGISTER, params, null), reponse -> {
@@ -276,6 +302,8 @@ public class LoginController implements Initializable {
                 mainTabPane.getSelectionModel().select(loginTab);
             } else {
                 showError(registerErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Serveur error"));
+                registerRecaptchaToken = "";
+                if (registerWebView != null) registerWebView.getEngine().reload();
             }
         });
     }
@@ -306,12 +334,15 @@ public class LoginController implements Initializable {
             registerPasswordField.textProperty().addListener((obs, old, val) -> updateStrengthDisplay(val, strengthBarBox, strengthLabel));
     }
 
+
+
     private void updateStrengthDisplay(String pw, HBox barBox, Label textLabel) {
         int score = scorePassword(pw);
         String[] barColors = { "#e8e8ef", "#E74C3C", "#E67E22", "#FDBF50", "#27AE60" };
         var segs = barBox.getChildren();
         for (int i = 0; i < segs.size(); i++) {
-            if (segs.get(i) instanceof Region seg) {
+            if (segs.get(i) instanceof Region) {
+                Region seg = (Region) segs.get(i);
                 String color = (i < score && score > 0) ? barColors[score] : "#e8e8ef";
                 seg.setStyle("-fx-background-color:" + color + ";-fx-background-radius:3;");
             }
@@ -324,20 +355,42 @@ public class LoginController implements Initializable {
         }
     }
 
-    private void runAsync(Requete requete, java.util.function.Consumer<Reponse> onDone) {
-        Task<Reponse> task = new Task<>() {
-            @Override protected Reponse call() { return ClientSocket.getInstance().envoyer(requete); }
+    private void runAsync(shared.Requete requete, java.util.function.Consumer<shared.Reponse> onDone) {
+        Task<shared.Reponse> task = new Task<>() {
+            @Override
+            protected shared.Reponse call() {
+                return client.ClientSocket.getInstance().envoyer(requete);
+            }
         };
+
         task.setOnSucceeded(e -> Platform.runLater(() -> onDone.accept(task.getValue())));
-        task.setOnFailed(e -> Platform.runLater(() -> onDone.accept(null)));
-        Thread t = new Thread(task); t.setDaemon(true); t.start();
+        task.setOnFailed(e -> Platform.runLater(() -> {
+            System.err.println("[LoginController] Task failed: " + task.getException());
+            onDone.accept(null);
+        }));
+
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private void navigateToMain(String type) {
         SceneManager.clearHistory();
         registerUdpPort(SessionManager.getInstance().getSession().getAccessToken());
-        if ("ADMIN".equals(type)) SceneManager.switchTo("admin.fxml", "Administration");
-        else SceneManager.switchTo("panier.fxml", "Panier");
+
+        if ("ADMIN".equals(type)) {
+            SceneManager.switchTo("admin.fxml", "ChriOnline - Administration");
+        } else {
+            String redirect = SessionManager.getInstance().getPendingRedirect();
+            if (redirect != null && !redirect.isEmpty()) {
+                String title = SessionManager.getInstance().getPendingRedirectTitle();
+                SessionManager.getInstance().clearPendingRedirect();
+                SceneManager.switchTo(redirect, title != null ? title : "ChriOnline");
+            } else {
+                SceneManager.clearCache("main-home.fxml"); // Forcer le rafraîchissement
+                SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
+            }
+        }
     }
 
     private void registerUdpPort(String token) {
@@ -412,10 +465,144 @@ public class LoginController implements Initializable {
         tt.setFromY(10); tt.setToY(0);
         new ParallelTransition(ft, tt).play();
     }
+    private void setupRecaptcha(StackPane container, boolean isLogin) {
+        if (container == null) return;
+        container.getChildren().clear();
+
+        WebView webView = new WebView();
+        if (isLogin) loginWebView = webView; else registerWebView = webView;
+
+        // Force full size from the VERY beginning to spoof Google's viewport checks
+        // Google will compute the layout bounds based on this 420x600 size
+        webView.setPrefSize(420, 600);
+        webView.setMinSize(420, 600);
+        webView.setMaxSize(420, 600);
+
+        // Clip the webview so it ONLY shows the 304x78 checkbox in the form
+        javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(304, 78);
+        webView.setClip(clip);
+
+        // Wrap it in a strictly sized 304x78 Pane to maintain form layout harmony
+        Pane formWrapper = new Pane(webView);
+        formWrapper.setPrefSize(304, 78);
+        formWrapper.setMinSize(304, 78);
+        formWrapper.setMaxSize(304, 78);
+        
+        WebEngine engine = webView.getEngine();
+        engine.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        engine.setJavaScriptEnabled(true);
+
+        engine.setOnAlert(event -> {
+            String msg = event.getData();
+            if (msg == null) return;
+            
+            if ("CHALLENGE_STARTED".equals(msg)) {
+                Platform.runLater(() -> {
+                    System.out.println("[reCAPTCHA] Challenge detected, opening modal...");
+                    openRecaptchaModal(isLogin, webView);
+                });
+            } else if ("CHALLENGE_CLOSED".equals(msg)) {
+                Platform.runLater(() -> {
+                    System.out.println("[reCAPTCHA] Challenge closed or hidden.");
+                    if (currentModalStage != null && currentModalStage.isShowing()) {
+                        currentModalStage.close();
+                    }
+                });
+            } else if (msg.startsWith("TOKEN:")) {
+                String token = msg.substring(6);
+                Platform.runLater(() -> {
+                    if (isLogin) {
+                        loginRecaptchaToken = token;
+                        loginErrorLabel.setText("");
+                    } else {
+                        registerRecaptchaToken = token;
+                        registerErrorLabel.setText("");
+                    }
+                    System.out.println("[reCAPTCHA] Token received. State: " + (isLogin ? "Login" : "Register"));
+                    if (currentModalStage != null && currentModalStage.isShowing()) {
+                        currentModalStage.close();
+                    }
+                });
+            } else if ("EXPIRED".equals(msg) || "ERROR".equals(msg)) {
+                Platform.runLater(() -> {
+                    if (isLogin) loginRecaptchaToken = "";
+                    else registerRecaptchaToken = "";
+                    System.out.println("[reCAPTCHA] Token expired or error.");
+                });
+            }
+        });
+
+        String url = client.utils.RecaptchaLocalServer.getUrl();
+        if (url != null) engine.load(url);
+        else {
+            URL resource = getClass().getResource("/html/recaptcha.html");
+            if (resource != null) engine.load(resource.toExternalForm());
+        }
+
+        container.getChildren().add(formWrapper);
+    }
+
+    private javafx.stage.Stage currentModalStage;
+
+    private void openRecaptchaModal(boolean isLogin, WebView webView) {
+        if (currentModalStage != null && currentModalStage.isShowing()) return;
+
+        // Ensure we handle the stage reference immediately on FX thread
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> openRecaptchaModal(isLogin, webView));
+            return;
+        }
+
+        javafx.stage.Stage modalStage = new javafx.stage.Stage();
+        currentModalStage = modalStage;
+        modalStage.setTitle("V\u00E9rification de S\u00E9curit\u00E9");
+        if (rootPane != null && rootPane.getScene() != null && rootPane.getScene().getWindow() != null) {
+            modalStage.initOwner(rootPane.getScene().getWindow());
+        }
+        modalStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+
+        // Save original parent and remove webView from it
+        Pane originalParent = (Pane) webView.getParent();
+        if (originalParent != null) {
+            originalParent.getChildren().remove(webView);
+        }
+        // Remove the clip so the full 420x600 puzzle is visible in the modal
+        webView.setClip(null);
+
+            VBox layout = new VBox(webView);
+            layout.setAlignment(javafx.geometry.Pos.CENTER);
+            layout.setStyle("-fx-background-color: #ffffff;");
+            
+            javafx.scene.Scene scene = new javafx.scene.Scene(layout);
+            modalStage.setScene(scene);
+            
+            modalStage.setOnHidden(e -> {
+                // Restore to form when modal closes
+                Platform.runLater(() -> {
+                    if (webView.getParent() != originalParent) {
+                        layout.getChildren().remove(webView);
+                        // Re-apply the strict tight clip
+                        webView.setClip(new javafx.scene.shape.Rectangle(304, 78));
+                        if (originalParent != null && !originalParent.getChildren().contains(webView)) {
+                            originalParent.getChildren().add(webView);
+                        }
+                    }
+                    currentModalStage = null;
+                });
+            });
+
+        modalStage.show();
+        
+        // Check if token was received while we were already opening/showing
+        if (isLogin && !loginRecaptchaToken.isEmpty() || !isLogin && !registerRecaptchaToken.isEmpty()) {
+            modalStage.close();
+        }
+    }
+
     private void shake(Region n) {
         if (n == null) return;
         TranslateTransition t = new TranslateTransition(Duration.millis(50), n);
-        t.setFromX(0); t.setByX(5); t.setCycleCount(6); t.setAutoReverse(true); t.play();
+        t.setFromX(0); t.setByX(5); t.setCycleCount(6); t.setAutoReverse(true); t.setOnFinished(e -> n.setTranslateX(0)); t.play();
     }
     private void fadeIn(Node n) { if (n != null) { FadeTransition ft = new FadeTransition(Duration.millis(300), n); ft.setFromValue(0); ft.setToValue(1); ft.play(); } }
     private void delay(int ms, Runnable a) { PauseTransition p = new PauseTransition(Duration.millis(ms)); p.setOnFinished(e -> a.run()); p.play(); }

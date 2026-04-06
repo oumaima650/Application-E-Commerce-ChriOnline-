@@ -2,7 +2,6 @@ package service;
 
 import dao.ClientDAO;
 import dao.UtilisateurDAO;
-import service.NotificationService;
 import model.Client;
 import model.Utilisateur;
 import shared.Reponse;
@@ -35,8 +34,13 @@ public class AuthService {
 
             String email      = (String) params.get("email");
             String motDePasse = (String) params.get("motDePasse");
-            String clientIp   = (String) params.getOrDefault("clientIp", "UNKNOWN");
-            boolean captchaValide = (boolean) params.getOrDefault("captchaValide", true);
+
+            String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
+            String recaptchaToken = (String) params.get("recaptchaToken");
+            
+            // --- reCAPTCHA Verification ---
+            RecaptchaService recaptchaService = new RecaptchaService();
+            boolean captchaValide = recaptchaService.verify(recaptchaToken);
 
             UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
 
@@ -104,6 +108,13 @@ public class AuthService {
             String nom        = (String) params.get("nom");
             String prenom     = (String) params.get("prenom");
             String telephone  = (String) params.get("telephone");
+            String recaptchaToken = (String) params.get("recaptchaToken");
+
+            // --- reCAPTCHA Verification ---
+            RecaptchaService recaptchaService = new RecaptchaService();
+            if (!recaptchaService.verify(recaptchaToken)) {
+                return new Reponse(false, "Vérification reCAPTCHA échouée. Veuillez réessayer.", null);
+            }
 
             PasswordService.ValidationResult strength = PasswordService.validateStrength(motDePasse);
             if (!strength.isValid()) {
