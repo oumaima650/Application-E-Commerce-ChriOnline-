@@ -9,17 +9,9 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
-import shared.Reponse;
-import shared.Requete;
-import shared.RequestType;
-import client.ClientSocket;
 import model.Utilisateur;
 import client.utils.SceneManager;
 import client.utils.SessionManager;
-import javax.net.ssl.*;
-
-import java.io.*;
-import java.net.Socket;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +19,6 @@ import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
-import netscape.javascript.JSObject;
 
 
 public class LoginController implements Initializable {
@@ -78,6 +69,8 @@ public class LoginController implements Initializable {
     @FXML private StackPane registerRecaptchaContainer;
     private String loginRecaptchaToken = "";
     private String registerRecaptchaToken = "";
+    private WebView loginWebView;
+    private WebView registerWebView;
 
 
     @Override
@@ -97,11 +90,9 @@ public class LoginController implements Initializable {
         setupLiveValidation();
         setupEnterNavigation();
         setupPasswordStrengthMeter();
-        animateCardEntrance();
-        
-        // Initialize reCAPTCHA
         setupRecaptcha(loginRecaptchaContainer, true);
         setupRecaptcha(registerRecaptchaContainer, false);
+        animateCardEntrance();
     }
 
     @FXML
@@ -577,126 +568,138 @@ public class LoginController implements Initializable {
         return (f == null || f.getText() == null) ? "" : f.getText().trim();
     }
 
-    private int toInt(Object obj) {
-        if (obj instanceof Integer) return (Integer) obj;
-        if (obj instanceof Number) return ((Number) obj).intValue();
-        try {
-            return Integer.parseInt(String.valueOf(obj));
-        } catch (Exception e) {
-            return -1;
-        }
-    }
 
     private void setupRecaptcha(StackPane container, boolean isLogin) {
         if (container == null) return;
         container.getChildren().clear();
 
-        // Create a stylized button to trigger the modal
-        Button verifyBtn = new Button("🛡\uFE0F Valider la s\u00E9curit\u00E9 (reCAPTCHA)");
-        verifyBtn.setStyle("-fx-background-color: #f7f9fc; -fx-text-fill: #333333; -fx-border-color: #dcdde1; -fx-border-radius: 6; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 18; -fx-cursor: hand;");
-        verifyBtn.setOnAction(e -> openRecaptchaModal(isLogin, verifyBtn));
-        container.getChildren().add(verifyBtn);
-    }
-
-    private void openRecaptchaModal(boolean isLogin, Button triggerBtn) {
-        javafx.stage.Stage modalStage = new javafx.stage.Stage();
-        modalStage.setTitle("V\u00E9rification de S\u00E9curit\u00E9");
-        modalStage.initOwner(rootPane.getScene().getWindow());
-        modalStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
-
         WebView webView = new WebView();
-        // Give it plenty of room for Google's image challenge popup (typically ~400x580)
+        if (isLogin) loginWebView = webView; else registerWebView = webView;
+
+        // Force full size from the VERY beginning to spoof Google's viewport checks
+        // Google will compute the layout bounds based on this 420x600 size
         webView.setPrefSize(420, 600);
+        webView.setMinSize(420, 600);
         webView.setMaxSize(420, 600);
+
+        // Clip the webview so it ONLY shows the 304x78 checkbox in the form
+        javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(304, 78);
+        webView.setClip(clip);
+
+        // Wrap it in a strictly sized 304x78 Pane to maintain form layout harmony
+        Pane formWrapper = new Pane(webView);
+        formWrapper.setPrefSize(304, 78);
+        formWrapper.setMinSize(304, 78);
+        formWrapper.setMaxSize(304, 78);
         
         WebEngine engine = webView.getEngine();
-        engine.setUserAgent(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-            "AppleWebKit/537.36 (KHTML, like Gecko) " +
-            "Chrome/120.0.0.0 Safari/537.36"
-        );
+        engine.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
         engine.setJavaScriptEnabled(true);
 
-        engine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
-            if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
-                JSObject window = (JSObject) engine.executeScript("window");
-                window.setMember("javaConnector", new RecaptchaBridge(isLogin, modalStage, triggerBtn));
-                System.out.println("[reCAPTCHA] Modal loaded for " + (isLogin ? "login" : "register"));
-            } else if (newState == javafx.concurrent.Worker.State.FAILED) {
-                System.err.println("[reCAPTCHA] Modal load FAILED: " + engine.getLoadWorker().getException());
+        engine.setOnAlert(event -> {
+            String msg = event.getData();
+            if (msg == null) return;
+            
+            if ("CHALLENGE_STARTED".equals(msg)) {
+                Platform.runLater(() -> {
+                    System.out.println("[reCAPTCHA] Challenge detected, opening modal...");
+                    openRecaptchaModal(isLogin, webView);
+                });
+            } else if ("CHALLENGE_CLOSED".equals(msg)) {
+                Platform.runLater(() -> {
+                    System.out.println("[reCAPTCHA] Challenge closed or hidden.");
+                    if (currentModalStage != null && currentModalStage.isShowing()) {
+                        currentModalStage.close();
+                    }
+                });
+            } else if (msg.startsWith("TOKEN:")) {
+                String token = msg.substring(6);
+                Platform.runLater(() -> {
+                    if (isLogin) {
+                        loginRecaptchaToken = token;
+                        loginErrorLabel.setText("");
+                    } else {
+                        registerRecaptchaToken = token;
+                        registerErrorLabel.setText("");
+                    }
+                    System.out.println("[reCAPTCHA] Token received. State: " + (isLogin ? "Login" : "Register"));
+                    if (currentModalStage != null && currentModalStage.isShowing()) {
+                        currentModalStage.close();
+                    }
+                });
+            } else if ("EXPIRED".equals(msg) || "ERROR".equals(msg)) {
+                Platform.runLater(() -> {
+                    if (isLogin) loginRecaptchaToken = "";
+                    else registerRecaptchaToken = "";
+                    System.out.println("[reCAPTCHA] Token expired or error.");
+                });
             }
         });
 
-        String recaptchaUrl = client.utils.RecaptchaLocalServer.getUrl();
-        if (recaptchaUrl != null) {
-            engine.load(recaptchaUrl);
-        } else {
+        String url = client.utils.RecaptchaLocalServer.getUrl();
+        if (url != null) engine.load(url);
+        else {
             URL resource = getClass().getResource("/html/recaptcha.html");
             if (resource != null) engine.load(resource.toExternalForm());
         }
 
-        VBox layout = new VBox(webView);
-        layout.setAlignment(javafx.geometry.Pos.CENTER);
-        layout.setStyle("-fx-background-color: #ffffff;");
-        
-        javafx.scene.Scene scene = new javafx.scene.Scene(layout);
-        modalStage.setScene(scene);
-        modalStage.showAndWait();
+        container.getChildren().add(formWrapper);
     }
 
-    /** Bridge class between JavaScript and Java for reCAPTCHA. */
-    public class RecaptchaBridge {
-        private final boolean isLogin;
-        private final javafx.stage.Stage modalStage;
-        private final Button triggerBtn;
+    private javafx.stage.Stage currentModalStage;
 
-        public RecaptchaBridge(boolean isLogin, javafx.stage.Stage modalStage, Button triggerBtn) {
-            this.isLogin = isLogin;
-            this.modalStage = modalStage;
-            this.triggerBtn = triggerBtn;
+    private void openRecaptchaModal(boolean isLogin, WebView webView) {
+        if (currentModalStage != null && currentModalStage.isShowing()) return;
+
+        // Ensure we handle the stage reference immediately on FX thread
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater(() -> openRecaptchaModal(isLogin, webView));
+            return;
         }
 
-        public void onTokenReceived(String token) {
-            Platform.runLater(() -> {
-                if (isLogin) {
-                    loginRecaptchaToken = token;
-                    loginErrorLabel.setText("");
-                } else {
-                    registerRecaptchaToken = token;
-                    registerErrorLabel.setText("");
-                }
-                
-                // Update Button UI to show success
-                triggerBtn.setText("\u2705 S\u00E9curit\u00E9 valid\u00E9e");
-                triggerBtn.setStyle("-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32; -fx-border-color: #c8e6c9; -fx-border-radius: 6; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 18;");
-                triggerBtn.setDisable(true); // Don't let them click it again
-                
-                // Close the modal!
-                if(modalStage != null && modalStage.isShowing()) {
-                    modalStage.close();
-                }
-                
-                System.out.println("[reCAPTCHA] Token received & Modal closed.");
-            });
+        javafx.stage.Stage modalStage = new javafx.stage.Stage();
+        currentModalStage = modalStage;
+        modalStage.setTitle("V\u00E9rification de S\u00E9curit\u00E9");
+        if (rootPane != null && rootPane.getScene() != null && rootPane.getScene().getWindow() != null) {
+            modalStage.initOwner(rootPane.getScene().getWindow());
         }
+        modalStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
 
-        public void onTokenExpired() {
-            Platform.runLater(() -> {
-                if (isLogin) loginRecaptchaToken = "";
-                else registerRecaptchaToken = "";
-                // Reset button if token expires
-                triggerBtn.setDisable(false);
-                triggerBtn.setText("\u26A0\uFE0F Jeton expir\u00E9, revalider");
-                triggerBtn.setStyle("-fx-background-color: #fff3e0; -fx-text-fill: #e65100; -fx-border-color: #ffe0b2; -fx-border-radius: 6; -fx-background-radius: 6; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10 18; -fx-cursor: hand;");
-            });
+        // Save original parent and remove webView from it
+        Pane originalParent = (Pane) webView.getParent();
+        if (originalParent != null) {
+            originalParent.getChildren().remove(webView);
         }
+        // Remove the clip so the full 420x600 puzzle is visible in the modal
+        webView.setClip(null);
 
-        public void onTokenError() {
-            Platform.runLater(() -> {
-                if (isLogin) loginRecaptchaToken = "";
-                else registerRecaptchaToken = "";
-                System.err.println("[reCAPTCHA] Error occurred");
+            VBox layout = new VBox(webView);
+            layout.setAlignment(javafx.geometry.Pos.CENTER);
+            layout.setStyle("-fx-background-color: #ffffff;");
+            
+            javafx.scene.Scene scene = new javafx.scene.Scene(layout);
+            modalStage.setScene(scene);
+            
+            modalStage.setOnHidden(e -> {
+                // Restore to form when modal closes
+                Platform.runLater(() -> {
+                    if (webView.getParent() != originalParent) {
+                        layout.getChildren().remove(webView);
+                        // Re-apply the strict tight clip
+                        webView.setClip(new javafx.scene.shape.Rectangle(304, 78));
+                        if (originalParent != null && !originalParent.getChildren().contains(webView)) {
+                            originalParent.getChildren().add(webView);
+                        }
+                    }
+                    currentModalStage = null;
+                });
             });
+
+        modalStage.show();
+        
+        // Check if token was received while we were already opening/showing
+        if (isLogin && !loginRecaptchaToken.isEmpty() || !isLogin && !registerRecaptchaToken.isEmpty()) {
+            modalStage.close();
         }
     }
 }

@@ -35,9 +35,11 @@ public class RecaptchaService {
             URL url = java.net.URI.create(VERIFY_URL).toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             conn.setDoOutput(true);
 
-            String postParams = "secret=" + secretKey + "&response=" + responseToken;
+            String postParams = "secret=" + java.net.URLEncoder.encode(secretKey, "UTF-8") 
+                              + "&response=" + java.net.URLEncoder.encode(responseToken, "UTF-8");
 
             try (OutputStream os = conn.getOutputStream()) {
                 byte[] input = postParams.getBytes(StandardCharsets.UTF_8);
