@@ -418,6 +418,31 @@ public class PanierController implements Initializable {
     }
 
     @FXML
+    private void handleViderPanier() {
+        if (panierItemsBox != null) {
+            panierItemsBox.getChildren().clear();
+        }
+        unitPrices.clear();
+        currentQuantities.clear();
+        itemRows.clear();
+        selectedItems.clear();
+        checkBoxes.clear();
+
+        recalculateTotalsFromLocalData();
+
+        dbExecutor.submit(() -> {
+            Map<String, Object> p = new HashMap<>();
+            p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
+            Requete req = new Requete(RequestType.CLEAR_CART, p, SessionManager.getInstance().getSession().getAccessToken());
+
+            Reponse res = ClientSocket.getInstance().envoyer(req);
+            if (!res.isSucces()) {
+                Platform.runLater(this::chargerPanier); // Revert on failure
+            }
+        });
+    }
+
+    @FXML
     private void goToHome() {
         SceneManager.switchTo("main-home.fxml", "ChriOnline - Accueil");
     }

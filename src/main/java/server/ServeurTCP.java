@@ -46,7 +46,7 @@ public class ServeurTCP {
                     
                     System.out.println("[" + timestamp + "] [TLSServer] Nouvelle connexion SSL de " + clientIp);
 
-                    // Hand off to Virtual Thread
+                    // hand off to Virtual Thread
                     virtualThreadExecutor.submit(new ClientHandler(clientSocket));
 
                 } catch (SSLHandshakeException e) {

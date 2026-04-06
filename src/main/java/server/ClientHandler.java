@@ -17,6 +17,7 @@ import service.JWTService;
 import shared.Reponse;
 import shared.Requete;
 import shared.RequestType;
+import service.SecurityManager;
 
 import java.util.Map;
 
@@ -44,13 +45,15 @@ public class ClientHandler implements Runnable {
     private final SKUService skuService;
     private final service.ClientService clientService;
     private final service.AvisService avisService;
+    private final SecurityManager securityManager;
 
     private ObjectOutputStream out;
     private ObjectInputStream  in;
 
     public ClientHandler(Socket socket) {
         this.socket      = socket;
-        this.authService = new AuthService();
+        this.securityManager = new SecurityManager();
+        this.authService = new AuthService(securityManager.getLoginAttemptService());
         this.adminService = new AdminService();
         this.serveurUDP = ServeurUDP.getInstance();
         this.carteBancaireService = new CarteBancaireService();
@@ -94,6 +97,14 @@ public class ClientHandler implements Runnable {
 
                 System.out.println("[ClientHandler] Requête reçue : " + requete.getType() + " de " + clientAddr);
 
+                // --- SECURITY CHECK (Centralisé via SecurityManager) ---
+                Reponse securityError = securityManager.validateRequest(requete, clientAddr);
+                if (securityError != null) {
+                    System.out.println("[ClientHandler] Requête BLOQUÉE par la sécurité pour " + clientAddr);
+                    envoyer(securityError);
+                    continue; // On arrête là pour cette requête
+                }
+
                 try {
                     Reponse reponse = dispatch(requete);
                     envoyer(reponse);
@@ -123,11 +134,21 @@ public class ClientHandler implements Runnable {
         String sessionId = null;
 
         // 1. PUBLIC ENDPOINTS (No Auth)
-        if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH) {
+        if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH || 
+            type == RequestType.REQUEST_PASSWORD_RESET || type == RequestType.CONFIRM_PASSWORD_RESET) {
+            
+            // Inject client context (IP) for security
+            if (requete.getParametres() == null) {
+                requete.setParametres(new java.util.HashMap<>());
+            }
+            requete.getParametres().put("clientIp", socket.getInetAddress().getHostAddress());
+            
             return switch (type) {
-                case LOGIN    -> authService.login(requete);
+                case LOGIN -> authService.login(requete);
                 case REGISTER -> authService.signup(requete);
-                case REFRESH  -> authService.refresh(requete);
+                case REFRESH -> authService.refresh(requete);
+                case REQUEST_PASSWORD_RESET -> authService.handleRequestReset(requete);
+                case CONFIRM_PASSWORD_RESET -> authService.handleConfirmReset(requete);
                 default       -> new Reponse(false, "Internal Error", null);
             };
         }
@@ -376,7 +397,12 @@ public class ClientHandler implements Runnable {
     }
 
     private boolean isPublicEndpoint(RequestType type) {
-        return type == RequestType.GET_ALL_PRODUITS ||
+        return type == RequestType.LOGIN ||
+               type == RequestType.REGISTER ||
+               type == RequestType.REFRESH ||
+               type == RequestType.REQUEST_PASSWORD_RESET ||
+               type == RequestType.CONFIRM_PASSWORD_RESET ||
+               type == RequestType.GET_ALL_PRODUITS ||
                type == RequestType.GET_ALL_PRODUITS_AFFICHABLES ||
                type == RequestType.GET_PRODUIT_BY_ID ||
                type == RequestType.GET_PRODUIT_COMPLET_AVEC_VARIANTES ||
