@@ -59,6 +59,8 @@
                         <!-- Bottom HBox -->
                         <HBox alignment="CENTER_LEFT" style="-fx-padding: 10 0 0 0;">
                             <Hyperlink text="← Continuer mes achats" styleClass="continue-shopping" onAction="#goToHome"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Button text="Vider le panier" onAction="#handleViderPanier" style="-fx-background-color: transparent; -fx-text-fill: #E74C3C; -fx-font-weight: bold; -fx-cursor: hand;" />
                         </HBox>
                     </VBox>
                     
