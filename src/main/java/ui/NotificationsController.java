@@ -78,6 +78,10 @@ public class NotificationsController {
                     if (notificationsBox != null) notificationsBox.getChildren().clear();
                     
                     if (notifsData != null) {
+                        // Trier par date croissante pour que l'ajout au début (index 0) 
+                        // aboutisse aux plus récents en haut.
+                        notifsData.sort((n1, n2) -> n1.getCreatedAt().compareTo(n2.getCreatedAt()));
+
                         int unreadCount = 0;
                         for (Notification n : notifsData) {
                             boolean isUnread = n.getStatut() == Notification.StatutNotification.NON_LU;
@@ -116,9 +120,6 @@ public class NotificationsController {
         new Thread(task).start();
     }
 
-    /**
-     * Méthode à appeler depuis le vrai `ClientUDP.java` au lieu d'une Alert Box.
-     */
     public void addNotification(String titre, String messageUdp) {
         // Fallback pour les notifications UDP directes (on met un ID factice ou on gère autrement)
         addNotification(-1, titre, messageUdp, LocalDateTime.now(), true);
@@ -168,7 +169,7 @@ public class NotificationsController {
 
         card.getChildren().addAll(header, txtMessage);
         
-        // Ajouter au début de la liste (les plus récents en haut)
+        // Ajouter au début de la liste (index 0) pour que les plus récents soient en haut
         if (notificationsBox != null) {
             notificationsBox.getChildren().add(0, card);
         }

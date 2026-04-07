@@ -13,10 +13,15 @@ import client.utils.SessionManager;
 import javafx.concurrent.Task;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import model.CarteBancaire;
+import model.enums.StatutCommande;
+import javafx.application.Platform;
+
 public class CheckoutController {
     private static List<String> selectedSkus;
     private static String resumingOrderReference;
@@ -84,6 +89,8 @@ public class CheckoutController {
     @FXML
     private VBox cardFormBox;
     @FXML
+    private VBox newCardForm;
+    @FXML
     private TextField txtCardNumber;
     @FXML
     private Label lblCardNumberPreview;
@@ -93,6 +100,15 @@ public class CheckoutController {
     private TextField txtCvv;
     @FXML
     private Label lblExpiryPreview;
+    @FXML
+    private ComboBox<String> cmbSavedCards;
+    @FXML
+    private CheckBox chkNewCard;
+    @FXML
+    private CheckBox chkSaveCard;
+
+    // Saved cards data (numeroCarte displayed, idCarte stored as userData)
+    private List<model.CarteBancaire> savedCartes = new ArrayList<>();
 
     // Stored addresses data
     private List<Map<String, Object>> savedAddresses = new ArrayList<>();
@@ -328,6 +344,75 @@ public class CheckoutController {
                 updatePaymentStyles();
             });
         }
+
+        // Wire the "Nouvelle carte" checkbox to show/hide the input form
+        if (chkNewCard != null) {
+            chkNewCard.selectedProperty().addListener((obs, oldVal, isNew) -> {
+                newCardForm.setVisible(isNew);
+                newCardForm.setManaged(isNew);
+                // If switching to new card, clear the preview
+                if (isNew) {
+                    lblCardNumberPreview.setText("•••• •••• •••• ----");
+                    lblExpiryPreview.setText("--/--");
+                } else if (cmbSavedCards.getValue() != null && !cmbSavedCards.getValue().isEmpty()) {
+                    updatePreviewFromSavedCard();
+                }
+            });
+        }
+    }
+
+    // Update the card preview from the selected saved card
+    private void updatePreviewFromSavedCard() {
+        String selected = cmbSavedCards.getValue();
+        if (selected != null && !selected.isEmpty()) {
+            // Show the last 4 digits hidden in the display string ("•••• •••• •••• 1234")
+            lblCardNumberPreview.setText(selected);
+            lblExpiryPreview.setText("--/--");
+        }
+    }
+
+    // Load saved cards from server and fill the ComboBox
+    private void loadSavedCards() {
+        int idClient = SessionManager.getInstance().getCurrentUser().getIdUtilisateur();
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() {
+                shared.Requete req = new shared.Requete(
+                    shared.RequestType.GET_CARDS,
+                    Map.of("idClient", idClient),
+                    SessionManager.getInstance().getSession().getAccessToken()
+                );
+                shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+                if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
+                    @SuppressWarnings("unchecked")
+                    List<model.CarteBancaire> cartes =
+                        (List<model.CarteBancaire>) rep.getDonnees().get("cartes");
+                    if (cartes != null) savedCartes = cartes;
+                }
+                return null;
+            }
+
+            @Override
+            protected void succeeded() {
+                cmbSavedCards.getItems().clear();
+                if (savedCartes.isEmpty()) {
+                    // No saved card — force new card mode
+                    chkNewCard.setSelected(true);
+                    chkNewCard.setDisable(true); // can't uncheck if no saved card exists
+                } else {
+                    for (model.CarteBancaire c : savedCartes) {
+                        String num = c.getNumeroCarte();
+                        String display = "•••• •••• •••• " + (num.length() >= 4 ? num.substring(num.length() - 4) : num);
+                        cmbSavedCards.getItems().add(display);
+                    }
+                    cmbSavedCards.getSelectionModel().selectFirst();
+                    updatePreviewFromSavedCard();
+                    // Listen for selection changes to update the preview
+                    cmbSavedCards.valueProperty().addListener((obs, o, n) -> updatePreviewFromSavedCard());
+                }
+            }
+        };
+        executor.submit(task);
     }
 
     private void updatePaymentStyles() {
@@ -424,87 +509,161 @@ public class CheckoutController {
         step1Circle.getStyleClass().setAll("step-circle-done");
         step2Circle.getStyleClass().setAll("step-circle-active");
         step3Circle.getStyleClass().setAll("step-circle-future");
+        // Load saved cards when reaching Step 2
+        loadSavedCards();
     }
 
     @FXML
     @SuppressWarnings("unchecked")
     private void goToStep3() {
         boolean isCard = radioCard.isSelected();
-        if (isCard) {
-            String cardNumber = txtCardNumber.getText() != null ? txtCardNumber.getText().replaceAll("\\s+", "") : "";
-            String expiry = txtExpiry.getText() != null ? txtExpiry.getText().trim() : "";
-            String cvv = txtCvv.getText() != null ? txtCvv.getText().trim() : "";
+        boolean isNewCard = isCard && chkNewCard.isSelected();
+
+        // --- 1. Validation immédiate sur le thread UI ---
+        String cardNumber = "";
+        String expiry = "";
+        String cvv = "";
+
+        if (isCard && isNewCard) {
+            cardNumber = txtCardNumber.getText() != null ? txtCardNumber.getText().replaceAll("\\s+", "") : "";
+            expiry = txtExpiry.getText() != null ? txtExpiry.getText().trim() : "";
+            cvv = txtCvv.getText() != null ? txtCvv.getText().trim() : "";
 
             if (cardNumber.length() < 13 || cardNumber.length() > 19) {
-                showAlertErreur("Le numéro de carte est invalide.");
+                showAlertErreur("Le numero de carte est invalide.");
                 return;
             }
             if (!expiry.matches("\\d{2}/\\d{2}")) {
-                showAlertErreur("La date d'expiration doit être au format MM/YY.");
+                showAlertErreur("La date d'expiration doit etre au format MM/YY.");
                 return;
             }
             if (cvv.length() < 3 || cvv.length() > 4) {
                 showAlertErreur("Le code CVV est invalide (3 ou 4 chiffres).");
                 return;
             }
+        } else if (isCard && !isNewCard) {
+            if (cmbSavedCards.getSelectionModel().isEmpty()) {
+                showAlertErreur("Veuillez selectionner une carte enregistree.");
+                return;
+            }
         }
 
-        // --- Visuel des étapes ---
-        step1Form.setVisible(false);
-        step1Form.setManaged(false);
-        step2Form.setVisible(false);
-        step2Form.setManaged(false);
-        step3Form.setVisible(true);
-        step3Form.setManaged(true);
+        // --- 2. Basculer vers l'écran de confirmation (Step 3) ---
+        step1Form.setVisible(false); step1Form.setManaged(false);
+        step2Form.setVisible(false); step2Form.setManaged(false);
+        step3Form.setVisible(true);  step3Form.setManaged(true);
         step1Circle.getStyleClass().setAll("step-circle-done");
         step2Circle.getStyleClass().setAll("step-circle-done");
         step3Circle.getStyleClass().setAll("step-circle-done");
-
-        // --- Envoi au serveur ---
-        java.util.Map<String, Object> params = new java.util.HashMap<>();
-        params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
-        params.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
-        params.put("statut", "VALIDEE");
-        params.put("methodePaiement", radioCard.isSelected() ? "CARD" : "CASH");
-        if (selectedIdAdresse != null) {
-            params.put("idAdresse", selectedIdAdresse);
-        }
         
-        if (resumingOrderReference != null) {
-            params.put("reference", resumingOrderReference);
-            resumingOrderReference = null;
-        }
+        lblOrderId.setText("Traitement...");
+        lblOrderTotal.setText("Validation de votre commande en cours...");
 
-        shared.Requete req = new shared.Requete(shared.RequestType.VALIDATE_ORDER, params, SessionManager.getInstance().getSession().getAccessToken());
-        shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+        // --- 3. Lancer le traitement lourd en arrière-plan ---
+        final String finalCardNumber = cardNumber;
+        final String finalMethode = isCard ? "CARD" : "CASH";
 
-        if (!rep.isSucces() || rep.getDonnees() == null) {
-            lblOrderId.setText("Erreur");
-            lblOrderTotal.setText(rep.getMessage() != null ? rep.getMessage() : "Erreur de validation.");
-            return;
-        }
+        executor.submit(() -> {
+            try {
+                String token = SessionManager.getInstance().getSession().getAccessToken();
+                int idClient = SessionManager.getInstance().getCurrentUser().getIdUtilisateur();
+                Integer idCarte = null;
 
-        javafx.application.Platform.runLater(() -> {
-            Map<String, Object> data = (Map<String, Object>) rep.getDonnees();
-            lblOrderId.setText("#" + data.get("reference"));
-            lblOrderTotal.setText("Montant : " + String.format("%,.2f MAD", ((Number) data.get("total")).doubleValue()));
-
-            String dateLiv = (String) data.get("dateLivraison");
-            if (dateLiv != null) lblDeliveryDate.setText("Livraison par ChriOnline prévue le : " + dateLiv);
-
-            vboxOrderSummary.getChildren().clear();
-            List<Map<String, Object>> items = (List<Map<String, Object>>) data.get("items");
-            if (items != null) {
-                for (Map<String, Object> item : items) {
-                    vboxOrderSummary.getChildren().add(createSummaryRow(
-                        (String) item.get("nom"),
-                        ((Number) item.get("quantite")).intValue(),
-                        ((Number) item.get("prixUnitaire")).doubleValue(),
-                        (String) item.get("image")
-                    ));
+                // A. Gérer la carte bancaire
+                if (isCard) {
+                    if (isNewCard) {
+                        // Enregistrer la carte si demandé ou nécessaire pour le paiement
+                        Map<String, Object> cardParams = new HashMap<>();
+                        cardParams.put("idClient", idClient);
+                        cardParams.put("numeroCarte", finalCardNumber);
+                        cardParams.put("typeCarte", "VISA");
+                        
+                        shared.Requete addReq = new shared.Requete(shared.RequestType.ADD_CARD, cardParams, token);
+                        shared.Reponse addRep = client.ClientSocket.getInstance().envoyer(addReq);
+                        
+                        if (addRep.isSucces() && addRep.getDonnees() != null) {
+                            Map<String, Object> cardData = (Map<String, Object>) addRep.getDonnees().get("carte");
+                            idCarte = (Integer) cardData.get("idCarte");
+                        } else if (chkSaveCard.isSelected()) {
+                             Platform.runLater(() -> showAlertErreur("Erreur lors de la sauvegarde de la carte."));
+                        }
+                    } else {
+                        // Utiliser l'ID de la carte sauvegardée sélectionnée
+                        int selectedIdx = cmbSavedCards.getSelectionModel().getSelectedIndex();
+                        if (selectedIdx >= 0 && selectedIdx < savedCartes.size()) {
+                            idCarte = savedCartes.get(selectedIdx).getIdCarte();
+                        }
+                    }
                 }
+
+                // B. Valider la commande
+                Map<String, Object> orderParams = new HashMap<>();
+                orderParams.put("idClient", idClient);
+                orderParams.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
+                orderParams.put("statut", "VALIDEE");
+                if (resumingOrderReference != null) {
+                    orderParams.put("reference", resumingOrderReference);
+                }
+
+                shared.Requete orderReq = new shared.Requete(shared.RequestType.VALIDATE_ORDER, orderParams, token);
+                shared.Reponse orderRep = client.ClientSocket.getInstance().envoyer(orderReq);
+
+                if (!orderRep.isSucces() || orderRep.getDonnees() == null) {
+                    Platform.runLater(() -> {
+                        lblOrderId.setText("Erreur");
+                        lblOrderTotal.setText(orderRep.getMessage());
+                    });
+                    return;
+                }
+
+                Map<String, Object> data = (Map<String, Object>) orderRep.getDonnees();
+                int idCommande = (Integer) data.get("idCommande");
+                String reference= (String) data.get("reference");
+                double total = ((Number) data.get("total")).doubleValue();
+
+                // C. Traiter le paiement
+                Map<String, Object> payParams = new HashMap<>();
+                payParams.put("idCommande", idCommande);
+                payParams.put("idCarte", idCarte);
+                payParams.put("montant", String.valueOf(total));
+                payParams.put("methodePaiement", finalMethode);
+
+                shared.Requete payReq = new shared.Requete(shared.RequestType.PROCESS_PAYMENT, payParams, token);
+                shared.Reponse payRep = client.ClientSocket.getInstance().envoyer(payReq);
+
+                // D. Mettre à jour l'UI finale
+                Platform.runLater(() -> {
+                    lblOrderId.setText("#" + reference);
+                    lblOrderTotal.setText("Montant regle : " + String.format("%,.2f MAD", total));
+                    if (!payRep.isSucces()) {
+                        lblOrderTotal.setText(lblOrderTotal.getText() + " (Paiement en attente: " + payRep.getMessage() + ")");
+                    }
+
+                    String dateLiv = (String) data.get("dateLivraison");
+                    if (dateLiv != null) lblDeliveryDate.setText("Livraison par ChriOnline prevue le : " + dateLiv);
+
+                    vboxOrderSummary.getChildren().clear();
+                    List<Map<String, Object>> items = (List<Map<String, Object>>) data.get("items");
+                    if (items != null) {
+                        for (Map<String, Object> item : items) {
+                            vboxOrderSummary.getChildren().add(createSummaryRow(
+                                (String) item.get("nom"),
+                                ((Number) item.get("quantite")).intValue(),
+                                ((Number) item.get("prixUnitaire")).doubleValue(),
+                                (String) item.get("image")
+                            ));
+                        }
+                    }
+                    resumingOrderReference = null;
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    lblOrderId.setText("Erreur");
+                    lblOrderTotal.setText("Une erreur interne est survenue.");
+                });
             }
-            SceneManager.clearCache("panier.fxml");
         });
     }
 
