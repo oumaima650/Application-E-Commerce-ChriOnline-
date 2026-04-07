@@ -601,6 +601,9 @@ public class CheckoutController {
                 orderParams.put("idClient", idClient);
                 orderParams.put("skus", selectedSkus != null ? selectedSkus : java.util.Collections.emptyList());
                 orderParams.put("statut", "VALIDEE");
+                if (selectedIdAdresse != null) {
+                    orderParams.put("idAdresse", selectedIdAdresse);
+                }
                 if (resumingOrderReference != null) {
                     orderParams.put("reference", resumingOrderReference);
                 }
