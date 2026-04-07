@@ -1,0 +1,11 @@
+2026-04-07 11:43:19 INFO  - Requête autorisée: LOGIN depuis l'IP 127.0.0.1
+2026-04-07 11:43:21 INFO  - Requête autorisée: REGISTER_UDP_PORT depuis l'IP 127.0.0.1
+2026-04-07 11:43:21 INFO  - Requête autorisée: ADMIN_GET_ALL_PRODUCTS depuis l'IP 127.0.0.1
+2026-04-07 11:43:21 INFO  - Requête autorisée: GET_NOTIFICATIONS depuis l'IP 127.0.0.1
+2026-04-07 11:43:21 INFO  - Requête autorisée: ADMIN_GET_ALL_USERS depuis l'IP 127.0.0.1
+2026-04-07 11:43:21 INFO  - Requête autorisée: ADMIN_GET_ALL_ORDERS depuis l'IP 127.0.0.1
+2026-04-07 11:43:21 INFO  - Requête autorisée: ADMIN_GET_SKU_BY_PRODUIT depuis l'IP 127.0.0.1
+2026-04-07 11:43:22 INFO  - Requête autorisée: ADMIN_GET_SKU_BY_PRODUIT depuis l'IP 127.0.0.1
+2026-04-07 11:43:22 INFO  - Requête autorisée: ADMIN_GET_SKU_BY_PRODUIT depuis l'IP 127.0.0.1
+2026-04-07 11:43:22 INFO  - Requête autorisée: ADMIN_GET_SKU_BY_PRODUIT depuis l'IP 127.0.0.1
+2026-04-07 11:43:22 INFO  - Requête autorisée: ADMIN_GET_SKU_BY_PRODUIT depuis l'IP 127.0.0.1
