@@ -56,9 +56,31 @@ public class AuthService {
                 return applyTimingDelay(new Reponse(false, "Ce compte a été banni par l'administrateur.", null), startTime);
             }
 
-            securityService.registerSuccess(clientIp, email, captchaValide);
-
+            // --- Restriction IP Admin & MFA ---
             String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
+            IpProtectionService ipProtectionService = new IpProtectionService();
+            
+            if ("ADMIN".equals(role) && !ipProtectionService.isInternalIp(clientIp)) {
+                // Si c'est un admin sur une IP externe, on exige un code MFA
+                String mfaCode = (String) params.get("mfaCode");
+                if (mfaCode == null || mfaCode.isEmpty()) {
+                    // Simuler l'envoi d'un code (ici on pourrait appeler un service SMS/Email)
+                    System.out.println("[SECURITY] Admin login depuis IP externe (" + clientIp + "). Envoi d'un code MFA à : " + email);
+                    // Pour le projet, on peut imaginer que le code est "123456" ou généré via PasswordResetService
+                    passwordResetService.sendResetCode(email); 
+                    return applyTimingDelay(new Reponse(false, "MFA_REQUIRED", null), startTime);
+                } else {
+                    // Vérifier le code fourni
+                    if (!passwordResetService.verifyCode(email, mfaCode)) {
+                        return applyTimingDelay(new Reponse(false, "Code de sécurité invalide.", null), startTime);
+                    }
+                    // Si code valide, on nettoie et on laisse passer
+                    passwordResetService.clearCode(email);
+                    System.out.println("[SECURITY] Admin login validé via MFA depuis IP externe (" + clientIp + ").");
+                }
+            }
+
+            securityService.registerSuccess(clientIp, email, captchaValide);
             String sessionId = UUID.randomUUID().toString();
 
             String accessToken = JWTService.generateAccessToken(String.valueOf(userId), role, sessionId);

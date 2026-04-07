@@ -258,6 +258,10 @@ public class LoginController implements Initializable {
                 Map<String, Object> donnees = reponse.getDonnees();
                 SessionManager.getInstance().ouvrir((String)donnees.get("accessToken"), (String)donnees.get("refreshToken"), (Utilisateur)donnees.get("utilisateur"));
                 navigateToMain((String)donnees.get("typeUtilisateur"));
+            } else if (reponse != null && "MFA_REQUIRED".equals(reponse.getMessage())) {
+                // Gestion du Multi-Facteur (2FA) pour les admins
+                System.out.println("[LoginController] MFA requis détecté.");
+                showMfaDialog(params);
             } else {
                 showError(loginErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Erreur"));
                 shake(loginEmailWrapper); shake(loginPasswordWrapper);
@@ -265,6 +269,37 @@ public class LoginController implements Initializable {
                 if (loginWebView != null) loginWebView.getEngine().reload();
             }
         });
+    }
+
+    private void showMfaDialog(Map<String, Object> originalParams) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Vérification de Sécurité (MFA)");
+        dialog.setHeaderText("Connexion Admin détectée depuis l'extérieur.\nUn code a été envoyé à votre e-mail.");
+        dialog.setContentText("Entrez le code de sécurité :");
+        dialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/global.css").toExternalForm());
+        dialog.getDialogPane().getStyleClass().add("custom-dialog");
+
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            String code = result.get().trim();
+            if (code.isEmpty()) return;
+
+            // On ajoute le code MFA aux paramètres originaux et on relance
+            originalParams.put("mfaCode", code);
+            setLoginLoading(true);
+            runAsync(new Requete(RequestType.LOGIN, originalParams, null), reponse -> {
+                setLoginLoading(false);
+                if (reponse != null && reponse.isSucces()) {
+                    Map<String, Object> donnees = reponse.getDonnees();
+                    SessionManager.getInstance().ouvrir((String)donnees.get("accessToken"), (String)donnees.get("refreshToken"), (Utilisateur)donnees.get("utilisateur"));
+                    navigateToMain((String)donnees.get("typeUtilisateur"));
+                } else {
+                    showError(loginErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Code invalide."));
+                    loginRecaptchaToken = "";
+                    if (loginWebView != null) loginWebView.getEngine().reload();
+                }
+            });
+        }
     }
 
     @FXML
