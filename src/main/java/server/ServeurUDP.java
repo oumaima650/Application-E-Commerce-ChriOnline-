@@ -14,6 +14,8 @@ public class ServeurUDP {
     private static ServeurUDP instance;
     private final ConcurrentHashMap<Integer, ClientEndPoint> clientsUdp;
     private DatagramSocket socketUdp;
+     //integrer le service de securite
+    private final service.UdpSecurityService securityService = new service.UdpSecurityService();
     
     // Constructeur prive (Design Pattern Singleton)
     private ServeurUDP() {
@@ -64,6 +66,13 @@ public class ServeurUDP {
         ClientEndPoint endPoint = clientsUdp.get(clientId);
         if (endPoint == null) {
             System.err.println("[ServeurUDP] Client " + clientId + " non trouve pour notification UDP");
+            return false;
+        }
+
+        // 1. VERIFICATION DE SECURITE (Anti-Spam UDP)
+        if (!securityService.isSafePacket(clientId, message)) {
+            // Si le service retourne false, cela signifie que l'envoi est bloqué
+            // Le message d'erreur a deja ete affiche par le service de securite
             return false;
         }
         
