@@ -29,15 +29,16 @@ public class AuthService {
             Map<String, Object> params = requete.getParametres();
 
             if (params == null || !params.containsKey("email") || !params.containsKey("motDePasse")) {
-                return applyTimingDelay(new Reponse(false, "Champs manquants : email et motDePasse requis.", null), startTime);
+                return applyTimingDelay(new Reponse(false, "Champs manquants : email et motDePasse requis.", null),
+                        startTime);
             }
 
-            String email      = (String) params.get("email");
+            String email = (String) params.get("email");
             String motDePasse = (String) params.get("motDePasse");
 
             String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
             String recaptchaToken = (String) params.get("recaptchaToken");
-            
+
             // --- reCAPTCHA Verification ---
             RecaptchaService recaptchaService = new RecaptchaService();
             boolean captchaValide = recaptchaService.verify(recaptchaToken);
@@ -53,39 +54,18 @@ public class AuthService {
             Utilisateur user = UtilisateurDAO.findById(userId);
 
             if (user instanceof Client && "BANNI".equals(((Client) user).getStatut())) {
-                return applyTimingDelay(new Reponse(false, "Ce compte a été banni par l'administrateur.", null), startTime);
-            }
-
-            // --- Restriction IP Admin & MFA ---
-            String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
-            IpProtectionService ipProtectionService = new IpProtectionService();
-            
-            if ("ADMIN".equals(role) && !ipProtectionService.isInternalIp(clientIp)) {
-                // Si c'est un admin sur une IP externe, on exige un code MFA
-                String mfaCode = (String) params.get("mfaCode");
-                if (mfaCode == null || mfaCode.isEmpty()) {
-                    // Simuler l'envoi d'un code (ici on pourrait appeler un service SMS/Email)
-                    System.out.println("[SECURITY] Admin login depuis IP externe (" + clientIp + "). Envoi d'un code MFA à : " + email);
-                    // Pour le projet, on peut imaginer que le code est "123456" ou généré via PasswordResetService
-                    passwordResetService.sendResetCode(email); 
-                    return applyTimingDelay(new Reponse(false, "MFA_REQUIRED", null), startTime);
-                } else {
-                    // Vérifier le code fourni
-                    if (!passwordResetService.verifyCode(email, mfaCode)) {
-                        return applyTimingDelay(new Reponse(false, "Code de sécurité invalide.", null), startTime);
-                    }
-                    // Si code valide, on nettoie et on laisse passer
-                    passwordResetService.clearCode(email);
-                    System.out.println("[SECURITY] Admin login validé via MFA depuis IP externe (" + clientIp + ").");
-                }
+                return applyTimingDelay(new Reponse(false, "Ce compte a été banni par l'administrateur.", null),
+                        startTime);
             }
 
             securityService.registerSuccess(clientIp, email, captchaValide);
+
+            String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
             String sessionId = UUID.randomUUID().toString();
 
             String accessToken = JWTService.generateAccessToken(String.valueOf(userId), role, sessionId);
             String refreshToken = JWTService.generateRefreshToken();
-            
+
             RefreshTokenDAO refreshTokenDAO = new RefreshTokenDAO();
             refreshTokenDAO.save(userId, refreshToken, LocalDateTime.now().plusDays(7));
 
@@ -121,15 +101,16 @@ public class AuthService {
             Map<String, Object> params = requete.getParametres();
 
             if (params == null || !params.containsKey("email") || !params.containsKey("motDePasse")
-                    || !params.containsKey("nom") || !params.containsKey("prenom") || !params.containsKey("telephone")) {
+                    || !params.containsKey("nom") || !params.containsKey("prenom")
+                    || !params.containsKey("telephone")) {
                 return new Reponse(false, "Champs manquants : email, motDePasse, nom, prenom, telephone requis.", null);
             }
 
-            String email      = (String) params.get("email");
+            String email = (String) params.get("email");
             String motDePasse = (String) params.get("motDePasse");
-            String nom        = (String) params.get("nom");
-            String prenom     = (String) params.get("prenom");
-            String telephone  = (String) params.get("telephone");
+            String nom = (String) params.get("nom");
+            String prenom = (String) params.get("prenom");
+            String telephone = (String) params.get("telephone");
             String recaptchaToken = (String) params.get("recaptchaToken");
 
             // --- reCAPTCHA Verification ---
@@ -159,8 +140,9 @@ public class AuthService {
             donnees.put("utilisateur", client);
 
             System.out.println("[AuthService] Signup OK — userId=" + client.getIdUtilisateur());
-            new NotificationService().notifierAdmins("Nouveau client inscrit : " + prenom + " " + nom + " (" + email + ")");
-            
+            new NotificationService()
+                    .notifierAdmins("Nouveau client inscrit : " + prenom + " " + nom + " (" + email + ")");
+
             return new Reponse(true, "Compte créé avec succès.", donnees);
 
         } catch (SQLException e) {
@@ -180,13 +162,16 @@ public class AuthService {
             RefreshTokenDAO dao = new RefreshTokenDAO();
             RefreshTokenDAO.RefreshTokenInfo info = dao.findByToken(rawRefreshToken);
 
-            if (info == null) return new Reponse(false, "INVALID_TOKEN", null);
-            if (info.isRevoked()) return new Reponse(false, "TOKEN_REVOKED", null);
+            if (info == null)
+                return new Reponse(false, "INVALID_TOKEN", null);
+            if (info.isRevoked())
+                return new Reponse(false, "TOKEN_REVOKED", null);
             if (info.isUsed()) {
                 dao.revokeAllForUser(info.userId());
                 return new Reponse(false, "REFRESH_TOKEN_REUSE_DETECTED", null);
             }
-            if (info.expiresAt().isBefore(LocalDateTime.now())) return new Reponse(false, "TOKEN_EXPIRED", null);
+            if (info.expiresAt().isBefore(LocalDateTime.now()))
+                return new Reponse(false, "TOKEN_EXPIRED", null);
 
             dao.markAsUsed(info.id());
 
@@ -194,7 +179,8 @@ public class AuthService {
             String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
             String newSessionId = UUID.randomUUID().toString();
 
-            String newAccessToken = JWTService.generateAccessToken(String.valueOf(user.getIdUtilisateur()), role, newSessionId);
+            String newAccessToken = JWTService.generateAccessToken(String.valueOf(user.getIdUtilisateur()), role,
+                    newSessionId);
             String newRefreshToken = JWTService.generateRefreshToken();
             dao.save(user.getIdUtilisateur(), newRefreshToken, LocalDateTime.now().plusDays(7));
 
@@ -255,7 +241,8 @@ public class AuthService {
     public Reponse handleConfirmReset(Requete requete) {
         try {
             Map<String, Object> params = requete.getParametres();
-            if (params == null || !params.containsKey("email") || !params.containsKey("code") || !params.containsKey("newPassword")) {
+            if (params == null || !params.containsKey("email") || !params.containsKey("code")
+                    || !params.containsKey("newPassword")) {
                 return new Reponse(false, "Données manquantes.", null);
             }
 
@@ -268,7 +255,8 @@ public class AuthService {
             }
 
             PasswordService.ValidationResult strength = PasswordService.validateStrength(newPassword);
-            if (!strength.isValid()) return new Reponse(false, strength.message(), null);
+            if (!strength.isValid())
+                return new Reponse(false, strength.message(), null);
 
             String hashedPw = PasswordService.hash(newPassword);
             if (UtilisateurDAO.updatePassword(email, hashedPw)) {
@@ -285,7 +273,8 @@ public class AuthService {
 
     public static int getUserIdFromToken(String token) {
         try {
-            if (token == null || token.isBlank()) return -1;
+            if (token == null || token.isBlank())
+                return -1;
             return Integer.parseInt(JWTService.verifyAccessToken(token).userId());
         } catch (Exception e) {
             return -1;
