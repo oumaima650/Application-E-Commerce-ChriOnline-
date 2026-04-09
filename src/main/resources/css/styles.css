@@ -164,3 +164,96 @@
     -fx-text-fill: #FF724C;
     -fx-font-weight: bold;
 }
+
+/* ── AUTH ENHANCEMENTS ── */
+
+.visibility-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #8892A4;
+    -fx-font-size: 16px;
+    -fx-cursor: hand;
+    -fx-padding: 0 10;
+}
+
+.auth-datepicker {
+    -fx-background-color: transparent;
+}
+
+.auth-datepicker .text-field {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+/* ── VERIFICATION OVERLAY ── */
+
+.verification-overlay {
+    -fx-background-color: rgba(42, 44, 65, 0.85); /* Dark semi-transparent */
+}
+
+.verification-card {
+    -fx-background-color: white;
+    -fx-background-radius: 24px;
+    -fx-padding: 40px;
+}
+
+.verify-icon-circle {
+    -fx-background-color: #FFF0EB;
+    -fx-background-radius: 50%;
+}
+
+.verify-icon-text {
+    -fx-text-fill: #FF724C;
+    -fx-font-size: 28px;
+}
+
+.verify-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1E293B;
+}
+
+.verify-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #64748B;
+}
+
+.otp-box-char {
+    -fx-pref-width: 48px;
+    -fx-pref-height: 56px;
+    -fx-background-color: #F8FAFC;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 2px;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-alignment: CENTER;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1E293B;
+}
+
+.otp-box-char:focused {
+    -fx-border-color: #FF724C;
+    -fx-background-color: white;
+}
+
+.error-label-small {
+    -fx-text-fill: #EF4444;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.retry-label {
+    -fx-text-fill: #64748B;
+    -fx-font-size: 12px;
+}
+
+.cancel-link {
+    -fx-text-fill: #64748B;
+    -fx-font-size: 13px;
+    -fx-underline: false;
+}
+
+.cancel-link:hover {
+    -fx-text-fill: #1E293B;
+}

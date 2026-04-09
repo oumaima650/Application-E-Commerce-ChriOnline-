@@ -6,7 +6,6 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import client.ClientSocket;
 import shared.Reponse;
 import shared.RequestType;
@@ -18,19 +17,16 @@ import javafx.util.Duration;
 import model.Utilisateur;
 import client.utils.SceneManager;
 import client.utils.SessionManager;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.ResourceBundle;
-import java.util.regex.Pattern;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
+import java.net.URL;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.regex.Pattern;
 
 public class LoginController implements Initializable {
 
     private static final int     PW_MIN       = 8;
-    private static final int     PW_MAX       = 32;
     private static final Pattern HAS_UPPER    = Pattern.compile(".*[A-Z].*");
     private static final Pattern HAS_DIGIT    = Pattern.compile(".*[0-9].*");
     private static final Pattern HAS_SPECIAL  = Pattern.compile(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?`~].*");
@@ -70,6 +66,32 @@ public class LoginController implements Initializable {
     @FXML private Label strengthLabel;
     @FXML private Hyperlink forgotPasswordLink;
 
+    // --- New Fields ---
+    @FXML private HBox registerBirthdayWrapper;
+    @FXML private DatePicker registerBirthdayPicker;
+    @FXML private TextField loginPasswordVisibleField;
+    @FXML private Button toggleLoginPasswordBtn;
+    @FXML private TextField registerPasswordVisibleField;
+    @FXML private Button toggleRegisterPasswordBtn;
+
+    // Verification Overlay
+    @FXML private VBox  verificationOverlay;
+    @FXML private Label verificationTitle;
+    @FXML private Label verificationSubtitle;
+    @FXML private Label verificationErrorLabel;
+    @FXML private Label verificationRetryLabel;
+    @FXML private HBox  otpContainer;
+    @FXML private TextField otp1, otp2, otp3, otp4, otp5, otp6;
+    @FXML private Button verifyCodeBtn;
+
+    @FXML private VBox passwordResetContainer;
+    @FXML private PasswordField newResetPasswordField;
+    @FXML private PasswordField confirmResetPasswordField;
+
+    private String pendingEmail = "";
+    private enum OverlayMode { SIGNUP, LOGIN_2FA, PASSWORD_RESET }
+    private OverlayMode currentOverlayMode = OverlayMode.SIGNUP;
+
     // --- reCAPTCHA ---
     @FXML private StackPane loginRecaptchaContainer;
     @FXML private StackPane registerRecaptchaContainer;
@@ -95,7 +117,51 @@ public class LoginController implements Initializable {
         setupPasswordStrengthMeter();
         setupRecaptcha(loginRecaptchaContainer, true);
         setupRecaptcha(registerRecaptchaContainer, false);
+        setupOtpLogic();
+        setupPasswordVisibilitySync();
         animateCardEntrance();
+    }
+
+    private void setupOtpLogic() {
+        TextField[] boxes = {otp1, otp2, otp3, otp4, otp5, otp6};
+        for (int i = 0; i < boxes.length; i++) {
+            final int index = i;
+            boxes[i].textProperty().addListener((obs, old, val) -> {
+                if (val.length() > 0) {
+                    if (val.length() > 1) boxes[index].setText(val.substring(val.length() - 1).toUpperCase());
+                    else boxes[index].setText(val.toUpperCase());
+                    
+                    if (index < 5) boxes[index + 1].requestFocus();
+                }
+            });
+
+            boxes[i].setOnKeyPressed(event -> {
+                if (event.getCode().toString().equals("BACK_SPACE") && boxes[index].getText().isEmpty() && index > 0) {
+                    boxes[index - 1].requestFocus();
+                }
+            });
+        }
+    }
+
+    private void setupPasswordVisibilitySync() {
+        loginPasswordField.textProperty().bindBidirectional(loginPasswordVisibleField.textProperty());
+        registerPasswordField.textProperty().bindBidirectional(registerPasswordVisibleField.textProperty());
+    }
+
+    @FXML
+    private void toggleLoginPasswordVisibility() {
+        boolean isVisible = loginPasswordVisibleField.isVisible();
+        loginPasswordVisibleField.setVisible(!isVisible);
+        loginPasswordField.setVisible(isVisible);
+        toggleLoginPasswordBtn.setText(isVisible ? "👁" : "🙈");
+    }
+
+    @FXML
+    private void toggleRegisterPasswordVisibility() {
+        boolean isVisible = registerPasswordVisibleField.isVisible();
+        registerPasswordVisibleField.setVisible(!isVisible);
+        registerPasswordField.setVisible(isVisible);
+        toggleRegisterPasswordBtn.setText(isVisible ? "👁" : "🙈");
     }
 
     @FXML
@@ -106,7 +172,7 @@ public class LoginController implements Initializable {
     @FXML
     private void handleForgotPassword() {
         TextInputDialog emailDialog = new TextInputDialog();
-        emailDialog.setTitle("Réinitialisation - Étape 1");
+        emailDialog.setTitle("Réinitialisation");
         emailDialog.setHeaderText("Mot de passe oublié ?");
         emailDialog.setContentText("Entrez votre adresse e-mail :");
         emailDialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/global.css").toExternalForm());
@@ -116,20 +182,18 @@ public class LoginController implements Initializable {
         if (emailResult.isPresent()) {
             String email = emailResult.get().trim();
             if (email.isEmpty() || !EMAIL_REGEX.matcher(email).matches()) {
-                showAlert(Alert.AlertType.ERROR, "Erreur", "Veuillez entrer une adresse e-mail valide.");
+                showAlert(Alert.AlertType.ERROR, "Erreur", "Email invalide.");
                 return;
             }
             Map<String, Object> params = new HashMap<>();
             params.put("email", email);
-            Requete req = new Requete(RequestType.REQUEST_PASSWORD_RESET, params, null);
             setLoginLoading(true);
-            runAsync(req, res -> {
+            runAsync(new Requete(RequestType.REQUEST_PASSWORD_RESET, params, null), res -> {
                 setLoginLoading(false);
                 if (res != null && res.isSucces()) {
-                    showResetConfirmationDialog(email);
+                    showVerificationOverlay(email, OverlayMode.PASSWORD_RESET);
                 } else {
-                    String msg = (res != null) ? res.getMessage() : "Serveur injoignable.";
-                    showAlert(Alert.AlertType.ERROR, "Erreur", msg);
+                    showAlert(Alert.AlertType.ERROR, "Erreur", res != null ? res.getMessage() : "Échec.");
                 }
             });
         }
@@ -255,9 +319,11 @@ public class LoginController implements Initializable {
         runAsync(new Requete(RequestType.LOGIN, params, null), reponse -> {
             setLoginLoading(false);
             if (reponse != null && reponse.isSucces()) {
-                Map<String, Object> donnees = reponse.getDonnees();
-                SessionManager.getInstance().ouvrir((String)donnees.get("accessToken"), (String)donnees.get("refreshToken"), (Utilisateur)donnees.get("utilisateur"));
-                navigateToMain((String)donnees.get("typeUtilisateur"));
+                handleLoginSuccess(reponse);
+            } else if (reponse != null && "2FA_REQUIRED".equals(reponse.getMessage())) {
+                showVerificationOverlay(email, OverlayMode.LOGIN_2FA);
+            } else if (reponse != null && "SIGNUP_VERIFICATION_REQUIRED".equals(reponse.getMessage())) {
+                showVerificationOverlay(email, OverlayMode.SIGNUP);
             } else {
                 showError(loginErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Erreur"));
                 shake(loginEmailWrapper); shake(loginPasswordWrapper);
@@ -266,6 +332,122 @@ public class LoginController implements Initializable {
             }
         });
     }
+
+    private void showVerificationOverlay(String email, OverlayMode mode) {
+        this.pendingEmail = email;
+        this.currentOverlayMode = mode;
+        
+        passwordResetContainer.setVisible(mode == OverlayMode.PASSWORD_RESET);
+        passwordResetContainer.setManaged(mode == OverlayMode.PASSWORD_RESET);
+
+        switch (mode) {
+            case SIGNUP -> {
+                verificationTitle.setText("Vérifiez votre inscription");
+                verificationSubtitle.setText("Un code a été envoyé à : " + email);
+                otpContainer.setManaged(true);
+                otpContainer.setVisible(true);
+            }
+            case LOGIN_2FA -> {
+                verificationTitle.setText("Double Authentification");
+                verificationSubtitle.setText("Veuillez entrer le code reçu par e-mail.");
+                otpContainer.setManaged(true);
+                otpContainer.setVisible(true);
+            }
+            case PASSWORD_RESET -> {
+                verificationTitle.setText("Réinitialisation du compte");
+                verificationSubtitle.setText("Entrez le code reçu et votre nouveau mot de passe.");
+                otpContainer.setManaged(true);
+                otpContainer.setVisible(true);
+            }
+        }
+        
+        verificationErrorLabel.setVisible(false);
+        
+        // Clear fields
+        TextField[] boxes = {otp1, otp2, otp3, otp4, otp5, otp6};
+        for (TextField b : boxes) b.clear();
+        newResetPasswordField.clear();
+        confirmResetPasswordField.clear();
+        
+        verificationOverlay.setManaged(true);
+        verificationOverlay.setVisible(true);
+        fadeIn(verificationOverlay);
+        otp1.requestFocus();
+    }
+
+    @FXML
+    private void handleVerifyCode() {
+        String code = otp1.getText() + otp2.getText() + otp3.getText() + otp4.getText() + otp5.getText() + otp6.getText();
+        if (code.length() < 6) {
+            verificationErrorLabel.setText("Veuillez entrer le code complet.");
+            verificationErrorLabel.setVisible(true);
+            return;
+        }
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("email", pendingEmail);
+        params.put("code", code);
+
+        RequestType type;
+        if (currentOverlayMode == OverlayMode.SIGNUP) {
+            type = RequestType.VERIFY_SIGNUP;
+        } else if (currentOverlayMode == OverlayMode.LOGIN_2FA) {
+            type = RequestType.VERIFY_2FA_LOGIN;
+        } else {
+            // PASSWORD_RESET
+            String newPass = newResetPasswordField.getText();
+            String confirm = confirmResetPasswordField.getText();
+            
+            if (newPass.isEmpty() || !newPass.equals(confirm)) {
+                showError(verificationErrorLabel, "⚠ Mots de passe non identiques.");
+                return;
+            }
+            
+            String validationErr = validatePassword(newPass);
+            if (validationErr != null) {
+                showError(verificationErrorLabel, "⚠ " + validationErr);
+                return;
+            }
+            
+            params.put("newPassword", newPass);
+            type = RequestType.CONFIRM_PASSWORD_RESET;
+        }
+        
+        verifyCodeBtn.setDisable(true);
+        runAsync(new Requete(type, params, null), reponse -> {
+            verifyCodeBtn.setDisable(false);
+            if (reponse != null && reponse.isSucces()) {
+                if (currentOverlayMode == OverlayMode.PASSWORD_RESET) {
+                    handleCancelVerification();
+                    showAlert(Alert.AlertType.INFORMATION, "Succès", "Votre mot de passe a été réinitialisé.");
+                } else {
+                    handleLoginSuccess(reponse);
+                    handleCancelVerification();
+                }
+            } else {
+                verificationErrorLabel.setText(reponse != null ? reponse.getMessage() : "Erreur de vérification.");
+                verificationErrorLabel.setVisible(true);
+                shake(otpContainer);
+            }
+        });
+    }
+
+    @FXML
+    private void handleCancelVerification() {
+        verificationOverlay.setVisible(false);
+        verificationOverlay.setManaged(false);
+    }
+
+    private void handleLoginSuccess(Reponse reponse) {
+        Map<String, Object> donnees = reponse.getDonnees();
+        SessionManager.getInstance().ouvrir(
+            (String)donnees.get("accessToken"), 
+            (String)donnees.get("refreshToken"), 
+            (Utilisateur)donnees.get("utilisateur")
+        );
+        navigateToMain((String)donnees.get("typeUtilisateur"));
+    }
+
 
     @FXML
     private void handleRegister() {
@@ -278,7 +460,10 @@ public class LoginController implements Initializable {
 
         if (nom.isEmpty()) { showError(registerErrorLabel, "⚠ Nom requis."); shake(registerNameWrapper); return; }
         if (prenom.isEmpty()) { showError(registerErrorLabel, "⚠ Prénom requis."); shake(registerFirstNameWrapper); return; }
+        if (registerBirthdayPicker.getValue() == null) { showError(registerErrorLabel, "⚠ Date de naissance requise."); shake(registerBirthdayWrapper); return; }
         if (!EMAIL_REGEX.matcher(email).matches()) { showError(registerErrorLabel, "⚠ Email invalide."); shake(registerEmailWrapper); return; }
+
+        LocalDate dob = registerBirthdayPicker.getValue();
 
         // --- reCAPTCHA Validation ---
         if (registerRecaptchaToken == null || registerRecaptchaToken.isEmpty()) {
@@ -292,16 +477,19 @@ public class LoginController implements Initializable {
         Map<String, Object> params = new HashMap<>();
         params.put("email", email); params.put("motDePasse", password);
         params.put("nom", nom); params.put("prenom", prenom); params.put("telephone", phone);
+        params.put("dateNaissance", dob.toString());
         params.put("recaptchaToken", registerRecaptchaToken);
 
         setRegisterLoading(true);
         runAsync(new Requete(RequestType.REGISTER, params, null), reponse -> {
             setRegisterLoading(false);
-            if (reponse != null && reponse.isSucces()) {
+            if (reponse != null && "SIGNUP_VERIFICATION_REQUIRED".equals(reponse.getMessage())) {
+                showVerificationOverlay(email, OverlayMode.SIGNUP);
+            } else if (reponse != null && reponse.isSucces()) {
                 showSuccess(registerErrorLabel, "✓ Compte créé ! Connectez-vous.");
                 mainTabPane.getSelectionModel().select(loginTab);
             } else {
-                showError(registerErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Serveur error"));
+                showError(registerErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Erreur"));
                 registerRecaptchaToken = "";
                 if (registerWebView != null) registerWebView.getEngine().reload();
             }
