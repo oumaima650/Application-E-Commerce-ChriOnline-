@@ -121,21 +121,36 @@
                             </HBox>
 
                             <VBox fx:id="cardFormBox" spacing="20" styleClass="card-pink">
-                                <!-- Local Card Preview -->
+                                <!-- Card Preview -->
                                 <VBox styleClass="card-preview" spacing="15">
                                     <Label text="CHRI ONLINE" styleClass="card-brand"/>
-                                    <Label fx:id="lblCardNumberPreview" text="•••• •••• •••• 3456" styleClass="card-number"/>
+                                    <Label fx:id="lblCardNumberPreview" text="•••• •••• •••• ----" styleClass="card-number"/>
                                     <HBox spacing="20">
-                                        <Label fx:id="lblExpiryPreview" text="03/28" styleClass="card-expiry"/>
+                                        <Label fx:id="lblExpiryPreview" text="--/--" styleClass="card-expiry"/>
                                         <Label text="CVV" styleClass="card-cvv"/>
                                     </HBox>
                                 </VBox>
 
-                                <GridPane hgap="16" vgap="16">
-                                    <TextField fx:id="txtCardNumber" promptText="Numéro de carte" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2" onKeyReleased="#updateCardPreview"/>
-                                    <TextField fx:id="txtExpiry" promptText="MM/YY" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
-                                    <TextField fx:id="txtCvv" promptText="CVV" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
-                                </GridPane>
+                                <!-- Saved cards selector -->
+                                <VBox spacing="8">
+                                    <Label text="Carte enregistree :" style="-fx-font-weight: bold; -fx-font-size: 13;"/>
+                                    <ComboBox fx:id="cmbSavedCards" promptText="Choisir une carte enregistree..." maxWidth="Infinity" styleClass="input-field"/>
+                                </VBox>
+
+                                <!-- Toggle : add new card -->
+                                <HBox alignment="CENTER_LEFT" spacing="8">
+                                    <CheckBox fx:id="chkNewCard" text="Utiliser une nouvelle carte"/>
+                                </HBox>
+
+                                <!-- New card form (shown only when chkNewCard is checked) -->
+                                <VBox fx:id="newCardForm" spacing="16" visible="false" managed="false">
+                                    <GridPane hgap="16" vgap="16">
+                                        <TextField fx:id="txtCardNumber" promptText="Numero de carte" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.columnSpan="2" onKeyReleased="#updateCardPreview"/>
+                                        <TextField fx:id="txtExpiry" promptText="MM/YY" styleClass="input-field" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                                        <TextField fx:id="txtCvv" promptText="CVV" styleClass="input-field" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                                    </GridPane>
+                                    <CheckBox fx:id="chkSaveCard" text="Sauvegarder cette carte pour mes prochains achats" selected="true"/>
+                                </VBox>
                             </VBox>
 
                             <HBox spacing="16">
