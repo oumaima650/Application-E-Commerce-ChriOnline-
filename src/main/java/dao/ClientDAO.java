@@ -11,7 +11,7 @@ public class ClientDAO {
         return ConnexionBDD.getConnection();
     }
 
-    public Client create(String email, String motDePasse, String nom, String prenom, String telephone) throws SQLException {
+    public Client create(String email, String motDePasse, String nom, String prenom, String telephone, java.time.LocalDate dateNaissance) throws SQLException {
         Connection conn = getConn();
         conn.setAutoCommit(false);
         int idClient = 0;
@@ -26,25 +26,28 @@ public class ClientDAO {
                 }
             }
 
-            String sqlClient = "INSERT INTO Client (IdUtilisateur, nom, prenom, telephone) VALUES (?, ?, ?, ?)";
+            String sqlClient = "INSERT INTO Client (IdUtilisateur, nom, prenom, telephone, dateNaissance) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(sqlClient)) {
                 ps.setInt(1, idClient);
                 ps.setString(2, nom);
                 ps.setString(3, prenom);
                 ps.setString(4, telephone);
+                ps.setDate(5, java.sql.Date.valueOf(dateNaissance));
                 ps.executeUpdate();
             }
 
             conn.commit();
             System.out.println("[ClientDAO] Created with the id : " + idClient);
 
+            boolean twoFactorEnabled = false;
             LocalDateTime createdAt = null;
             LocalDateTime updatedAt = null;
-            String sqlFetch = "SELECT createdAt, updatedAt FROM Utilisateur WHERE IdUtilisateur = ?";
+            String sqlFetch = "SELECT two_factor_enabled, createdAt, updatedAt FROM Utilisateur WHERE IdUtilisateur = ?";
             try (PreparedStatement ps = conn.prepareStatement(sqlFetch)) {
                 ps.setInt(1, idClient);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
+                        twoFactorEnabled = rs.getBoolean("two_factor_enabled");
                         Timestamp ca = rs.getTimestamp("createdAt");
                         Timestamp ua = rs.getTimestamp("updatedAt");
                         if (ca != null) createdAt = ca.toLocalDateTime();
@@ -52,7 +55,7 @@ public class ClientDAO {
                     }
                 }
             }
-            return new Client(idClient, email, motDePasse, createdAt, updatedAt, nom, prenom, telephone, null);
+            return new Client(idClient, email, motDePasse, twoFactorEnabled, createdAt, updatedAt, nom, prenom, telephone, dateNaissance, null);
         } catch (SQLException e) {
             conn.rollback();
             throw e;
@@ -73,7 +76,7 @@ public class ClientDAO {
     }
 
     public Client findById(int id) throws SQLException {
-        String sql = "SELECT u.email, u.motDePasse, u.createdAt, u.updatedAt, c.nom, c.prenom, c.telephone, c.statut " +
+        String sql = "SELECT u.email, u.motDePasse, u.two_factor_enabled, u.createdAt, u.updatedAt, c.nom, c.prenom, c.telephone, c.statut, c.dateNaissance " +
                      "FROM Utilisateur u JOIN Client c ON u.IdUtilisateur = c.IdUtilisateur " +
                      "WHERE u.IdUtilisateur = ?";
         try (Connection conn = getConn();
@@ -83,8 +86,11 @@ public class ClientDAO {
                 if (rs.next()) {
                     LocalDateTime ca = rs.getTimestamp("createdAt") != null ? rs.getTimestamp("createdAt").toLocalDateTime() : null;
                     LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
-                    Client c = new Client(id, rs.getString("email"), rs.getString("motDePasse"), ca, ua,
-                                      rs.getString("nom"), rs.getString("prenom"), rs.getString("telephone"), null);
+                    java.sql.Date dobSql = rs.getDate("dateNaissance");
+                    java.time.LocalDate dob = (dobSql != null) ? dobSql.toLocalDate() : null;
+                    
+                    Client c = new Client(id, rs.getString("email"), rs.getString("motDePasse"), rs.getBoolean("two_factor_enabled"), ca, ua,
+                                      rs.getString("nom"), rs.getString("prenom"), rs.getString("telephone"), dob, null);
                     c.setStatut(rs.getString("statut"));
                     return c;
                 }
@@ -121,7 +127,7 @@ public class ClientDAO {
 
     public static List<Client> searchClients(String query) throws SQLException {
         List<Client> clients = new ArrayList<>();
-        String sql = "SELECT u.IdUtilisateur, u.email, u.createdAt, u.updatedAt, c.nom, c.prenom, c.telephone, c.deletedAt, c.statut " +
+        String sql = "SELECT u.IdUtilisateur, u.email, u.two_factor_enabled, u.createdAt, u.updatedAt, c.nom, c.prenom, c.telephone, c.deletedAt, c.statut, c.dateNaissance " +
                      "FROM Utilisateur u JOIN Client c ON u.IdUtilisateur = c.IdUtilisateur ";
         
         boolean hasQuery = query != null && !query.trim().isEmpty();
@@ -151,8 +157,11 @@ public class ClientDAO {
                     LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
                     LocalDateTime da = rs.getTimestamp("deletedAt") != null ? rs.getTimestamp("deletedAt").toLocalDateTime() : null;
                     
-                    Client c = new Client(rs.getInt("IdUtilisateur"), rs.getString("email"), null, ca, ua,
-                                          rs.getString("nom"), rs.getString("prenom"), rs.getString("telephone"), da);
+                    java.sql.Date dobSql = rs.getDate("dateNaissance");
+                    java.time.LocalDate dob = (dobSql != null) ? dobSql.toLocalDate() : null;
+
+                    Client c = new Client(rs.getInt("IdUtilisateur"), rs.getString("email"), null, rs.getBoolean("two_factor_enabled"), ca, ua,
+                                          rs.getString("nom"), rs.getString("prenom"), rs.getString("telephone"), dob, da);
                     c.setStatut(rs.getString("statut"));
                     c.setNom(rs.getString("nom"));
                     c.setPrenom(rs.getString("prenom"));
