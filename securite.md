@@ -51,24 +51,31 @@ Cette documentation détaille les couches de sécurité ajoutées à l'applicati
 **Comment :** Déploiement basé sur les **Virtual Threads**. Le Handler de connexion alloue des threads ultra-légers pour traiter la charge.
 **Pourquoi :** Les connexions malveillantes ouvertes au ralenti (Slowloris) ne peuvent plus épuiser la piscine (pool) de tâches principale. Le système survit sans ralentissement à plusieurs milliers d'états d'attente concurrents.
 
-## 9. Inscription en Deux Étapes et Activation par Email
+## 9. Protection contre la Désérialisation Malveillante (ObjectInputFilter)
+**Quoi :** Prévention contre les injections de commandes réseau par désérialisation Java (RCE).
+**Comment :** Utilisation d'un `ObjectInputFilter` sur le flux d'entrée (`ObjectInputStream`) du `ClientHandler`. 
+- **Whitelist stricte :** Seuls les packages `shared`, `model`, `java.lang`, `java.util` et `java.time` sont autorisés.
+- Tout autre objet (gadgets malveillants, librairies tierces non autorisées) est rejeté immédiatement avant instanciation.
+**Pourquoi :** Élimine le vecteur d'attaque le plus critique sur les sockets Java, garantissant que même un attaquant ne peut pas exécuter de code arbitraire sur le serveur via des payloads sérialisés.
+
+## 10. Inscription en Deux Étapes et Activation par Email
 **Quoi :** Obligation pour chaque nouvel utilisateur de valider son identité avant toute interaction.
 **Comment :** 
 - Un compte créé est initialement marqué comme `EN_ATTENTE`.
 - Un code de vérification **alphanumérique à 6 caractères** (haute entropie) est envoyé. Seule la validation de ce code bascule le compte vers le statut `ACTIF`.
 **Pourquoi :** Empêche la création de comptes "fantômes" avec des e-mails volés ou inexistants, garantissant que chaque utilisateur dispose d'un canal de communication valide.
 
-## 10. Inscription Atomique (Self-Cleaning Logic)
+## 11. Inscription Atomique (Self-Cleaning Logic)
 **Quoi :** Nettoyage automatique des tentatives d'inscription échouées.
 **Comment :** Si l'envoi de l'e-mail de vérification initial échoue (problème SMTP, adresse invalide), le système supprime immédiatement l'enregistrement `Utilisateur`.
 **Pourquoi :** Maintient l'intégrité de la base de données en évitant les enregistrements orphelins et garantit que l'adresse e-mail reste disponible pour une nouvelle tentative.
 
-## 11. Validation de Mot de Passe Sensible à l'Identité
+## 12. Validation de Mot de Passe Sensible à l'Identité
 **Quoi :** Politique de mot de passe intelligente empêchant l'utilisation d'informations personnelles (PII).
 **Comment :** Le `PasswordService` compare le mot de passe choisi avec le nom, le prénom, l'e-mail et la date de naissance (composants du jour/mois/année).
 **Pourquoi :** Contre les attaques par ingénierie sociale où les pirates tentent de deviner des mots de passe basés sur les données personnelles de la victime.
 
-## 12. Résilience et Sécurité du Canal SMTP
+## 13. Résilience et Sécurité du Canal SMTP
 **Quoi :** Fiabilisation de la livraison des codes de sécurité (OTP).
 **Comment :** 
 - Implémentation de timeouts (connexion, lecture, écriture) pour éviter les blocages réseaux.

@@ -79,7 +79,21 @@ public class ClientHandler implements Runnable {
         try {
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
-            in  = new ObjectInputStream(socket.getInputStream());
+
+            // PROTECTION: ObjectInputFilter (Whitelist approach)
+            // Allows only safe classes required for the application's protocol.
+            // Documentation: https://docs.oracle.com/en/java/javase/21/core/serialization-filtering1.html
+            java.io.ObjectInputFilter filter = java.io.ObjectInputFilter.Config.createFilter(
+                "shared.**;" +
+                "model.**;" +
+                "java.lang.**;" +
+                "java.util.**;" +
+                "java.time.**;" +
+                "!*" // Reject all other classes
+            );
+
+            in = new ObjectInputStream(socket.getInputStream());
+            in.setObjectInputFilter(filter);
 
             while (!socket.isClosed()) {
                 Requete requete;

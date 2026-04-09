@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <!-- Affiche les logs dans la console IntelliJ avec un beau formatage -->
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+        
+        <!-- Enregistre Specifiquement la Securite sur le disque dur ! -->
+        <RollingFile name="SecurityFileAppender" fileName="logs/security_audit.log"
+                     filePattern="logs/security_audit-%d{yyyy-MM-dd}-%i.log">
+            <!-- Format : 2026-04-06 20:30:00 [Thread-1] WARN SecurityManager - IP Bannie -->
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss} %-5level - %msg%n"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- On force les logs de 'service.SecurityManager' a aller dans le fichier -->
+        <Logger name="service.SecurityManager" level="info" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="SecurityFileAppender"/>
+        </Logger>
+        <Logger name="service.AuthService" level="info" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="SecurityFileAppender"/>
+        </Logger>
+
+        <Root level="error">
+            <AppenderRef ref="ConsoleAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>
