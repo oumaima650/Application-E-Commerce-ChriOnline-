@@ -7,7 +7,8 @@
 <?import javafx.scene.shape.SVGPath?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.ProfileController" stylesheets="@../css/profile.css" styleClass="root">
+<StackPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ui.ProfileController" stylesheets="@../css/profile.css" styleClass="root">
+    <BorderPane>
     
     <!-- NAVBAR (TOP) -->
     <top>
@@ -95,6 +96,18 @@
                     </VBox>
                 </GridPane>
 
+                <!-- TWO FACTOR AUTH SECTION -->
+                <VBox spacing="16" styleClass="profile-section" maxWidth="800">
+                    <HBox alignment="CENTER_LEFT" spacing="12">
+                        <SVGPath content="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M12 8v4 M12 16h.01" stroke="#64748b" strokeWidth="2"/>
+                        <Label text="Double Authentification (2FA)" styleClass="section-title"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <ToggleButton fx:id="btnToggle2FA" text="Désactivé" styleClass="toggle-2fa" onAction="#handleToggle2FA"/>
+                    </HBox>
+                    <Label text="L'activation de la double authentification ajoute une couche de sécurité supplémentaire à votre compte en exigeant un code envoyé par e-mail lors de chaque connexion." 
+                           wrapText="true" style="-fx-font-size: 13px; -fx-text-fill: #64748b;"/>
+                </VBox>
+
                 <!-- DANGER ZONE / ACTIONS -->
                 <VBox spacing="16" styleClass="profile-section" style="-fx-border-color: #fee2e2; -fx-background-color: #fffefb;" maxWidth="800">
                     <Label text="Sécurité et Session" styleClass="section-title" style="-fx-text-fill: #991b1b;"/>
@@ -109,4 +122,39 @@
             </VBox>
         </ScrollPane>
     </center>
-</BorderPane>
+    </BorderPane>
+
+    <!-- ══ Verification Overlay (2FA Activation) ══════════════════ -->
+    <VBox fx:id="verificationOverlay" styleClass="verification-overlay" alignment="CENTER" spacing="30" visible="false" managed="false">
+        <style>
+            .verification-overlay { -fx-background-color: rgba(15, 23, 42, 0.82); }
+            .verification-card { -fx-background-color: #1e293b; -fx-background-radius: 20; -fx-padding: 40; -fx-border-color: rgba(255,255,255,0.1); -fx-border-radius: 20; }
+            .otp-box-char { -fx-background-color: #0f172a; -fx-text-fill: white; -fx-border-color: #334155; -fx-border-radius: 8; -fx-background-radius: 8; -fx-font-weight: bold; }
+            .primary-btn { -fx-background-color: #3b82f6; -fx-text-fill: white; -fx-background-radius: 10; -fx-cursor: hand; }
+        </style>
+        <VBox styleClass="verification-card" alignment="CENTER" spacing="24" maxWidth="400">
+            <VBox alignment="CENTER" spacing="8">
+                <StackPane style="-fx-background-color: #3b82f6; -fx-background-radius: 32;" prefWidth="64" prefHeight="64">
+                    <Label text="✉" style="-fx-font-size: 32px; -fx-text-fill: white;"/>
+                </StackPane>
+                <Label text="Activation Sécurisée" style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
+                <Label text="Entrez le code envoyé par e-mail pour activer la double authentification." style="-fx-text-fill: #94a3b8;" wrapText="true" textAlignment="CENTER"/>
+            </VBox>
+            
+            <HBox spacing="10" alignment="CENTER">
+                <TextField fx:id="otp1" prefWidth="45" prefHeight="55" alignment="CENTER" styleClass="otp-box-char" style="-fx-font-size: 20px;"/>
+                <TextField fx:id="otp2" prefWidth="45" prefHeight="55" alignment="CENTER" styleClass="otp-box-char" style="-fx-font-size: 20px;"/>
+                <TextField fx:id="otp3" prefWidth="45" prefHeight="55" alignment="CENTER" styleClass="otp-box-char" style="-fx-font-size: 20px;"/>
+                <TextField fx:id="otp4" prefWidth="45" prefHeight="55" alignment="CENTER" styleClass="otp-box-char" style="-fx-font-size: 20px;"/>
+                <TextField fx:id="otp5" prefWidth="45" prefHeight="55" alignment="CENTER" styleClass="otp-box-char" style="-fx-font-size: 20px;"/>
+                <TextField fx:id="otp6" prefWidth="45" prefHeight="55" alignment="CENTER" styleClass="otp-box-char" style="-fx-font-size: 20px;"/>
+            </HBox>
+            
+            <VBox alignment="CENTER" spacing="12">
+                <Label fx:id="verificationErrorLabel" text="" style="-fx-text-fill: #ef4444;" visible="false"/>
+                <Button text="Confirmer l'activation" onAction="#handleConfirm2FA" styleClass="primary-btn" maxWidth="Infinity" prefHeight="48"/>
+                <Hyperlink text="Annuler" onAction="#handleCancel2FA" style="-fx-text-fill: #94a3b8;"/>
+            </VBox>
+        </VBox>
+    </VBox>
+</StackPane>

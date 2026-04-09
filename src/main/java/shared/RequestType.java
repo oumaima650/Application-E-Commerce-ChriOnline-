@@ -100,4 +100,10 @@ public enum RequestType {
     GET_USER_AVIS_FOR_PRODUCT,
     ADD_AVIS,
     UPDATE_AVIS,
+    
+    // 2FA
+    GENERATE_2FA_CODE,
+    VERIFY_2FA_LOGIN,
+    TOGGLE_2FA,
+    VERIFY_SIGNUP,
 }
