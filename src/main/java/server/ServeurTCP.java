@@ -1,5 +1,7 @@
 package server;
 
+import service.CleanupService;
+
 import javax.net.ssl.*;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -18,6 +20,7 @@ public class ServeurTCP {
     private final Properties config = new Properties();
     private SSLServerSocket serverSocket;
     private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
+    private final CleanupService cleanupService = new CleanupService();
 
     public void start() {
         try {
@@ -33,6 +36,9 @@ public class ServeurTCP {
             
             System.out.println("[TLSServer] Serveur sécurisé lancé sur le port " + port);
             System.out.println("[TLSServer] Protocole actif : TLSv1.3 uniquement");
+
+            // Start the background cleanup task
+            cleanupService.start();
 
             while (!serverSocket.isClosed()) {
                 try {

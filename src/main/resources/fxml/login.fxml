@@ -131,13 +131,24 @@
                             spacing="10"
                             prefHeight="48">
                             <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
-                            <Label text="🔒" styleClass="input-icon"/>
-                            <PasswordField
-                                fx:id="loginPasswordField"
-                                promptText="••••••••"
-                                styleClass="auth-field"
-                                HBox.hgrow="ALWAYS"/>
-                        </HBox>
+                             <Label text="🔒" styleClass="input-icon"/>
+                             <StackPane HBox.hgrow="ALWAYS">
+                                 <PasswordField
+                                     fx:id="loginPasswordField"
+                                     promptText="••••••••"
+                                     styleClass="auth-field"
+                                     maxWidth="Infinity"/>
+                                 <TextField
+                                     fx:id="loginPasswordVisibleField"
+                                     promptText="••••••••"
+                                     styleClass="auth-field"
+                                     visible="false"
+                                     maxWidth="Infinity"/>
+                             </StackPane>
+                             <Button fx:id="toggleLoginPasswordBtn" 
+                                     onAction="#toggleLoginPasswordVisibility"
+                                     styleClass="visibility-btn" text="👁"/>
+                         </HBox>
                         <HBox alignment="CENTER_RIGHT">
                             <Hyperlink
                                 fx:id="forgotPasswordLink"
@@ -278,13 +289,33 @@
                                     prefHeight="48">
                                 <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
                                 <Label text="✉" styleClass="input-icon"/>
-                                <TextField
-                                        fx:id="registerPhoneField"
-                                        promptText="0600000000"
-                                        styleClass="auth-field"
-                                        HBox.hgrow="ALWAYS"/>
-                            </HBox>
-                        </VBox>
+                                 <TextField
+                                         fx:id="registerPhoneField"
+                                         promptText="0600000000"
+                                         styleClass="auth-field"
+                                         HBox.hgrow="ALWAYS"/>
+                             </HBox>
+                         </VBox>
+                         
+                         <!-- ── Birthday ────────────────────────── -->
+                         <VBox spacing="7">
+                             <Label text="Date de naissance" styleClass="field-label"/>
+                             <HBox
+                                     fx:id="registerBirthdayWrapper"
+                                     styleClass="input-wrapper"
+                                     alignment="CENTER_LEFT"
+                                     spacing="10"
+                                     prefHeight="48">
+                                 <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
+                                 <Label text="📅" styleClass="input-icon"/>
+                                 <DatePicker
+                                         fx:id="registerBirthdayPicker"
+                                         promptText="JJ/MM/AAAA"
+                                         styleClass="auth-datepicker"
+                                         HBox.hgrow="ALWAYS"
+                                         maxWidth="Infinity"/>
+                             </HBox>
+                         </VBox>
 
                         <!-- ── Password ───────────────────────── -->
                         <VBox spacing="7">
@@ -297,11 +328,22 @@
                                 prefHeight="48">
                                 <padding><Insets top="0" right="14" bottom="0" left="14"/></padding>
                                 <Label text="🔒" styleClass="input-icon"/>
-                                <PasswordField
-                                    fx:id="registerPasswordField"
-                                    promptText="Min. 8 caractères"
-                                    styleClass="auth-field"
-                                    HBox.hgrow="ALWAYS"/>
+                                <StackPane HBox.hgrow="ALWAYS">
+                                    <PasswordField
+                                        fx:id="registerPasswordField"
+                                        promptText="Min. 8 caractères"
+                                        styleClass="auth-field"
+                                        maxWidth="Infinity"/>
+                                    <TextField
+                                        fx:id="registerPasswordVisibleField"
+                                        promptText="Min. 8 caractères"
+                                        styleClass="auth-field"
+                                        visible="false"
+                                        maxWidth="Infinity"/>
+                                </StackPane>
+                                <Button fx:id="toggleRegisterPasswordBtn" 
+                                        onAction="#toggleRegisterPasswordVisibility"
+                                        styleClass="visibility-btn" text="👁"/>
                             </HBox>
 
                             <!-- Password strength bar -->
@@ -378,8 +420,60 @@
             </Tab>
 
         </TabPane>
-
     </VBox>
-    <!-- end login-card -->
+
+    <!-- ══ Verification Overlay (2FA / Signup) ══════════════════ -->
+    <VBox
+        fx:id="verificationOverlay"
+        styleClass="verification-overlay"
+        alignment="CENTER"
+        spacing="30"
+        visible="false"
+        managed="false">
+        
+        <VBox styleClass="verification-card" alignment="CENTER" spacing="24" maxWidth="400" minHeight="500">
+            <effect>
+                <DropShadow color="#00000033" radius="30" offsetX="0" offsetY="10"/>
+            </effect>
+            
+            <VBox alignment="CENTER" spacing="8">
+                <StackPane styleClass="verify-icon-circle" prefWidth="64" prefHeight="64">
+                    <Label text="✉" styleClass="verify-icon-text"/>
+                </StackPane>
+                <Label fx:id="verificationTitle" text="Vérification par e-mail" styleClass="verify-title"/>
+                <Label fx:id="verificationSubtitle" text="Un code a été envoyé à votre adresse e-mail." styleClass="verify-subtitle" wrapText="true" textAlignment="CENTER"/>
+            </VBox>
+            
+            <!-- OTP Input Boxes -->
+            <HBox fx:id="otpContainer" spacing="10" alignment="CENTER">
+                <TextField fx:id="otp1" styleClass="otp-box-char"/>
+                <TextField fx:id="otp2" styleClass="otp-box-char"/>
+                <TextField fx:id="otp3" styleClass="otp-box-char"/>
+                <TextField fx:id="otp4" styleClass="otp-box-char"/>
+                <TextField fx:id="otp5" styleClass="otp-box-char"/>
+                <TextField fx:id="otp6" styleClass="otp-box-char"/>
+            </HBox>
+
+            <!-- Password Reset Fields (Hidden by default) -->
+            <VBox fx:id="passwordResetContainer" spacing="15" visible="false" managed="false">
+                <VBox spacing="5">
+                    <Label text="Nouveau mot de passe" styleClass="input-label-small" style="-fx-text-fill: #E8E8EF;"/>
+                    <PasswordField fx:id="newResetPasswordField" styleClass="auth-input" style="-fx-pref-height: 40;" promptText="••••••••"/>
+                </VBox>
+                <VBox spacing="5">
+                    <Label text="Confirmer le mot de passe" styleClass="input-label-small" style="-fx-text-fill: #E8E8EF;"/>
+                    <PasswordField fx:id="confirmResetPasswordField" styleClass="auth-input" style="-fx-pref-height: 40;" promptText="••••••••"/>
+                </VBox>
+            </VBox>
+            
+            <VBox alignment="CENTER" spacing="12">
+                <Label fx:id="verificationErrorLabel" text="" styleClass="error-label-small" visible="false"/>
+                <Label fx:id="verificationRetryLabel" text="" styleClass="retry-label"/>
+                
+                <Button fx:id="verifyCodeBtn" text="Vérifier" styleClass="primary-btn" maxWidth="Infinity" prefHeight="48" onAction="#handleVerifyCode"/>
+                <Hyperlink text="Annuler" onAction="#handleCancelVerification" styleClass="cancel-link"/>
+            </VBox>
+        </VBox>
+    </VBox>
 
 </StackPane>

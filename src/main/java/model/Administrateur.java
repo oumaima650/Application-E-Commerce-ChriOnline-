@@ -8,7 +8,7 @@ public class Administrateur extends Utilisateur {
         super();
     }
 
-    public Administrateur(int idUtilisateur, String email, String motDePasse, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        super(idUtilisateur, email, motDePasse, createdAt, updatedAt);
+    public Administrateur(int idUtilisateur, String email, String motDePasse, boolean twoFactorEnabled, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        super(idUtilisateur, email, motDePasse, twoFactorEnabled, createdAt, updatedAt);
     }
 }

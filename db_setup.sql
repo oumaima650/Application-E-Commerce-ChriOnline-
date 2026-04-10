@@ -5,7 +5,8 @@ SET NAMES utf8mb4;
 
 
 -- updates :
-ALTER TABLE Client  ADD COLUMN statut     ENUM('ACTIF', 'BANNI') DEFAULT 'ACTIF' AFTER telephone;
+ALTER TABLE Client  ADD COLUMN statut     ENUM('ACTIF', 'BANNI', 'EN_ATTENTE') DEFAULT 'EN_ATTENTE' AFTER telephone;
+ALTER TABLE Client  ADD COLUMN dateNaissance DATE NULL AFTER statut;
 ALTER TABLE Adresse ADD COLUMN codePostal VARCHAR(10) NULL AFTER ville;
 
 -- ------------------------------------------------------------
@@ -15,6 +16,7 @@ CREATE TABLE Utilisateur (
     IdUtilisateur   INT             NOT NULL AUTO_INCREMENT,
     email           VARCHAR(255)    NOT NULL UNIQUE,
     motDePasse      VARCHAR(255)    NOT NULL,
+    two_factor_enabled BOOLEAN      NOT NULL DEFAULT FALSE,
     createdAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (IdUtilisateur)
@@ -265,6 +267,17 @@ CREATE TABLE Notification (
     created_At      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (idNotification),
     CONSTRAINT fk_notif_utilisateur FOREIGN KEY (IdUtilisateur) REFERENCES Utilisateur(IdUtilisateur) ON DELETE CASCADE  ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ------------------------------------------------------------
+-- Table : TwoFactorCodes
+-- ------------------------------------------------------------
+CREATE TABLE TwoFactorCodes (
+    email           VARCHAR(255)    NOT NULL,
+    code_hash       VARCHAR(255)    NOT NULL,
+    expires_at      DATETIME        NOT NULL,
+    attempts        INT             NOT NULL DEFAULT 0,
+    PRIMARY KEY (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;

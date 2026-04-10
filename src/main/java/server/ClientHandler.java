@@ -53,7 +53,9 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket) {
         this.socket      = socket;
         this.securityManager = new SecurityManager();
-        this.authService = new AuthService(securityManager.getLoginAttemptService());
+        // [WHITELIST IP ADMIN] On passe l'instance de SecurityManager à AuthService
+        // pour qu'il puisse vérifier l'IP lors du login admin (réutilisation de la whitelist déjà chargée)
+        this.authService = new AuthService(securityManager.getLoginAttemptService(), securityManager);
         this.adminService = new AdminService();
         this.serveurUDP = ServeurUDP.getInstance();
         this.carteBancaireService = new CarteBancaireService();
@@ -79,7 +81,21 @@ public class ClientHandler implements Runnable {
         try {
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
-            in  = new ObjectInputStream(socket.getInputStream());
+
+            // PROTECTION: ObjectInputFilter (Whitelist approach)
+            // Allows only safe classes required for the application's protocol.
+            // Documentation: https://docs.oracle.com/en/java/javase/21/core/serialization-filtering1.html
+            java.io.ObjectInputFilter filter = java.io.ObjectInputFilter.Config.createFilter(
+                "shared.**;" +
+                "model.**;" +
+                "java.lang.**;" +
+                "java.util.**;" +
+                "java.time.**;" +
+                "!*" // Reject all other classes
+            );
+
+            in = new ObjectInputStream(socket.getInputStream());
+            in.setObjectInputFilter(filter);
 
             while (!socket.isClosed()) {
                 Requete requete;
@@ -135,7 +151,8 @@ public class ClientHandler implements Runnable {
 
         // 1. PUBLIC ENDPOINTS (No Auth)
         if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH || 
-            type == RequestType.REQUEST_PASSWORD_RESET || type == RequestType.CONFIRM_PASSWORD_RESET) {
+            type == RequestType.REQUEST_PASSWORD_RESET || type == RequestType.CONFIRM_PASSWORD_RESET ||
+            type == RequestType.VERIFY_2FA_LOGIN || type == RequestType.VERIFY_SIGNUP) {
             
             // Inject client context (IP) for security
             if (requete.getParametres() == null) {
@@ -149,7 +166,9 @@ public class ClientHandler implements Runnable {
                 case REFRESH -> authService.refresh(requete);
                 case REQUEST_PASSWORD_RESET -> authService.handleRequestReset(requete);
                 case CONFIRM_PASSWORD_RESET -> authService.handleConfirmReset(requete);
-                default       -> new Reponse(false, "Internal Error", null);
+                case VERIFY_2FA_LOGIN -> authService.handleVerify2FALogin(requete);
+                case VERIFY_SIGNUP -> authService.handleVerifySignup(requete);
+                default -> new Reponse(false, "Internal Error", null);
             };
         }
 
@@ -196,6 +215,10 @@ public class ClientHandler implements Runnable {
         return switch (type) {
             case LOGOUT     -> authService.logout(requete);
             case LOGOUT_ALL -> authService.logoutAll(requete);
+
+            // 2FA (Secure)
+            case GENERATE_2FA_CODE -> authService.handleGenerate2FACode(requete);
+            case TOGGLE_2FA -> authService.handleToggle2FA(requete);
 
             // ───────────────────────────────
             // PUBLIC OPERATIONS (No Auth)

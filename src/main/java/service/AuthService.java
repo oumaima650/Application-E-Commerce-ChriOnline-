@@ -2,6 +2,7 @@ package service;
 
 import dao.ClientDAO;
 import dao.UtilisateurDAO;
+import dao.ConnexionBDD;
 import model.Client;
 import model.Utilisateur;
 import shared.Reponse;
@@ -12,15 +13,24 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AuthService {
 
+    private static final Logger logger = LogManager.getLogger(AuthService.class);
+
     private final LoginAttemptLimitService securityService;
+    // [WHITELIST IP ADMIN] Instance du SecurityManager pour vérifier l'IP lors du login admin
+    private final SecurityManager securityManager;
     private static final long ANTI_TIMING_DELAY_MS = 200;
     private final PasswordResetService passwordResetService = new PasswordResetService();
+    private final TwoFactorAuthService twoFactorAuthService = new TwoFactorAuthService();
 
-    public AuthService(LoginAttemptLimitService securityService) {
+    public AuthService(LoginAttemptLimitService securityService, SecurityManager securityManager) {
         this.securityService = securityService;
+        // [WHITELIST IP ADMIN] Réutilisation de l'instance existante (whitelist déjà chargée)
+        this.securityManager = securityManager;
     }
 
     public Reponse login(Requete requete) {
@@ -52,34 +62,65 @@ public class AuthService {
             int userId = loginData.id();
             Utilisateur user = UtilisateurDAO.findById(userId);
 
-            if (user instanceof Client && "BANNI".equals(((Client) user).getStatut())) {
-                return applyTimingDelay(new Reponse(false, "Ce compte a été banni par l'administrateur.", null), startTime);
+            // --- [WHITELIST IP ADMIN] Étape 3 : Vérification IP pour les ADMINS uniquement ---
+            // Si l'utilisateur est un ADMIN et que son IP n'est pas dans la whitelist → rejet immédiat
+            // Les CLIENTs ne sont PAS affectés par ce contrôle (flux inchangé)
+            if (!(user instanceof Client)) {
+                if (!securityManager.isIpAuthorized(clientIp)) {
+                    logger.error("LOGIN ADMIN REJETÉ - IP non autorisée : {} | Email : {}", clientIp, email);
+                    return applyTimingDelay(new Reponse(false, "IP_NOT_AUTHORIZED", null), startTime);
+                }
+            }
+            // --- Fin vérification IP Admin ---
+
+            if (user instanceof Client) {
+                String statut = ((Client) user).getStatut();
+                if ("BANNI".equals(statut)) {
+                    return applyTimingDelay(new Reponse(false, "Ce compte a été banni par l'administrateur.", null), startTime);
+                }
+                if ("EN_ATTENTE".equals(statut)) {
+                    twoFactorAuthService.send2FACode(email);
+                    return applyTimingDelay(new Reponse(false, "SIGNUP_VERIFICATION_REQUIRED", null), startTime);
+                }
+            }
+
+            // --- 2FA Check ---
+            if (loginData.twoFactorEnabled()) {
+                if (twoFactorAuthService.send2FACode(email)) {
+                    System.out.println("[AuthService] 2FA required for email=" + email);
+                    return applyTimingDelay(new Reponse(false, "2FA_REQUIRED", null), startTime);
+                } else {
+                    return applyTimingDelay(new Reponse(false, "Erreur lors de l'envoi du code 2FA.", null), startTime);
+                }
             }
 
             securityService.registerSuccess(clientIp, email, captchaValide);
-
-            String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
-            String sessionId = UUID.randomUUID().toString();
-
-            String accessToken = JWTService.generateAccessToken(String.valueOf(userId), role, sessionId);
-            String refreshToken = JWTService.generateRefreshToken();
-            
-            RefreshTokenDAO refreshTokenDAO = new RefreshTokenDAO();
-            refreshTokenDAO.save(userId, refreshToken, LocalDateTime.now().plusDays(7));
-
-            Map<String, Object> donnees = new HashMap<>();
-            donnees.put("accessToken", accessToken);
-            donnees.put("refreshToken", refreshToken);
-            donnees.put("utilisateur", user);
-            donnees.put("typeUtilisateur", role);
-
-            System.out.println("[AuthService] Login OK — email=" + email + " userId=" + userId);
-            return applyTimingDelay(new Reponse(true, "Connexion réussie.", donnees), startTime);
+            return applyTimingDelay(generateAuthReponse(user), startTime);
 
         } catch (SQLException e) {
             System.err.println("[AuthService] Erreur SQL lors du login : " + e.getMessage());
             return applyTimingDelay(new Reponse(false, "Erreur serveur lors de la connexion.", null), startTime);
         }
+    }
+
+    private Reponse generateAuthReponse(Utilisateur user) throws SQLException {
+        int userId = user.getIdUtilisateur();
+        String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
+        String sessionId = UUID.randomUUID().toString();
+
+        String accessToken = JWTService.generateAccessToken(String.valueOf(userId), role, sessionId);
+        String refreshToken = JWTService.generateRefreshToken();
+        
+        RefreshTokenDAO refreshTokenDAO = new RefreshTokenDAO();
+        refreshTokenDAO.save(userId, refreshToken, LocalDateTime.now().plusDays(7));
+
+        Map<String, Object> donnees = new HashMap<>();
+        donnees.put("accessToken", accessToken);
+        donnees.put("refreshToken", refreshToken);
+        donnees.put("utilisateur", user);
+        donnees.put("typeUtilisateur", role);
+
+        return new Reponse(true, "Connexion réussie.", donnees);
     }
 
     private Reponse applyTimingDelay(Reponse reponse, long startTime) {
@@ -108,12 +149,26 @@ public class AuthService {
             String nom        = (String) params.get("nom");
             String prenom     = (String) params.get("prenom");
             String telephone  = (String) params.get("telephone");
+            String dobString  = (String) params.get("dateNaissance"); // ISO format YYYY-MM-DD
             String recaptchaToken = (String) params.get("recaptchaToken");
+
+            if (dobString == null) return new Reponse(false, "Date de naissance requise.", null);
+            java.time.LocalDate dateNaissance = java.time.LocalDate.parse(dobString);
 
             // --- reCAPTCHA Verification ---
             RecaptchaService recaptchaService = new RecaptchaService();
             if (!recaptchaService.verify(recaptchaToken)) {
                 return new Reponse(false, "Vérification reCAPTCHA échouée. Veuillez réessayer.", null);
+            }
+
+            // --- Age Check (>= 16) ---
+            if (java.time.Period.between(dateNaissance, java.time.LocalDate.now()).getYears() < 16) {
+                return new Reponse(false, "Vous devez avoir au moins 16 ans pour vous inscrire.", null);
+            }
+
+            // --- Identity-based Password Safety Check ---
+            if (containsIdentityInfo(motDePasse, nom, prenom, dateNaissance)) {
+                return new Reponse(false, "Le mot de passe ne peut pas contenir votre nom, prénom ou date de naissance.", null);
             }
 
             PasswordService.ValidationResult strength = PasswordService.validateStrength(motDePasse);
@@ -129,21 +184,74 @@ public class AuthService {
                 return new Reponse(false, "Numéro de téléphone déjà utilisé : " + telephone, null);
             }
 
+            // --- 2-Step Signup Verification ---
+            // We create the account as 'EN_ATTENTE' and send verification code
+            // We create the account as 'EN_ATTENTE' and send verification code
             String hashedPw = PasswordService.hash(motDePasse);
             ClientDAO clientDAO = new ClientDAO();
-            Client client = clientDAO.create(email, hashedPw, nom, prenom, telephone);
+            Client client = clientDAO.create(email, hashedPw, nom, prenom, telephone, dateNaissance);
 
-            Map<String, Object> donnees = new HashMap<>();
-            donnees.put("utilisateur", client);
+            if (twoFactorAuthService.send2FACode(email)) {
+                System.out.println("[AuthService] Signup pending verification for email=" + email);
+                return new Reponse(false, "SIGNUP_VERIFICATION_REQUIRED", null);
+            } else {
+                // Cleanup: Delete the account if the initial email fails to avoid ghost accounts
+                try {
+                    UtilisateurDAO.delete(client.getIdUtilisateur());
+                } catch (SQLException ex) {
+                    System.err.println("[AuthService] Échec du nettoyage après erreur email : " + ex.getMessage());
+                }
+                return new Reponse(false, "Échec de l'envoi de l'e-mail de vérification. Compte non créé. Veuillez réessayer.", null);
+            }
 
-            System.out.println("[AuthService] Signup OK — userId=" + client.getIdUtilisateur());
-            new NotificationService().notifierAdmins("Nouveau client inscrit : " + prenom + " " + nom + " (" + email + ")");
-            
-            return new Reponse(true, "Compte créé avec succès.", donnees);
-
-        } catch (SQLException e) {
-            System.err.println("[AuthService] Erreur SQL lors du signup : " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("[AuthService] Erreur lors du signup : " + e.getMessage());
             return new Reponse(false, "Erreur serveur lors de l'inscription.", null);
+        }
+    }
+
+    private boolean containsIdentityInfo(String password, String nom, String prenom, java.time.LocalDate dob) {
+        String p = password.toLowerCase();
+        String n = nom.toLowerCase();
+        String pr = prenom.toLowerCase();
+        String year = String.valueOf(dob.getYear());
+        String day = String.format("%02d", dob.getDayOfMonth());
+        String month = String.format("%02d", dob.getMonthValue());
+
+        return p.contains(n) || p.contains(pr) || p.contains(year) || p.contains(day) || p.contains(month);
+    }
+
+    public Reponse handleVerifySignup(Requete requete) {
+        try {
+            Map<String, Object> params = requete.getParametres();
+            if (params == null || !params.containsKey("email") || !params.containsKey("code")) {
+                return new Reponse(false, "Email et code requis.", null);
+            }
+            String email = (String) params.get("email");
+            String code = (String) params.get("code");
+
+            TwoFactorAuthService.VerificationResult result = twoFactorAuthService.verifyCode(email, code);
+            if (result.success()) {
+                // Activate account
+                String sql = "UPDATE Client SET statut = 'ACTIF' WHERE IdUtilisateur = (SELECT IdUtilisateur FROM Utilisateur WHERE email = ?)";
+                try (java.sql.Connection conn = ConnexionBDD.getConnection();
+                     java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, email);
+                    ps.executeUpdate();
+                }
+                
+                UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
+                Utilisateur user = UtilisateurDAO.findById(loginData.id());
+                
+                System.out.println("[AuthService] Signup verified OK — userId=" + user.getIdUtilisateur());
+                new NotificationService().notifierAdmins("Nouveau client inscrit : " + ((Client)user).getPrenom() + " " + ((Client)user).getNom() + " (" + email + ")");
+                
+                return generateAuthReponse(user);
+            } else {
+                return new Reponse(false, result.message(), null);
+            }
+        } catch (Exception e) {
+            return new Reponse(false, "Erreur serveur lors de la vérification.", null);
         }
     }
 
@@ -267,6 +375,81 @@ public class AuthService {
             return Integer.parseInt(JWTService.verifyAccessToken(token).userId());
         } catch (Exception e) {
             return -1;
+        }
+    }
+
+    public Reponse handleVerify2FALogin(Requete requete) {
+        try {
+            Map<String, Object> params = requete.getParametres();
+            if (params == null || !params.containsKey("email") || !params.containsKey("code")) {
+                return new Reponse(false, "Email et code requis.", null);
+            }
+            String email = (String) params.get("email");
+            String code = (String) params.get("code");
+
+            TwoFactorAuthService.VerificationResult result = twoFactorAuthService.verifyCode(email, code);
+            if (result.success()) {
+                UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
+                Utilisateur user = UtilisateurDAO.findById(loginData.id());
+                
+                String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
+                securityService.registerSuccess(clientIp, email, true);
+                
+                return generateAuthReponse(user);
+            } else {
+                return new Reponse(false, result.message(), null);
+            }
+        } catch (SQLException e) {
+            return new Reponse(false, "Erreur serveur.", null);
+        }
+    }
+
+    public Reponse handleToggle2FA(Requete requete) {
+        try {
+            Map<String, Object> params = requete.getParametres();
+            if (params == null || !params.containsKey("enabled")) {
+                return new Reponse(false, "Status requis.", null);
+            }
+            boolean enabled = (boolean) params.get("enabled");
+            String code = (String) params.get("code"); // Only required if enabling
+
+            int userId = getUserIdFromToken(requete.getTokenSession());
+            if (userId == -1) return new Reponse(false, "Non autorisé.", null);
+
+            Utilisateur user = UtilisateurDAO.findById(userId);
+            if (user == null) return new Reponse(false, "Utilisateur introuvable.", null);
+
+            if (enabled) {
+                if (code == null) return new Reponse(false, "Code de confirmation requis.", null);
+                TwoFactorAuthService.VerificationResult result = twoFactorAuthService.verifyCode(user.getEmail(), code);
+                if (!result.success()) return new Reponse(false, result.message(), null);
+            }
+
+            if (UtilisateurDAO.updateTwoFactorStatus(user.getEmail(), enabled)) {
+                return new Reponse(true, enabled ? "2FA activé avec succès." : "2FA désactivé avec succès.", null);
+            } else {
+                return new Reponse(false, "Erreur lors de la mise à jour.", null);
+            }
+        } catch (SQLException e) {
+            return new Reponse(false, "Erreur serveur.", null);
+        }
+    }
+
+    public Reponse handleGenerate2FACode(Requete requete) {
+        try {
+            int userId = getUserIdFromToken(requete.getTokenSession());
+            if (userId == -1) return new Reponse(false, "Non autorisé.", null);
+
+            Utilisateur user = UtilisateurDAO.findById(userId);
+            if (user == null) return new Reponse(false, "Utilisateur introuvable.", null);
+
+            if (twoFactorAuthService.send2FACode(user.getEmail())) {
+                return new Reponse(true, "Un code de confirmation a été envoyé à votre email.", null);
+            } else {
+                return new Reponse(false, "Erreur lors de l'envoi de l'e-mail.", null);
+            }
+        } catch (SQLException e) {
+            return new Reponse(false, "Erreur serveur.", null);
         }
     }
 }

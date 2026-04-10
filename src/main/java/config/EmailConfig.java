@@ -34,6 +34,12 @@ public class EmailConfig {
         smtpProps.put("mail.smtp.host", properties.getProperty("mail.smtp.host", "smtp.gmail.com"));
         smtpProps.put("mail.smtp.port", properties.getProperty("mail.smtp.port", "587"));
         smtpProps.put("mail.smtp.ssl.trust", properties.getProperty("mail.smtp.ssl.trust", "smtp.gmail.com"));
+        
+        // Timeouts to prevent hanging
+        smtpProps.put("mail.smtp.connectiontimeout", "5000"); // 5s to connect
+        smtpProps.put("mail.smtp.timeout", "5000");           // 5s to read
+        smtpProps.put("mail.smtp.writetimeout", "5000");      // 5s to write
+        
         return smtpProps;
     }
 }

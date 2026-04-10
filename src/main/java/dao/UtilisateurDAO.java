@@ -16,19 +16,19 @@ public class UtilisateurDAO {
         return ConnexionBDD.getConnection();
     }
 
-    public record LoginData(int id, String hash) {}
+    public record LoginData(int id, String hash, boolean twoFactorEnabled) {}
 
     /**
      * Gets the user ID and password hash for a given email.
      * @return LoginData or null if user doesn't exist.
      */
     public static LoginData getLoginData(String email) throws SQLException {
-        String sql = "SELECT IdUtilisateur, motDePasse FROM Utilisateur WHERE email = ?";
+        String sql = "SELECT IdUtilisateur, motDePasse, two_factor_enabled FROM Utilisateur WHERE email = ?";
         try (PreparedStatement ps = getConn().prepareStatement(sql)) {
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new LoginData(rs.getInt(1), rs.getString(2));
+                    return new LoginData(rs.getInt(1), rs.getString(2), rs.getBoolean(3));
                 }
             }
         }
@@ -89,7 +89,7 @@ public class UtilisateurDAO {
         if (userType(id) == TypeEtulisateur.CLIENT) {
             return new ClientDAO().findById(id);
         } else {
-            String sql = "SELECT email, motDePasse, createdAt, updatedAt FROM Utilisateur WHERE IdUtilisateur = ?";
+            String sql = "SELECT email, motDePasse, two_factor_enabled, createdAt, updatedAt FROM Utilisateur WHERE IdUtilisateur = ?";
             try (Connection conn = getConn();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, id);
@@ -97,7 +97,7 @@ public class UtilisateurDAO {
                     if (rs.next()) {
                         LocalDateTime ca = rs.getTimestamp("createdAt") != null ? rs.getTimestamp("createdAt").toLocalDateTime() : null;
                         LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
-                        return new Administrateur(id, rs.getString("email"), rs.getString("motDePasse"), ca, ua);
+                        return new Administrateur(id, rs.getString("email"), rs.getString("motDePasse"), rs.getBoolean("two_factor_enabled"), ca, ua);
                     }
                 }
             }
@@ -130,6 +130,47 @@ public class UtilisateurDAO {
             ps.setString(1, newHash);
             ps.setString(2, email);
             return ps.executeUpdate() > 0;
+        }
+    }
+
+    public static boolean updateTwoFactorStatus(String email, boolean enabled) throws SQLException {
+        String sql = "UPDATE Utilisateur SET two_factor_enabled = ?, updatedAt = NOW() WHERE email = ?";
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBoolean(1, enabled);
+            ps.setString(2, email);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public static void delete(int id) throws SQLException {
+        String sql = "DELETE FROM Utilisateur WHERE IdUtilisateur = ?";
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        }
+    }
+
+    /**
+     * Deletes all Utilisateur records whose corresponding Client account
+     * has an EN_ATTENTE status and was created more than {@code hours} hours ago.
+     * The ON DELETE CASCADE on the FK ensures that the Client row is also removed.
+     *
+     * @param hours Number of hours after which a pending account is considered abandoned.
+     * @return Number of accounts deleted.
+     */
+    public static int deleteOldPendingAccounts(int hours) throws SQLException {
+        String sql = """
+                DELETE u FROM Utilisateur u
+                INNER JOIN Client c ON c.IdUtilisateur = u.IdUtilisateur
+                WHERE c.statut = 'EN_ATTENTE'
+                  AND u.createdAt < NOW() - INTERVAL ? HOUR
+                """;
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, hours);
+            return ps.executeUpdate();
         }
     }
 }
