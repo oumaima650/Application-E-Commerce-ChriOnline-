@@ -13,16 +13,24 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AuthService {
 
+    private static final Logger logger = LogManager.getLogger(AuthService.class);
+
     private final LoginAttemptLimitService securityService;
+    // [WHITELIST IP ADMIN] Instance du SecurityManager pour vérifier l'IP lors du login admin
+    private final SecurityManager securityManager;
     private static final long ANTI_TIMING_DELAY_MS = 200;
     private final PasswordResetService passwordResetService = new PasswordResetService();
     private final TwoFactorAuthService twoFactorAuthService = new TwoFactorAuthService();
 
-    public AuthService(LoginAttemptLimitService securityService) {
+    public AuthService(LoginAttemptLimitService securityService, SecurityManager securityManager) {
         this.securityService = securityService;
+        // [WHITELIST IP ADMIN] Réutilisation de l'instance existante (whitelist déjà chargée)
+        this.securityManager = securityManager;
     }
 
     public Reponse login(Requete requete) {
@@ -53,6 +61,17 @@ public class AuthService {
 
             int userId = loginData.id();
             Utilisateur user = UtilisateurDAO.findById(userId);
+
+            // --- [WHITELIST IP ADMIN] Étape 3 : Vérification IP pour les ADMINS uniquement ---
+            // Si l'utilisateur est un ADMIN et que son IP n'est pas dans la whitelist → rejet immédiat
+            // Les CLIENTs ne sont PAS affectés par ce contrôle (flux inchangé)
+            if (!(user instanceof Client)) {
+                if (!securityManager.isIpAuthorized(clientIp)) {
+                    logger.error("LOGIN ADMIN REJETÉ - IP non autorisée : {} | Email : {}", clientIp, email);
+                    return applyTimingDelay(new Reponse(false, "IP_NOT_AUTHORIZED", null), startTime);
+                }
+            }
+            // --- Fin vérification IP Admin ---
 
             if (user instanceof Client) {
                 String statut = ((Client) user).getStatut();
