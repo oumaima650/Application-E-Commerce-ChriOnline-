@@ -1,66 +1,105 @@
 # ChriOnline E-Commerce Application
 
-This project is a Java-based e-commerce application designed to demonstrate a multi-client server architecture using native TCP/UDP sockets. It handles core e-commerce processes including user authentication, product catalog management, cart handling, and order processing.
+[![Java](https://img.shields.io/badge/Language-Java-orange.svg)](https://www.java.com/)
+[![Architecture](https://img.shields.io/badge/Architecture-Client--Server-green.svg)](#project-scope)
 
-## Project Scope
+**ChriOnline** is a robust Java-based e-commerce platform designed with a strong focus on **Network Security** and **Scalability**. It demonstrates a complex multi-client/server architecture using native TCP and UDP sockets, implementing modern security protocols to protect sensitive user data and prevent common network attacks.
 
-The application follows a client-server model where:
-- The Client provides the user interface (Console or JavaFX) and communicates with the Server via Sockets.
-- The Server handles business logic, security, and database interactions.
-- TCP Sockets are used for critical operations requiring high reliability (Authentication, Orders, Payments).
-- UDP Sockets are used for non-critical fast messages such as notifications.
+---
+
+## Key Features
+
+- **Full E-Commerce Flow**: Product browsing, cart management, and secure order processing.
+- **Advanced Authentication**: Secure login system with refresh token mechanism.
+- **Real-time Notifications**: Fast UDP-based push notifications for order updates and alerts.
+- **Admin Dashboard**: Dedicated administrative interface for managing the catalog and monitoring security.
+- **Modern UI**: Responsive JavaFX-based desktop interface.
+
+---
+
+## Security Implementation (Core Focus)
+
+This project prioritizes defense-in-depth through several security layers:
+
+### 1. Encrypted Communication (TLS 1.3)
+All critical TCP traffic (Authentication, Payments, Orders) is encrypted using **TLSv1.3**, ensuring confidentiality and integrity.
+- **Client/Server Handshake**: Uses custom SSLSocketFactory with strictly enforced TLS 1.3.
+- **Certificate Management**: Uses local keystores for secure identity verification.
+
+### 2. Replay Attack Protection
+Prevents attackers from intercepting and re-sending valid requests.
+- **Nonce & Timestamp**: Every request includes a unique UUID (nonce) and a millisecond timestamp.
+- **Server Validation**: The `ReplayProtectionService` maintains a 30-second window to verify uniqueness and freshness.
+
+### 3. UDP Flood & Volumetric Protection
+Safeguards the notification system against Denial of Service (DoS) attacks.
+- **Rate Limiting**: Limits clients to **3 packets per second**.
+- **Payload Filtering**: Maximum payload size restricted to **1 KB** to prevent amplification.
+
+### 4. Brute Force & Anti-Spam
+- **Login Throttling**: Limits failed attempts by both **IP address** and **User Email**.
+- **Active Defense**: Automatically blocks suspicious actors via the `SecurityManager` facade.
+
+### 5. IP Whitelisting
+- **Admin Security**: Critical administrative endpoints are restricted to specific authorized IPs/Subnets.
+
+---
 
 ## Technical Stack
 
-- Language: Java
-- Communication: TCP (Socket, ServerSocket) and UDP (DatagramSocket)
-- Database: MySQL
-- Access Layer: JDBC with Singleton connection pattern
-- Build Tool: Maven
+- **Core**: Java 17+
+- **Network**: Native TCP/UDP Sockets (Socket, ServerSocket, DatagramSocket)
+- **Encryption**: TLS 1.3 (JSSE)
+- **Database**: MySQL 8.0+ / JDBC
+- **Logging**: Log4j2 for security auditing
+- **UI Framework**: JavaFX
+
+---
 
 ## Project Structure
 
-- src/main/java/client: Client-side application logic and socket connection.
-- src/main/java/server: Multi-threaded server implementation and request handling.
-- src/main/java/model: Data entities (User, Product, Order, etc.).
-- src/main/java/dao: Data Access Objects for database interaction.
-- src/main/java/shared: Common objects sent between client and server (Requete, Reponse).
-- src/main/java/service: Server-side business logic services.
-- src/main/java/ui: UI controllers for the desktop application.
+```text
+├── src/main/java
+│   ├── client          # Logic for socket connection and JavaFX App
+│   ├── server          # Multi-threaded TCP/UDP server implementation
+│   ├── shared          # Data Transfer Objects (Requete, Reponse, Session)
+│   ├── service         # SecurityManager, Replay & UDP protection services
+│   ├── dao             # Data Access Layer (JDBC / Singleton)
+│   ├── model           # Domain entities (User, Product, Order)
+│   └── ui              # JavaFX Controllers & UI Logic
+└── src/main/resources
+    └── fxml            # Visual layouts and styles
+```
 
-## Database Setup
+---
 
-A comprehensive database script is provided in the root directory.
+## Setup & Installation
 
-File: db_setup.sql
+### 1. Database Configuration
+1. Ensure **MySQL** is running.
+2. Create a database named `chri_online`.
+3. Import the `db_setup.sql` file provided in the root directory.
+4. Update credentials in `src/main/java/dao/ConnexionBDD.java`:
+   ```java
+   private static final String URL = "jdbc:mysql://localhost:3306/chri_online";
+   private static final String USER = "root";
+   private static final String PASSWORD = "";
+   ```
 
-This script initializes the 'chri_online' database with the following tables:
-- Utilisateur / Client / Admin (Inheritance structure)
-- Categorie / Variante / Produit / SKU (Product catalog with variations)
-- Commande / LigneCommande / Paiement
-- Panier / LignePanier
-- Avis (Product reviews)
-- Notification
+### 2. Running the Application
+Always start the **Server** before the client.
 
-To initialize the database:
-1. Ensure a MySQL server is running (e.g., via XAMPP or WAMP).
-2. Create the database 'chri_online'.
-3. Import the db_setup.sql file.
+- **Start Server**: Run `src/main/java/server/ServeurTCP.java`
+- **Start Client**: Run `src/main/java/client/ClientApp.java`
 
-## How to Start
+---
 
-### Server
-The server must be started first to listen for incoming client connections.
-Main class: src/main/java/server/ServeurTCP.java
+## Security Audit & Logs
+The system generates detailed logs for security events. Check the console or log files for:
+- `ALERTE CRITIQUE`: Potential Replay Attacks.
+- `DÉFENSE ACTIVE`: UDP Flood or Brute Force blocks.
+- `ACCÈS ADMIN REJETÉ`: Unauthorized IP attempts.
 
-### Client
-Once the server is running, instances of the client can be launched.
-Main class: src/main/java/client/ClientApp.java
+---
+*Projet de Sécurité Informatique - Application E-Commerce Sécurisée*
 
-## Configuration
-
-The database connection parameters are defined in src/main/java/dao/ConnexionBDD.java.
-Default settings:
-- URL: jdbc:mysql://localhost:3306/chri_online
-- User: root
-- Password: (empty)
