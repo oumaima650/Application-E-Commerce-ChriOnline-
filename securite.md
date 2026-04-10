@@ -97,5 +97,20 @@ Cette documentation détaille les couches de sécurité ajoutées à l'applicati
 - Chaque exécution est consignée dans les logs du serveur avec le nombre de comptes supprimés.
 **Pourquoi :** Empêche l'accumulation de comptes "fantômes" créés par des bots ou par des utilisateurs qui n'ont jamais terminé leur inscription, maintenant ainsi une base de données propre et limitant la surface d'attaque (exemple : énumération d'e-mails).
 
+
+## 16. Whitelist IP Administrateur (Admin IP Whitelist)
+**Quoi :** Restriction d'accès aux fonctions administratives aux seules adresses IP de confiance pré-configurées.
+
+**Comment :**
+- Les IPs autorisées sont définies dans `config.properties` via la clé `security.admin.allowed_ips` (support des adresses exactes et des jokers `*`, ex: `192.168.1.*`).
+- La vérification s'effectue en **deux points complémentaires** :
+  1. **Lors du Login :** Dans `AuthService.login()`, après récupération de l'utilisateur, si le rôle est `ADMIN`, son IP est vérifiée avant toute émission de JWT. Un accès depuis une IP non autorisée est rejeté avec le code `IP_NOT_AUTHORIZED` et journalisé en `ERROR`.
+  2. **Sur chaque requête ADMIN\_ :** Dans `SecurityManager.validateRequest()`, toute requête dont le type commence par `ADMIN_` est vérifiée en **première priorité**, avant le JWT, avant le 2FA et avant tout autre contrôle.
+- L'IP utilisée est **toujours celle du socket TCP réel** (`socket.getInetAddress().getHostAddress()`). Les headers HTTP (`X-Forwarded-For`) ne sont jamais lus, les rendant inopérants pour contourner ce contrôle.
+- Chaque tentative bloquée est journalisée via Log4j2 (`logger.error`) avec l'IP, l'email et le type de requête, constituant une piste d'audit complète.
+- Côté client (JavaFX), la méthode statique `SessionManager.handleIpNotAuthorized()` gère globalement ce cas : elle affiche une alerte, efface la session locale et redirige vers la page de connexion.
+
+**Pourquoi :** Constitue une couche de **Défense en Profondeur** critique. Même si un attaquant parvenait à voler un JWT ou à compromettre les identifiants d'un administrateur, il resterait bloqué s'il n'opère pas depuis une IP de confiance. Réduit drastiquement la surface d'attaque des fonctions les plus sensibles de l'application.
+
 ---
 *Dernière mise à jour : Avril 2026*
