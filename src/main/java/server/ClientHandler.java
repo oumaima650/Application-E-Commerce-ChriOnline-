@@ -53,7 +53,9 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket) {
         this.socket      = socket;
         this.securityManager = new SecurityManager();
-        this.authService = new AuthService(securityManager.getLoginAttemptService());
+        // [WHITELIST IP ADMIN] On passe l'instance de SecurityManager à AuthService
+        // pour qu'il puisse vérifier l'IP lors du login admin (réutilisation de la whitelist déjà chargée)
+        this.authService = new AuthService(securityManager.getLoginAttemptService(), securityManager);
         this.adminService = new AdminService();
         this.serveurUDP = ServeurUDP.getInstance();
         this.carteBancaireService = new CarteBancaireService();

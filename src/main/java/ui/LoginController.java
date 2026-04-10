@@ -324,6 +324,12 @@ public class LoginController implements Initializable {
                 showVerificationOverlay(email, OverlayMode.LOGIN_2FA);
             } else if (reponse != null && "SIGNUP_VERIFICATION_REQUIRED".equals(reponse.getMessage())) {
                 showVerificationOverlay(email, OverlayMode.SIGNUP);
+            // --- [WHITELIST IP ADMIN] Vérification IP non autorisée ---
+            // Si le serveur retourne IP_NOT_AUTHORIZED (admin depuis une IP interdite),
+            // on appelle le gestionnaire global qui : affiche l'alerte + vide la session + redirige
+            } else if (reponse != null && "IP_NOT_AUTHORIZED".equals(reponse.getMessage())) {
+                SessionManager.handleIpNotAuthorized();
+            // --- Fin vérification IP ---
             } else {
                 showError(loginErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Erreur"));
                 shake(loginEmailWrapper); shake(loginPasswordWrapper);
