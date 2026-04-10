@@ -24,6 +24,7 @@ public class SecurityManager {
 
     private final LoginAttemptLimitService loginAttemptService = new LoginAttemptLimitService();
     private final ReplayProtectionService replayProtectionService = new ReplayProtectionService();
+    private final UdpSecurityService udpSecurityService = new UdpSecurityService();
 
     // Whitelist des IPs autorisées pour les accès administrateur
     private final List<String> adminAllowedIps;
@@ -56,11 +57,10 @@ public class SecurityManager {
     }
 
     /**
-     * Valide une requête entrante avant son traitement par les services métiers.
-     * 
-     * @param requete  La requête reçue.
+     * Valide une requete entrante avant son traitement par les services metiers.
+     * @param requete La requete reçue.
      * @param clientIp L'adresse IP du client.
-     * @return Une Reponse d'erreur si la requête est bloquée, sinon null.
+     * @return Une Reponse d'erreur si la requete est bloquee, sinon null.
      */
     public Reponse validateRequest(Requete requete, String clientIp) {
         // --- 0. [WHITELIST IP ADMIN] - VÉRIFICATION EN PREMIER ---
@@ -81,7 +81,7 @@ public class SecurityManager {
             return new Reponse(false, ipCheck.message, null);
         }
 
-        // 2. Vérification spécifique au LOGIN (Blocage par Email)
+        // 2. Verification specifique au LOGIN (Blocage par Email)
         if (requete.getType() == RequestType.LOGIN) {
             Map<String, Object> params = requete.getParametres();
             if (params != null && params.containsKey("email")) {
@@ -102,17 +102,17 @@ public class SecurityManager {
             return new Reponse(false, "REPLAY_ATTACK_DETECTED", null);
         }
 
-        // Ici, les autres membres de l'équipe pourront ajouter leurs propres
-        // vérifications :
-        // if (!sqlInjectionService.isSafe(requete)) return new Reponse(false, "ALERTE
-        // SQLi", null);
-        // if (!geoBlockService.isIpAllowed(clientIp)) return new Reponse(false, "Région
-        // bloquée", null);
-
         //Enregistrer les requetes autorisees
         logger.info("Requête autorisée: {} depuis l'IP {}", requete.getType(), clientIp);
 
-        return null; // OK - Requête autorisée
+        return null; // requete autorisee
+    }
+
+    /**
+     * Valide un paquet UDP sortant pour empecher Flood et amplification.
+     */
+    public boolean validateUdpRequest(int clientId, String message) {
+        return udpSecurityService.isSafePacket(clientId, message);
     }
 
     public LoginAttemptLimitService getLoginAttemptService() {

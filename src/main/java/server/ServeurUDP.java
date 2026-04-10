@@ -6,7 +6,7 @@ import java.net.InetAddress;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Serveur UDP charge de l'envoi des notifications (Systeme Push) aux clients connectes.
+ * Serveur UDP chargé de l'envoi des notifications (Systeme Push) aux clients connectes.
  * Contrairement a TCP, UDP ne necessite pas de maintenir une connexion constante, il "tire"
  * le message vers le port ecouteur du client.
  */
@@ -14,7 +14,9 @@ public class ServeurUDP {
     private static ServeurUDP instance;
     private final ConcurrentHashMap<Integer, ClientEndPoint> clientsUdp;
     private DatagramSocket socketUdp;
-    
+     //integrer le service de securite
+    private final service.SecurityManager securityManager = new service.SecurityManager();
+
     // Constructeur prive (Design Pattern Singleton)
     private ServeurUDP() {
         this.clientsUdp = new ConcurrentHashMap<>();
@@ -64,6 +66,13 @@ public class ServeurUDP {
         ClientEndPoint endPoint = clientsUdp.get(clientId);
         if (endPoint == null) {
             System.err.println("[ServeurUDP] Client " + clientId + " non trouve pour notification UDP");
+            return false;
+        }
+
+        // 1. VERIFICATION DE SECURITE (Anti-Spam UDP)
+        if (!securityManager.validateUdpRequest(clientId, message)) {
+            // Si le service retourne false, cela signifie que l'envoi est bloqué
+            // Le message d'erreur a deja ete affiche par le service de securite
             return false;
         }
         
