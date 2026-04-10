@@ -396,3 +396,7 @@
 2026-04-10 01:11:46 INFO  - Requête autorisée: GET_ALL_PRODUITS_AFFICHABLES depuis l'IP 127.0.0.1
 2026-04-10 01:12:38 INFO  - Requête autorisée: LOGIN depuis l'IP 127.0.0.1
 2026-04-10 01:12:39 ERROR - LOGIN ADMIN REJETÉ - IP non autorisée : 127.0.0.1 | Email : douaerohand18@gmail.com
+2026-04-10 08:49:24 INFO  - Requête autorisée: GET_ALL_CATEGORIES depuis l'IP 127.0.0.1
+2026-04-10 08:49:24 INFO  - Requête autorisée: GET_ALL_PRODUITS_AFFICHABLES depuis l'IP 127.0.0.1
+2026-04-10 08:53:11 INFO  - Requête autorisée: GET_ALL_CATEGORIES depuis l'IP 127.0.0.1
+2026-04-10 08:53:11 INFO  - Requête autorisée: GET_ALL_PRODUITS_AFFICHABLES depuis l'IP 127.0.0.1

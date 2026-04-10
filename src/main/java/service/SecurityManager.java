@@ -102,13 +102,6 @@ public class SecurityManager {
             return new Reponse(false, "REPLAY_ATTACK_DETECTED", null);
         }
 
-        // Ici, les autres membres de l'équipe pourront ajouter leurs propres
-        // vérifications :
-        // if (!sqlInjectionService.isSafe(requete)) return new Reponse(false, "ALERTE
-        // SQLi", null);
-        // if (!geoBlockService.isIpAllowed(clientIp)) return new Reponse(false, "Région
-        // bloquée", null);
-
         //Enregistrer les requetes autorisees
         logger.info("Requête autorisée: {} depuis l'IP {}", requete.getType(), clientIp);
 
