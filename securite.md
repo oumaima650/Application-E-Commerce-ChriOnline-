@@ -1,6 +1,7 @@
 # Documentation de la Sécurité - ChriOnline 🛡️
 
-Cette documentation détaille les couches de sécurité ajoutées à l'application e-commerce ChriOnline pour garantir la confidentialité, l'intégrité et la disponibilité des données des utilisateurs. Le modèle de sécurité est basé sur une approche de "Défense en Profondeur" (Defense in Depth).
+Cette documentation détaille les couches de sécurité ajoutées à l'application e-commerce ChriOnline pour garantir la confidentialité, l'intégrité et la disponibilité des données des utilisateurs. Le modèle de sécurité est basé sur une approche de "Défense en Profondeur" (Defense in Depth) et s'articule autour d'un **Gestionnaire de Sécurité Centralisé (`SecurityManager`)**.
+
 
 ## 1. Chiffrement des Données en Transit (TLS 1.3)
 **Quoi :** Utilisation exclusive du protocole **TLS 1.3** pour toutes les communications de bout en bout (TCP).
@@ -112,5 +113,42 @@ Cette documentation détaille les couches de sécurité ajoutées à l'applicati
 
 **Pourquoi :** Constitue une couche de **Défense en Profondeur** critique. Même si un attaquant parvenait à voler un JWT ou à compromettre les identifiants d'un administrateur, il resterait bloqué s'il n'opère pas depuis une IP de confiance. Réduit drastiquement la surface d'attaque des fonctions les plus sensibles de l'application.
 
+## 17. Limitation des Connexions TCP et Protection DoS
+**Quoi :** Protection au niveau de la couche transport (Socket) contre l'épuisement des ressources par saturation de connexions.
+
+**Comment :**
+- Le serveur impose trois mécanismes de protection via le `TcpDosProtectionService` et le `ClientHandler` :
+    1. **Limite Globale :** Maximum de **10** connexions TCP simultanées sur tout le serveur.
+    2. **Limite par IP :** Maximum de **3** connexions TCP simultanées pour une même adresse IP.
+    3. **Timeout d'Inactivité :** Toute connexion n'ayant envoyé aucune requête pendant **5 minutes** est automatiquement coupée (`SocketTimeoutException`).
+- Si un seuil est atteint, le serveur rejette immédiatement la connexion (`socket.close()`) avant même d'allouer un thread, économisant ainsi la RAM et le CPU.
+
+- Chaque connexion acceptée subit une simulation de délai de 10 secondes (TP3) pour tester la robustesse du système.
+
+**Gestion des Sessions vs Connexions :**
+- **Connexion (Temporaire) :** Le "tuyau" physique entre le client et le serveur. Il est fermé automatiquement en cas d'inactivité (Timeout) pour libérer de la place.
+- **Session (Persistante) :** L'identité de l'utilisateur stockée en base de données (JWT). Même si le serveur "raccroche" la connexion TCP pour économiser des ressources, la session reste vivante.
+- **Auto-Réparation :** Le code client (`ClientSocket.java`) détecte automatiquement si la connexion est fermée et en ouvre une nouvelle de manière transparente dès que l'utilisateur effectue une action, tout en transmettant son jeton de session existant.
+
+**Pourquoi :** Garantit que même si un attaquant tente d'ouvrir des milliers de connexions "fantômes", il ne peut pas saturer le serveur. La limite par IP empêche un seul pirate de monopoliser toutes les places, laissant toujours des "slots" libres pour les clients légitimes.
+
+## 18. Orchestration Centrale (Security Facade Pattern)
+**Quoi :** Centralisation de tous les services critiques de sécurité.
+
+**Comment :**
+- Le `SecurityManager` agit comme une **façade unique** pour l'application.
+- Il orchestre les services suivants :
+    - **Anti-DoS TCP** (`TcpDosProtectionService`)
+    - **Anti-Flood UDP** (`UdpSecurityService`)
+    - **Double Authentification** (`TwoFactorAuthService`)
+    - **Réinitialisation de Mot de Passe** (`PasswordResetService`)
+    - **Protection Anti-Bot** (`RecaptchaService`)
+    - **Protection Anti-Rejeu** (`ReplayProtectionService`)
+    - **Limitation Brute Force** (`LoginAttemptLimitService`)
+
+**Pourquoi :** Cette architecture garantit que l'application reste modulaire et facile à auditer. Tous les événements de sécurité passent par un point unique, permettant une journalisation cohérente et empêchant les services métiers (`AuthService`, `ClientHandler`) d'être pollués par de la logique de sécurité complexe.
+
 ---
 *Dernière mise à jour : Avril 2026*
+
+

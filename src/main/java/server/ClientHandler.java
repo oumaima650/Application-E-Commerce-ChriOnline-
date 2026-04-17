@@ -50,12 +50,13 @@ public class ClientHandler implements Runnable {
     private ObjectOutputStream out;
     private ObjectInputStream  in;
 
-    public ClientHandler(Socket socket) {
+    public ClientHandler(Socket socket, SecurityManager securityManager) {
         this.socket      = socket;
-        this.securityManager = new SecurityManager();
+        this.securityManager = securityManager;
         // [WHITELIST IP ADMIN] On passe l'instance de SecurityManager à AuthService
         // pour qu'il puisse vérifier l'IP lors du login admin (réutilisation de la whitelist déjà chargée)
         this.authService = new AuthService(securityManager.getLoginAttemptService(), securityManager);
+
         this.adminService = new AdminService();
         this.serveurUDP = ServeurUDP.getInstance();
         this.carteBancaireService = new CarteBancaireService();
@@ -79,7 +80,13 @@ public class ClientHandler implements Runnable {
         System.out.println("[ClientHandler] Client connecté : " + clientAddr);
 
         try {
+            // SECURITY: Timeout d'inactivité de 5 minutes (300 000 ms)
+            // Si le client ne fait aucune requête pendant 5 min, le socket lancera une exception
+            // et la connexion sera fermée pour libérer une place dans le pool global.
+            socket.setSoTimeout(300000);
+
             out = new ObjectOutputStream(socket.getOutputStream());
+
             out.flush();
 
             // PROTECTION: ObjectInputFilter (Whitelist approach)
@@ -135,11 +142,14 @@ public class ClientHandler implements Runnable {
                 }
             }
 
+        } catch (java.net.SocketTimeoutException e) {
+            System.out.println("[ClientHandler] Déconnexion automatique : Inactivité détectée (5 min) pour " + clientAddr);
         } catch (IOException e) {
             System.err.println("[ClientHandler] Erreur IO : " + e.getMessage());
         } finally {
             fermer();
         }
+
     }
 
 
