@@ -12,6 +12,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 
 public class ServeurTCP {
@@ -21,6 +26,16 @@ public class ServeurTCP {
     private SSLServerSocket serverSocket;
     private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final CleanupService cleanupService = new CleanupService();
+    private final SecurityManager securityManager = new SecurityManager();
+    private static final Logger logger = LogManager.getLogger(ServeurTCP.class);
+
+    
+    private final ConcurrentHashMap<String, AtomicInteger> ipConnections = new ConcurrentHashMap<>();
+
+    protected boolean checkIpLimit(String ip) {
+        return securityManager.getTcpDosService().checkIpLimit(ip);
+    }
+
 
     public void start() {
         try {
@@ -34,11 +49,12 @@ public class ServeurTCP {
             // ENFORCE TLS 1.3 ONLY
             serverSocket.setEnabledProtocols(new String[]{"TLSv1.3"});
             
-            System.out.println("[TLSServer] Serveur sécurisé lancé sur le port " + port);
-            System.out.println("[TLSServer] Protocole actif : TLSv1.3 uniquement");
+            logger.info("Serveur sécurisé lancé sur le port {}", port);
+            logger.info("Protocole actif : TLSv1.3 uniquement");
 
             // Start the background cleanup task
             cleanupService.start();
+
 
             while (!serverSocket.isClosed()) {
                 try {
@@ -48,24 +64,39 @@ public class ServeurTCP {
                     clientSocket.setEnabledProtocols(new String[]{"TLSv1.3"});
 
                     String clientIp = clientSocket.getInetAddress().getHostAddress();
-                    String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                     
-                    System.out.println("[" + timestamp + "] [TLSServer] Nouvelle connexion SSL de " + clientIp);
+                    if (!securityManager.canAcceptTcpConnection(clientIp)) {
+                        clientSocket.close();
+                        continue;
+                    }
+
+                    logger.info("ACCEPTED Nouvelle connexion SSL de {}", clientIp);
 
                     // hand off to Virtual Thread
-                    virtualThreadExecutor.submit(new ClientHandler(clientSocket));
+                    virtualThreadExecutor.submit(() -> {
+                        try {
+                            // TP3 - Simulate connection logic holdup for SYN Flood DoS
+                            Thread.sleep(10000);
+                            new ClientHandler(clientSocket, securityManager).run();
+                        } catch (Exception e) {
+                            logger.error("Erreur dans le Thread du client : {}", e.getMessage(), e);
+                        } finally {
+                            securityManager.releaseTcpConnection(clientIp);
+                        }
+                    });
+
 
                 } catch (SSLHandshakeException e) {
-                    System.err.println("[TLSServer] Échec du Handshake SSL : " + e.getMessage());
+                    logger.warn("Échec du Handshake SSL : {}", e.getMessage());
                     // Log and continue, don't crash
                 } catch (Exception e) {
                     if (!serverSocket.isClosed()) {
-                        System.err.println("[TLSServer] Erreur lors de l'accept : " + e.getMessage());
+                        logger.error("Erreur lors de l'accept : {}", e.getMessage(), e);
                     }
                 }
             }
         } catch (Exception e) {
-            System.err.println("[TLSServer] Erreur critique au démarrage : " + e.getMessage());
+            logger.fatal("Erreur critique au démarrage : {}", e.getMessage(), e);
             e.printStackTrace();
         }
     }

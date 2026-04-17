@@ -24,8 +24,7 @@ public class AuthService {
     // [WHITELIST IP ADMIN] Instance du SecurityManager pour vérifier l'IP lors du login admin
     private final SecurityManager securityManager;
     private static final long ANTI_TIMING_DELAY_MS = 200;
-    private final PasswordResetService passwordResetService = new PasswordResetService();
-    private final TwoFactorAuthService twoFactorAuthService = new TwoFactorAuthService();
+
 
     public AuthService(LoginAttemptLimitService securityService, SecurityManager securityManager) {
         this.securityService = securityService;
@@ -48,9 +47,11 @@ public class AuthService {
             String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
             String recaptchaToken = (String) params.get("recaptchaToken");
             
-            // --- reCAPTCHA Verification ---
-            RecaptchaService recaptchaService = new RecaptchaService();
-            boolean captchaValide = recaptchaService.verify(recaptchaToken);
+            String recaptchaToken = (String) params.get("recaptchaToken");
+            
+            // --- reCAPTCHA Verification (Via SecurityManager) ---
+            boolean captchaValide = securityManager.verifyRecaptcha(recaptchaToken);
+
 
             UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
 
@@ -79,20 +80,22 @@ public class AuthService {
                     return applyTimingDelay(new Reponse(false, "Ce compte a été banni par l'administrateur.", null), startTime);
                 }
                 if ("EN_ATTENTE".equals(statut)) {
-                    twoFactorAuthService.send2FACode(email);
+                    securityManager.sendTwoFactorCode(email);
                     return applyTimingDelay(new Reponse(false, "SIGNUP_VERIFICATION_REQUIRED", null), startTime);
                 }
+
             }
 
-            // --- 2FA Check ---
+            // --- 2FA Check (Via SecurityManager) ---
             if (loginData.twoFactorEnabled()) {
-                if (twoFactorAuthService.send2FACode(email)) {
+                if (securityManager.sendTwoFactorCode(email)) {
                     System.out.println("[AuthService] 2FA required for email=" + email);
                     return applyTimingDelay(new Reponse(false, "2FA_REQUIRED", null), startTime);
                 } else {
                     return applyTimingDelay(new Reponse(false, "Erreur lors de l'envoi du code 2FA.", null), startTime);
                 }
             }
+
 
             securityService.registerSuccess(clientIp, email, captchaValide);
             return applyTimingDelay(generateAuthReponse(user), startTime);
@@ -155,11 +158,13 @@ public class AuthService {
             if (dobString == null) return new Reponse(false, "Date de naissance requise.", null);
             java.time.LocalDate dateNaissance = java.time.LocalDate.parse(dobString);
 
-            // --- reCAPTCHA Verification ---
-            RecaptchaService recaptchaService = new RecaptchaService();
-            if (!recaptchaService.verify(recaptchaToken)) {
+            java.time.LocalDate dateNaissance = java.time.LocalDate.parse(dobString);
+ 
+            // --- reCAPTCHA Verification (Via SecurityManager) ---
+            if (!securityManager.verifyRecaptcha(recaptchaToken)) {
                 return new Reponse(false, "Vérification reCAPTCHA échouée. Veuillez réessayer.", null);
             }
+
 
             // --- Age Check (>= 16) ---
             if (java.time.Period.between(dateNaissance, java.time.LocalDate.now()).getYears() < 16) {
@@ -186,12 +191,11 @@ public class AuthService {
 
             // --- 2-Step Signup Verification ---
             // We create the account as 'EN_ATTENTE' and send verification code
-            // We create the account as 'EN_ATTENTE' and send verification code
             String hashedPw = PasswordService.hash(motDePasse);
             ClientDAO clientDAO = new ClientDAO();
             Client client = clientDAO.create(email, hashedPw, nom, prenom, telephone, dateNaissance);
 
-            if (twoFactorAuthService.send2FACode(email)) {
+            if (securityManager.sendTwoFactorCode(email)) {
                 System.out.println("[AuthService] Signup pending verification for email=" + email);
                 return new Reponse(false, "SIGNUP_VERIFICATION_REQUIRED", null);
             } else {
@@ -230,7 +234,7 @@ public class AuthService {
             String email = (String) params.get("email");
             String code = (String) params.get("code");
 
-            TwoFactorAuthService.VerificationResult result = twoFactorAuthService.verifyCode(email, code);
+            TwoFactorAuthService.VerificationResult result = securityManager.verifyTwoFactorCode(email, code);
             if (result.success()) {
                 // Activate account
                 String sql = "UPDATE Client SET statut = 'ACTIF' WHERE IdUtilisateur = (SELECT IdUtilisateur FROM Utilisateur WHERE email = ?)";
@@ -328,7 +332,7 @@ public class AuthService {
                 return new Reponse(false, "Aucun compte associé à cet email.", null);
             }
 
-            if (passwordResetService.sendResetCode(email)) {
+            if (securityManager.sendPasswordResetCode(email)) {
                 return new Reponse(true, "Un code de vérification a été envoyé à votre e-mail.", null);
             } else {
                 return new Reponse(false, "Erreur lors de l'envoi de l'e-mail.", null);
@@ -349,7 +353,7 @@ public class AuthService {
             String code = (String) params.get("code");
             String newPassword = (String) params.get("newPassword");
 
-            if (!passwordResetService.verifyCode(email, code)) {
+            if (!securityManager.verifyPasswordResetCode(email, code)) {
                 return new Reponse(false, "Code invalide ou expiré.", null);
             }
 
@@ -358,9 +362,10 @@ public class AuthService {
 
             String hashedPw = PasswordService.hash(newPassword);
             if (UtilisateurDAO.updatePassword(email, hashedPw)) {
-                passwordResetService.clearCode(email);
+                securityManager.clearPasswordResetCode(email);
                 securityService.completePasswordReset(email);
                 return new Reponse(true, "Mot de passe modifié. Compte débloqué.", null);
+
             } else {
                 return new Reponse(false, "Erreur lors de la mise à jour.", null);
             }
@@ -387,7 +392,7 @@ public class AuthService {
             String email = (String) params.get("email");
             String code = (String) params.get("code");
 
-            TwoFactorAuthService.VerificationResult result = twoFactorAuthService.verifyCode(email, code);
+            TwoFactorAuthService.VerificationResult result = securityManager.verifyTwoFactorCode(email, code);
             if (result.success()) {
                 UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
                 Utilisateur user = UtilisateurDAO.findById(loginData.id());
@@ -421,7 +426,7 @@ public class AuthService {
 
             if (enabled) {
                 if (code == null) return new Reponse(false, "Code de confirmation requis.", null);
-                TwoFactorAuthService.VerificationResult result = twoFactorAuthService.verifyCode(user.getEmail(), code);
+                TwoFactorAuthService.VerificationResult result = securityManager.verifyTwoFactorCode(user.getEmail(), code);
                 if (!result.success()) return new Reponse(false, result.message(), null);
             }
 
@@ -443,7 +448,7 @@ public class AuthService {
             Utilisateur user = UtilisateurDAO.findById(userId);
             if (user == null) return new Reponse(false, "Utilisateur introuvable.", null);
 
-            if (twoFactorAuthService.send2FACode(user.getEmail())) {
+            if (securityManager.sendTwoFactorCode(user.getEmail())) {
                 return new Reponse(true, "Un code de confirmation a été envoyé à votre email.", null);
             } else {
                 return new Reponse(false, "Erreur lors de l'envoi de l'e-mail.", null);
