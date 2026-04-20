@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.sql.SQLException;
 
 //importation des classes Log4j2
 import org.apache.logging.log4j.LogManager;
@@ -138,24 +139,24 @@ public class SecurityManager {
     }
 
     // --- 2FA ---
-    public boolean sendTwoFactorCode(String email) {
+    public boolean sendTwoFactorCode(String email) throws SQLException {
         return twoFactorAuthService.send2FACode(email);
     }
 
-    public TwoFactorAuthService.VerificationResult verifyTwoFactorCode(String email, String code) {
+    public TwoFactorAuthService.VerificationResult verifyTwoFactorCode(String email, String code) throws SQLException {
         return twoFactorAuthService.verifyCode(email, code);
     }
 
     // --- Password Reset ---
-    public boolean sendPasswordResetCode(String email) {
+    public boolean sendPasswordResetCode(String email) throws SQLException {
         return passwordResetService.sendResetCode(email);
     }
 
-    public boolean verifyPasswordResetCode(String email, String code) {
+    public boolean verifyPasswordResetCode(String email, String code) throws SQLException {
         return passwordResetService.verifyCode(email, code);
     }
 
-    public void clearPasswordResetCode(String email) {
+    public void clearPasswordResetCode(String email) throws SQLException {
         passwordResetService.clearCode(email);
     }
 

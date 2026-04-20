@@ -47,8 +47,6 @@ public class AuthService {
             String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
             String recaptchaToken = (String) params.get("recaptchaToken");
             
-            String recaptchaToken = (String) params.get("recaptchaToken");
-            
             // --- reCAPTCHA Verification (Via SecurityManager) ---
             boolean captchaValide = securityManager.verifyRecaptcha(recaptchaToken);
 
@@ -156,8 +154,6 @@ public class AuthService {
             String recaptchaToken = (String) params.get("recaptchaToken");
 
             if (dobString == null) return new Reponse(false, "Date de naissance requise.", null);
-            java.time.LocalDate dateNaissance = java.time.LocalDate.parse(dobString);
-
             java.time.LocalDate dateNaissance = java.time.LocalDate.parse(dobString);
  
             // --- reCAPTCHA Verification (Via SecurityManager) ---
