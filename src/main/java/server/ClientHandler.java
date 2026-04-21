@@ -20,6 +20,14 @@ import shared.RequestType;
 import service.SecurityManager;
 
 import java.util.Map;
+//pour RSA/AES
+import java.util.Base64;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+//
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -46,15 +54,24 @@ public class ClientHandler implements Runnable {
     private final service.ClientService clientService;
     private final service.AvisService avisService;
     private final SecurityManager securityManager;
+    // pourRSA/AES
+    private final PrivateKey serverPrivateKey;
+    private final PublicKey serverPublicKey;
+    private SecretKey sessionSecretKey;
 
     private ObjectOutputStream out;
-    private ObjectInputStream  in;
+    private ObjectInputStream in;
 
-    public ClientHandler(Socket socket, SecurityManager securityManager) {
-        this.socket      = socket;
+    public ClientHandler(Socket socket, SecurityManager securityManager, PrivateKey serverPrivateKey,
+            PublicKey serverPublicKey) {
+        this.socket = socket;
         this.securityManager = securityManager;
+        // pour RSA/AES
+        this.serverPrivateKey = serverPrivateKey;
+        this.serverPublicKey = serverPublicKey;
         // [WHITELIST IP ADMIN] On passe l'instance de SecurityManager à AuthService
-        // pour qu'il puisse vérifier l'IP lors du login admin (réutilisation de la whitelist déjà chargée)
+        // pour qu'il puisse vérifier l'IP lors du login admin (réutilisation de la
+        // whitelist déjà chargée)
         this.authService = new AuthService(securityManager.getLoginAttemptService(), securityManager);
 
         this.adminService = new AdminService();
@@ -73,7 +90,6 @@ public class ClientHandler implements Runnable {
         this.avisService = new service.AvisService();
     }
 
-
     @Override
     public void run() {
         String clientAddr = socket.getInetAddress().getHostAddress();
@@ -81,7 +97,8 @@ public class ClientHandler implements Runnable {
 
         try {
             // SECURITY: Timeout d'inactivité de 5 minutes (300 000 ms)
-            // Si le client ne fait aucune requête pendant 5 min, le socket lancera une exception
+            // Si le client ne fait aucune requête pendant 5 min, le socket lancera une
+            // exception
             // et la connexion sera fermée pour libérer une place dans le pool global.
             socket.setSoTimeout(300000);
 
@@ -91,18 +108,46 @@ public class ClientHandler implements Runnable {
 
             // PROTECTION: ObjectInputFilter (Whitelist approach)
             // Allows only safe classes required for the application's protocol.
-            // Documentation: https://docs.oracle.com/en/java/javase/21/core/serialization-filtering1.html
+            // Documentation:
+            // https://docs.oracle.com/en/java/javase/21/core/serialization-filtering1.html
             java.io.ObjectInputFilter filter = java.io.ObjectInputFilter.Config.createFilter(
-                "shared.**;" +
-                "model.**;" +
-                "java.lang.**;" +
-                "java.util.**;" +
-                "java.time.**;" +
-                "!*" // Reject all other classes
+                    "shared.**;" +
+                            "model.**;" +
+                            "java.lang.**;" +
+                            "java.util.**;" +
+                            "java.time.**;" +
+                            "java.security.**;" +
+                            "[B;" +
+                            "!*" // Reject all other classes
             );
 
             in = new ObjectInputStream(socket.getInputStream());
             in.setObjectInputFilter(filter);
+
+            // DEBUT HANDSHAKE RSA/AES
+            try {
+                // 1. Envoyer cle publique du serveur au client
+                out.writeObject(this.serverPublicKey);
+                out.flush();
+
+                // 2. Recevoir cle AES generee par le client, chiffree avec cle publique
+                byte[] aesKeyChiffree = (byte[]) in.readObject();
+
+                // 3. Dechiffrer avec cle privee du serveur
+                Cipher cipherRSA = Cipher.getInstance("RSA");
+                cipherRSA.init(Cipher.DECRYPT_MODE, this.serverPrivateKey);
+                byte[] aesKeyEnClair = cipherRSA.doFinal(aesKeyChiffree);
+
+                // 4. Construire objet SecretKey AES
+                this.sessionSecretKey = new SecretKeySpec(aesKeyEnClair, 0, aesKeyEnClair.length, "AES");
+
+                System.out.println("[ClientHandler] Handshake RSA/AES réussi avec " + clientAddr);
+            } catch (Exception e) {
+                System.err.println("[ClientHandler] Échec du Handshake avec " + clientAddr + " : " + e.getMessage());
+                fermer();
+                return;
+            }
+            // FIN HANDSHAKE
 
             while (!socket.isClosed()) {
                 Requete requete;
@@ -128,6 +173,9 @@ public class ClientHandler implements Runnable {
                     continue; // On arrête là pour cette requête
                 }
 
+                // --- DECHIFFREMENT CIBLE DE LA REQUETE ---
+                decryptRequeteFields(requete);
+
                 try {
                     Reponse reponse = dispatch(requete);
                     envoyer(reponse);
@@ -143,7 +191,8 @@ public class ClientHandler implements Runnable {
             }
 
         } catch (java.net.SocketTimeoutException e) {
-            System.out.println("[ClientHandler] Déconnexion automatique : Inactivité détectée (5 min) pour " + clientAddr);
+            System.out.println(
+                    "[ClientHandler] Déconnexion automatique : Inactivité détectée (5 min) pour " + clientAddr);
         } catch (IOException e) {
             System.err.println("[ClientHandler] Erreur IO : " + e.getMessage());
         } finally {
@@ -152,7 +201,6 @@ public class ClientHandler implements Runnable {
 
     }
 
-
     private Reponse dispatch(Requete requete) {
         RequestType type = requete.getType();
         int userId = -1;
@@ -160,16 +208,16 @@ public class ClientHandler implements Runnable {
         String sessionId = null;
 
         // 1. PUBLIC ENDPOINTS (No Auth)
-        if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH || 
-            type == RequestType.REQUEST_PASSWORD_RESET || type == RequestType.CONFIRM_PASSWORD_RESET ||
-            type == RequestType.VERIFY_2FA_LOGIN || type == RequestType.VERIFY_SIGNUP) {
-            
+        if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH ||
+                type == RequestType.REQUEST_PASSWORD_RESET || type == RequestType.CONFIRM_PASSWORD_RESET ||
+                type == RequestType.VERIFY_2FA_LOGIN || type == RequestType.VERIFY_SIGNUP) {
+
             // Inject client context (IP) for security
             if (requete.getParametres() == null) {
                 requete.setParametres(new java.util.HashMap<>());
             }
             requete.getParametres().put("clientIp", socket.getInetAddress().getHostAddress());
-            
+
             return switch (type) {
                 case LOGIN -> authService.login(requete);
                 case REGISTER -> authService.signup(requete);
@@ -206,12 +254,12 @@ public class ClientHandler implements Runnable {
         } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
             requete.setParametres(new java.util.HashMap<>(requete.getParametres()));
         }
-        
+
         if (claims != null) {
             userId = Integer.parseInt(claims.userId());
             userRole = claims.role();
             sessionId = claims.sessionId();
-            
+
             requete.getParametres().put("userId", userId);
             requete.getParametres().put("userRole", userRole);
             requete.getParametres().put("sessionId", sessionId);
@@ -223,7 +271,7 @@ public class ClientHandler implements Runnable {
 
         // 4. DISPATCH
         return switch (type) {
-            case LOGOUT     -> authService.logout(requete);
+            case LOGOUT -> authService.logout(requete);
             case LOGOUT_ALL -> authService.logoutAll(requete);
 
             // 2FA (Secure)
@@ -237,7 +285,8 @@ public class ClientHandler implements Runnable {
             case GET_ALL_PRODUITS_AFFICHABLES -> {
                 System.out.println("[ClientHandler] Traitement GET_ALL_PRODUITS_AFFICHABLES...");
                 Reponse response = produitAffichableService.getAll(requete);
-                System.out.println("[ClientHandler] Réponse GET_ALL_PRODUITS_AFFICHABLES: " + (response.isSucces() ? "SUCCÈS" : "ÉCHEC"));
+                System.out.println("[ClientHandler] Réponse GET_ALL_PRODUITS_AFFICHABLES: "
+                        + (response.isSucces() ? "SUCCÈS" : "ÉCHEC"));
                 if (response.isSucces() && response.getDonnees() != null) {
                     Object produitsObj = response.getDonnees().get("produits");
                     if (produitsObj instanceof List) {
@@ -255,12 +304,12 @@ public class ClientHandler implements Runnable {
 
             case GET_ALL_CATEGORIES -> categorieService.getAll(requete);
             case GET_CATEGORIE_BY_ID -> categorieService.getById(requete);
- 
+
             // Variantes (Public)
             case GET_ALL_VARIANTES -> varianteService.getAll(requete);
             case GET_VARIANTES_BY_PRODUIT -> varianteService.getByProduit(requete);
             case GET_PVV_BY_PRODUIT -> pvvService.getByProduit(requete);
- 
+
             // SKU Public
             case GET_ALL_SKUS -> skuService.getAll(requete);
             case GET_SKU_BY_PRODUIT -> skuService.getByProduit(requete);
@@ -273,16 +322,17 @@ public class ClientHandler implements Runnable {
                 if (params != null && params.containsKey("udpPort")) {
                     int udpPort = (Integer) params.get("udpPort");
                     String clientIp = socket.getInetAddress().getHostAddress();
-                    
+
                     serveurUDP.registerClient(userId, clientIp, udpPort);
                     yield new Reponse(true, "Port UDP enregistré avec succès", null);
                 } else {
                     yield new Reponse(false, "Port UDP manquant dans la requête", null);
                 }
             }
- 
+
             case ADD_TO_CART, REMOVE_FROM_CART, GET_CART, CLEAR_CART, UPDATE_QUANTITY_CART -> {
-                // userId is already injected into requete.getParametres() in the JWT validation step above
+                // userId is already injected into requete.getParametres() in the JWT validation
+                // step above
                 if (requete.getParametres() == null) {
                     requete.setParametres(new java.util.HashMap<>());
                 } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
@@ -302,7 +352,8 @@ public class ClientHandler implements Runnable {
             }
 
             default -> {
-                // userId is already injected into requete.getParametres() in the JWT validation step above
+                // userId is already injected into requete.getParametres() in the JWT validation
+                // step above
                 if (requete.getParametres() == null) {
                     requete.setParametres(new java.util.HashMap<>());
                 } else if (!(requete.getParametres() instanceof java.util.HashMap)) {
@@ -320,7 +371,7 @@ public class ClientHandler implements Runnable {
                     case MARK_NOTIFICATION_READ -> notificationService.markAsRead(requete);
 
                     case PROCESS_PAYMENT -> paiementService.processPayment(requete);
-                    
+
                     // Admin operations
                     case ADMIN_GET_ALL_PRODUCTS -> produitService.adminGetAll(requete);
                     case ADMIN_GET_ALL_ORDERS -> adminService.getAllOrders(requete);
@@ -334,20 +385,21 @@ public class ClientHandler implements Runnable {
                     case ADMIN_GET_SKU_BY_PRODUIT -> skuService.adminGetByProduit(requete);
                     case ADMIN_ADD_PRODUCT_COMPLET -> produitService.creerProduitComplet(requete);
                     case ADMIN_GET_VARIANTES_BY_CATEGORIE -> categorieService.getVariantes(requete);
-                    
 
                     // ───────────────────────────────
                     // Commande
                     // ───────────────────────────────
-                    
+
                     case VALIDATE_ORDER -> {
                         System.out.println("[DEBUG_CH_1] VALIDATE_ORDER reçu par ClientHandler");
                         Reponse res = commandeService.passerCommande(requete);
                         if (res.getDonnees() != null) {
-                            System.out.println("[ClientHandler] VALIDATE_ORDER Données retournées : " + res.getDonnees().keySet());
+                            System.out.println(
+                                    "[ClientHandler] VALIDATE_ORDER Données retournées : " + res.getDonnees().keySet());
                             if (res.getDonnees().containsKey("items")) {
                                 List<?> items = (List<?>) res.getDonnees().get("items");
-                                System.out.println("[ClientHandler] Nombre d'items: " + (items != null ? items.size() : 0));
+                                System.out.println(
+                                        "[ClientHandler] Nombre d'items: " + (items != null ? items.size() : 0));
                             }
                             System.out.println("[ClientHandler] Total: " + res.getDonnees().get("total"));
                         }
@@ -361,16 +413,14 @@ public class ClientHandler implements Runnable {
                     // ───────────────────────────────
                     // Profil client & Adresses
                     // ───────────────────────────────
-                    case GET_PROFILE  -> clientService.getProfile(requete);
+                    case GET_PROFILE -> clientService.getProfile(requete);
                     case GET_ADDRESSES -> clientService.getAdresses(requete);
-                    case ADD_ADDRESS   -> clientService.addAdresse(requete);
-                    
-                    case ADD_AVIS      -> avisService.addAvis(requete);
+                    case ADD_ADDRESS -> clientService.addAdresse(requete);
+
+                    case ADD_AVIS -> avisService.addAvis(requete);
                     case GET_USER_AVIS_FOR_PRODUCT -> avisService.getUserAvisForProduct(requete);
-                    case UPDATE_AVIS   -> avisService.updateAvis(requete);
+                    case UPDATE_AVIS -> avisService.updateAvis(requete);
 
-
-                    
                     // ───────────────────────────────
                     // PRODUIT
                     // ───────────────────────────────
@@ -384,24 +434,25 @@ public class ClientHandler implements Runnable {
                     case DELETE_CATEGORIE -> categorieService.supprimer(requete);
                     case ADD_VARIANTE_TO_CATEGORIE -> categorieService.ajouterVariante(requete);
                     case REMOVE_VARIANTE_FROM_CATEGORIE -> categorieService.retirerVariante(requete);
- 
+
                     // Variantes CRUD
                     case ADD_VARIANTE -> varianteService.creer(requete);
                     case UPDATE_VARIANTE -> varianteService.modifier(requete);
                     case DELETE_VARIANTE -> varianteService.supprimer(requete);
- 
+
                     // PVV (ProduitVarValeur) management
                     case ADD_PVV -> pvvService.creer(requete);
                     case DELETE_PVV -> pvvService.supprimer(requete);
- 
+
                     // SKU Admin
                     case ADD_SKU -> skuService.creer(requete);
                     case UPDATE_SKU -> skuService.modifier(requete);
                     case DELETE_SKU -> skuService.supprimer(requete);
                     case ADD_VALUE_TO_SKU -> skuService.ajouterValeur(requete);
                     case REMOVE_VALUE_FROM_SKU -> skuService.retirerValeur(requete);
- 
-                    default -> new Reponse(false, "Fonctionnalité '" + requete.getType() + "' non encore implémentée.", null);
+
+                    default ->
+                        new Reponse(false, "Fonctionnalité '" + requete.getType() + "' non encore implémentée.", null);
                 };
 
             }
@@ -420,9 +471,12 @@ public class ClientHandler implements Runnable {
 
     private void fermer() {
         try {
-            if (out != null)    out.close();
-            if (in  != null)    in.close();
-            if (!socket.isClosed()) socket.close();
+            if (out != null)
+                out.close();
+            if (in != null)
+                in.close();
+            if (!socket.isClosed())
+                socket.close();
             System.out.println("[ClientHandler] Connexion fermée.");
         } catch (IOException e) {
             System.err.println("[ClientHandler] Erreur lors de la fermeture : " + e.getMessage());
@@ -431,25 +485,57 @@ public class ClientHandler implements Runnable {
 
     private boolean isPublicEndpoint(RequestType type) {
         return type == RequestType.LOGIN ||
-               type == RequestType.REGISTER ||
-               type == RequestType.REFRESH ||
-               type == RequestType.REQUEST_PASSWORD_RESET ||
-               type == RequestType.CONFIRM_PASSWORD_RESET ||
-               type == RequestType.GET_ALL_PRODUITS ||
-               type == RequestType.GET_ALL_PRODUITS_AFFICHABLES ||
-               type == RequestType.GET_PRODUIT_BY_ID ||
-               type == RequestType.GET_PRODUIT_COMPLET_AVEC_VARIANTES ||
-               type == RequestType.SEARCH_PRODUITS_BY_NOM ||
-               type == RequestType.COUNT_PRODUITS ||
-               type == RequestType.GET_ALL_CATEGORIES ||
-               type == RequestType.GET_CATEGORIE_BY_ID ||
-               type == RequestType.GET_ALL_VARIANTES ||
-               type == RequestType.GET_VARIANTES_BY_PRODUIT ||
-               type == RequestType.GET_PVV_BY_PRODUIT ||
-               type == RequestType.GET_ALL_SKUS ||
-               type == RequestType.GET_SKU_BY_PRODUIT ||
-               type == RequestType.GET_SKU_BY_CODE ||
-               type == RequestType.GET_SKU_BY_VARIANTS ||
-               type == RequestType.GET_PRODUCT_VARIANTS;
+                type == RequestType.REGISTER ||
+                type == RequestType.REFRESH ||
+                type == RequestType.REQUEST_PASSWORD_RESET ||
+                type == RequestType.CONFIRM_PASSWORD_RESET ||
+                type == RequestType.GET_ALL_PRODUITS ||
+                type == RequestType.GET_ALL_PRODUITS_AFFICHABLES ||
+                type == RequestType.GET_PRODUIT_BY_ID ||
+                type == RequestType.GET_PRODUIT_COMPLET_AVEC_VARIANTES ||
+                type == RequestType.SEARCH_PRODUITS_BY_NOM ||
+                type == RequestType.COUNT_PRODUITS ||
+                type == RequestType.GET_ALL_CATEGORIES ||
+                type == RequestType.GET_CATEGORIE_BY_ID ||
+                type == RequestType.GET_ALL_VARIANTES ||
+                type == RequestType.GET_VARIANTES_BY_PRODUIT ||
+                type == RequestType.GET_PVV_BY_PRODUIT ||
+                type == RequestType.GET_ALL_SKUS ||
+                type == RequestType.GET_SKU_BY_PRODUIT ||
+                type == RequestType.GET_SKU_BY_CODE ||
+                type == RequestType.GET_SKU_BY_VARIANTS ||
+                type == RequestType.GET_PRODUCT_VARIANTS;
+    }
+    //
+
+    private void decryptRequeteFields(Requete requete) {
+        if (this.sessionSecretKey == null || requete.getParametres() == null)
+            return;
+
+        // Liste des champs considérés sensibles que le client va chiffrer
+        String[] sensitiveKeys = { "motDePasse", "password", "newPassword", "numeroCarte", "cvv", "dateExpiration",
+                "carteBancaire" };
+
+        for (String key : sensitiveKeys) {
+            if (requete.getParametres().containsKey(key)) {
+                Object valueObj = requete.getParametres().get(key);
+                if (valueObj instanceof String) {
+                    try {
+                        String encryptedBase64 = (String) valueObj;
+                        Cipher cipherAES = Cipher.getInstance("AES");
+                        cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey);
+                        byte[] decodedBase64 = Base64.getDecoder().decode(encryptedBase64);
+                        byte[] decrypted = cipherAES.doFinal(decodedBase64);
+
+                        // Remplace donnee chiffree par donnee en clair pour la suite du flux
+                        requete.getParametres().put(key, new String(decrypted));
+                    } catch (Exception e) {
+                        // Si ça échoue, on ignore. Le format pourrait être en clair à cause du coté
+                        // client pas encore à jour.
+                        // System.err.println("Info - Déchiffrement AES échoué pour " + key);
+                    }
+                }
+            }
+        }
     }
 }
