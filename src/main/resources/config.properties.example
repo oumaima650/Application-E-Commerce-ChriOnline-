@@ -1,0 +1,15 @@
+# Server Configuration
+server.port=8443
+
+# reCAPTCHA Configuration
+# Allez sur https://www.google.com/recaptcha/admin pour obtenir vos clés
+recaptcha.site_key=VOTRE_SITE_KEY_ICI
+recaptcha.secret_key=VOTRE_SECRET_KEY_ICI
+
+# Admin IP Whitelist (Supports exact IPs and * wildcard, e.g. 192.168.1.*)
+security.admin.allowed_ips=127.0.0.1
+
+# TLS Keystore Configuration
+server.keystore.path=src/main/resources/server_keystore.p12
+server.keystore.password=VOTRE_MOT_DE_PASSE_KEYSTORE
+server.keystore.type=PKCS12
