@@ -189,14 +189,18 @@ public class ClientSocket {
     private void encryptRequeteFields(Requete requete) {
         if (this.sessionSecretKey == null || requete.getParametres() == null) return;
         
-        String[] sensitiveKeys = {"password", "motDePasse", "carteBancaire", "numeroCarte", "cvv", "dateExpiration", "token", "newPassword"};
+        String[] sensitiveKeys = {"password", "motDePasse", "carteBancaire", "numeroCarte", "cvv", "dateExpiration", "token", "newPassword", "commande", "panier", "items"};
         
         for (String key : sensitiveKeys) {
             if (requete.getParametres().containsKey(key)) {
                 Object valueObj = requete.getParametres().get(key);
-                if (valueObj instanceof String) {
+                if (valueObj != null) {
                     try {
-                        String rawValue = (String) valueObj;
+                        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                        java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(baos);
+                        oos.writeObject(valueObj);
+                        oos.flush();
+                        byte[] objectBytes = baos.toByteArray();
                         
                         // Generate 12-byte IV
                         byte[] iv = new byte[12];
@@ -206,7 +210,7 @@ public class ClientSocket {
                         GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
                         cipherAES.init(Cipher.ENCRYPT_MODE, this.sessionSecretKey, gcmSpec);
                         
-                        byte[] encryptedBytes = cipherAES.doFinal(rawValue.getBytes());
+                        byte[] encryptedBytes = cipherAES.doFinal(objectBytes);
                         
                         // Combine IV and Encrypted Data
                         byte[] combined = new byte[iv.length + encryptedBytes.length];
