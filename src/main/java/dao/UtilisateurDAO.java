@@ -16,19 +16,19 @@ public class UtilisateurDAO {
         return ConnexionBDD.getConnection();
     }
 
-    public record LoginData(int id, String hash, boolean twoFactorEnabled) {}
+    public record LoginData(int id, String hash, boolean twoFactorEnabled, String salt) {}
 
     /**
      * Gets the user ID and password hash for a given email.
      * @return LoginData or null if user doesn't exist.
      */
     public static LoginData getLoginData(String email) throws SQLException {
-        String sql = "SELECT IdUtilisateur, motDePasse, two_factor_enabled FROM Utilisateur WHERE email = ?";
+        String sql = "SELECT IdUtilisateur, motDePasse, two_factor_enabled, encryption_salt FROM Utilisateur WHERE email = ?";
         try (PreparedStatement ps = getConn().prepareStatement(sql)) {
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new LoginData(rs.getInt(1), rs.getString(2), rs.getBoolean(3));
+                    return new LoginData(rs.getInt(1), rs.getString(2), rs.getBoolean(3), rs.getString(4));
                 }
             }
         }
@@ -89,7 +89,7 @@ public class UtilisateurDAO {
         if (userType(id) == TypeEtulisateur.CLIENT) {
             return new ClientDAO().findById(id);
         } else {
-            String sql = "SELECT email, motDePasse, two_factor_enabled, createdAt, updatedAt FROM Utilisateur WHERE IdUtilisateur = ?";
+            String sql = "SELECT email, motDePasse, encryption_salt, two_factor_enabled, createdAt, updatedAt FROM Utilisateur WHERE IdUtilisateur = ?";
             try (Connection conn = getConn();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, id);
@@ -97,7 +97,7 @@ public class UtilisateurDAO {
                     if (rs.next()) {
                         LocalDateTime ca = rs.getTimestamp("createdAt") != null ? rs.getTimestamp("createdAt").toLocalDateTime() : null;
                         LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
-                        return new Administrateur(id, rs.getString("email"), rs.getString("motDePasse"), rs.getBoolean("two_factor_enabled"), ca, ua);
+                        return new Administrateur(id, rs.getString("email"), rs.getString("motDePasse"), rs.getString("encryption_salt"), rs.getBoolean("two_factor_enabled"), ca, ua);
                     }
                 }
             }

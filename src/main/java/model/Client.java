@@ -18,9 +18,9 @@ public class Client extends Utilisateur {
         this.adresses = new ArrayList<>();
     }
 
-    public Client(int idUtilisateur, String email, String motDePasse, boolean twoFactorEnabled, LocalDateTime createdAt, LocalDateTime updatedAt,
+    public Client(int idUtilisateur, String email, String motDePasse, String encryptionSalt, boolean twoFactorEnabled, LocalDateTime createdAt, LocalDateTime updatedAt,
                   String nom, String prenom, String telephone, java.time.LocalDate dateNaissance, LocalDateTime deletedAt) {
-        super(idUtilisateur, email, motDePasse, twoFactorEnabled, createdAt, updatedAt);
+        super(idUtilisateur, email, motDePasse, encryptionSalt, twoFactorEnabled, createdAt, updatedAt);
         this.nom = nom;
         this.prenom = prenom;
         this.telephone = telephone;

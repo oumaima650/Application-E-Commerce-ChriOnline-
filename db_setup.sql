@@ -16,6 +16,7 @@ CREATE TABLE Utilisateur (
     IdUtilisateur   INT             NOT NULL AUTO_INCREMENT,
     email           VARCHAR(255)    NOT NULL UNIQUE,
     motDePasse      VARCHAR(255)    NOT NULL,
+    encryption_salt VARCHAR(255)    NULL,      -- Salt pour dériver la KEK (Argon2id)
     two_factor_enabled BOOLEAN      NOT NULL DEFAULT FALSE,
     createdAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
