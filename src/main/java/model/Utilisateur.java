@@ -2,21 +2,24 @@ package model;
 
 import java.time.LocalDateTime;
 import java.io.Serializable;
+import javax.crypto.SecretKey;
 
 public abstract class Utilisateur implements Serializable {
     private int idUtilisateur;
     private String email;
     private String motDePasse;
+    private String encryptionSalt; // Sel pour Argon2id
     private boolean twoFactorEnabled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public Utilisateur() {}
 
-    public Utilisateur(int idUtilisateur, String email, String motDePasse, boolean twoFactorEnabled, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Utilisateur(int idUtilisateur, String email, String motDePasse, String encryptionSalt, boolean twoFactorEnabled, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.idUtilisateur = idUtilisateur;
         this.email = email;
         this.motDePasse = motDePasse;
+        this.encryptionSalt = encryptionSalt;
         this.twoFactorEnabled = twoFactorEnabled;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -34,6 +37,9 @@ public abstract class Utilisateur implements Serializable {
 
     public String getMotDePasse() { return motDePasse; }
     public void setMotDePasse(String motDePasse) { this.motDePasse = motDePasse; }
+
+    public String getEncryptionSalt() { return encryptionSalt; }
+    public void setEncryptionSalt(String encryptionSalt) { this.encryptionSalt = encryptionSalt; }
 
     public boolean isTwoFactorEnabled() { return twoFactorEnabled; }
     public void setTwoFactorEnabled(boolean twoFactorEnabled) { this.twoFactorEnabled = twoFactorEnabled; }
