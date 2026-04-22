@@ -65,7 +65,8 @@ public class AuthService {
             // --- DERIVATION KEK (Connexion) ---
             if (loginData.salt() != null) {
                 byte[] kek = KDFService.deriveKEK(motDePasse, loginData.salt());
-                // La KEK est générée mais n'est pas encore utilisée pour du chiffrement applicatif.
+                String kekPreview = java.util.Base64.getEncoder().encodeToString(kek).substring(0, 8);
+                System.out.println("[SECURITY] KEK générée avec succès pour " + email + " (Début: " + kekPreview + "...)");
                 logger.info("KEK dérivée avec succès pour {}", email);
             }
 
