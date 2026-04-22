@@ -25,8 +25,10 @@ import java.util.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.GCMParameterSpec;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 //
 
 import java.io.IOException;
@@ -34,9 +36,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.List;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ClientHandler implements Runnable {
 
+    private static final Logger logger = LogManager.getLogger(ClientHandler.class);
     private final Socket socket;
     private final AuthService authService;
     private final AdminService adminService;
@@ -93,7 +98,7 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         String clientAddr = socket.getInetAddress().getHostAddress();
-        System.out.println("[ClientHandler] Client connecté : " + clientAddr);
+        logger.info("Client connecté : {}", clientAddr);
 
         try {
             // SECURITY: Timeout d'inactivité de 5 minutes (300 000 ms)
@@ -141,9 +146,9 @@ public class ClientHandler implements Runnable {
                 // 4. Construire objet SecretKey AES
                 this.sessionSecretKey = new SecretKeySpec(aesKeyEnClair, 0, aesKeyEnClair.length, "AES");
 
-                System.out.println("[ClientHandler] Handshake RSA/AES réussi avec " + clientAddr);
+                logger.info("Handshake RSA/AES réussi avec {}", clientAddr);
             } catch (Exception e) {
-                System.err.println("[ClientHandler] Échec du Handshake avec " + clientAddr + " : " + e.getMessage());
+                logger.error("Échec du Handshake avec {}", clientAddr, e);
                 fermer();
                 return;
             }
@@ -154,7 +159,7 @@ public class ClientHandler implements Runnable {
                 try {
                     requete = (Requete) in.readObject();
                 } catch (Exception e) {
-                    System.out.println("[ClientHandler] Client déconnecté : " + clientAddr);
+                    logger.info("Client déconnecté : {}", clientAddr);
                     break;
                 }
 
@@ -163,12 +168,12 @@ public class ClientHandler implements Runnable {
                     continue;
                 }
 
-                System.out.println("[ClientHandler] Requête reçue : " + requete.getType() + " de " + clientAddr);
+                logger.info("Requête reçue : {} de {}", requete.getType(), clientAddr);
 
                 // --- SECURITY CHECK (Centralisé via SecurityManager) ---
                 Reponse securityError = securityManager.validateRequest(requete, clientAddr);
                 if (securityError != null) {
-                    System.out.println("[ClientHandler] Requête BLOQUÉE par la sécurité pour " + clientAddr);
+                    logger.warn("Requête BLOQUÉE par la sécurité pour {}", clientAddr);
                     envoyer(securityError);
                     continue; // On arrête là pour cette requête
                 }
@@ -184,8 +189,7 @@ public class ClientHandler implements Runnable {
 
                     envoyer(reponse);
                 } catch (Exception e) {
-                    System.err.println("[ClientHandler] Erreur lors du dispatch : " + e.getMessage());
-                    e.printStackTrace();
+                    logger.error("Erreur lors du dispatch", e);
                     envoyer(new Reponse(false, "Erreur interne du serveur lors du traitement de la requête.", null));
                 }
 
@@ -195,10 +199,9 @@ public class ClientHandler implements Runnable {
             }
 
         } catch (java.net.SocketTimeoutException e) {
-            System.out.println(
-                    "[ClientHandler] Déconnexion automatique : Inactivité détectée (5 min) pour " + clientAddr);
+            logger.info("Déconnexion automatique : Inactivité détectée (5 min) pour {}", clientAddr);
         } catch (IOException e) {
-            System.err.println("[ClientHandler] Erreur IO : " + e.getMessage());
+            logger.error("Erreur IO", e);
         } finally {
             fermer();
         }
@@ -287,15 +290,14 @@ public class ClientHandler implements Runnable {
             // ───────────────────────────────
             case GET_ALL_PRODUITS -> produitService.getAll(requete);
             case GET_ALL_PRODUITS_AFFICHABLES -> {
-                System.out.println("[ClientHandler] Traitement GET_ALL_PRODUITS_AFFICHABLES...");
+                logger.debug("Traitement GET_ALL_PRODUITS_AFFICHABLES...");
                 Reponse response = produitAffichableService.getAll(requete);
-                System.out.println("[ClientHandler] Réponse GET_ALL_PRODUITS_AFFICHABLES: "
-                        + (response.isSucces() ? "SUCCÈS" : "ÉCHEC"));
+                logger.debug("Réponse GET_ALL_PRODUITS_AFFICHABLES: {}", (response.isSucces() ? "SUCCÈS" : "ÉCHEC"));
                 if (response.isSucces() && response.getDonnees() != null) {
                     Object produitsObj = response.getDonnees().get("produits");
                     if (produitsObj instanceof List) {
                         List<?> produits = (List<?>) produitsObj;
-                        System.out.println("[ClientHandler] Nombre de produits retournés: " + produits.size());
+                        logger.debug("Nombre de produits retournés: {}", produits.size());
                     }
                 }
                 yield response;
@@ -395,17 +397,15 @@ public class ClientHandler implements Runnable {
                     // ───────────────────────────────
 
                     case VALIDATE_ORDER -> {
-                        System.out.println("[DEBUG_CH_1] VALIDATE_ORDER reçu par ClientHandler");
+                        logger.debug("VALIDATE_ORDER reçu par ClientHandler");
                         Reponse res = commandeService.passerCommande(requete);
                         if (res.getDonnees() != null) {
-                            System.out.println(
-                                    "[ClientHandler] VALIDATE_ORDER Données retournées : " + res.getDonnees().keySet());
+                            logger.debug("VALIDATE_ORDER Données retournées : {}", res.getDonnees().keySet());
                             if (res.getDonnees().containsKey("items")) {
                                 List<?> items = (List<?>) res.getDonnees().get("items");
-                                System.out.println(
-                                        "[ClientHandler] Nombre d'items: " + (items != null ? items.size() : 0));
+                                logger.debug("Nombre d'items: {}", (items != null ? items.size() : 0));
                             }
-                            System.out.println("[ClientHandler] Total: " + res.getDonnees().get("total"));
+                            logger.debug("Total: {}", res.getDonnees().get("total"));
                         }
                         yield res;
                     }
@@ -469,7 +469,7 @@ public class ClientHandler implements Runnable {
             out.flush();
             out.reset();
         } catch (IOException e) {
-            System.err.println("[ClientHandler] Impossible d'envoyer la réponse : " + e.getMessage());
+            logger.error("Impossible d'envoyer la réponse", e);
         }
     }
 
@@ -481,9 +481,9 @@ public class ClientHandler implements Runnable {
                 in.close();
             if (!socket.isClosed())
                 socket.close();
-            System.out.println("[ClientHandler] Connexion fermée.");
+            logger.info("Connexion fermée.");
         } catch (IOException e) {
-            System.err.println("[ClientHandler] Erreur lors de la fermeture : " + e.getMessage());
+            logger.error("Erreur lors de la fermeture", e);
         }
     }
 
@@ -518,7 +518,7 @@ public class ClientHandler implements Runnable {
 
         // Liste des champs considérés sensibles que le client va chiffrer
         String[] sensitiveKeys = { "motDePasse", "password", "newPassword", "numeroCarte", "cvv", "dateExpiration",
-                "carteBancaire" };
+                "carteBancaire", "token" };
 
         for (String key : sensitiveKeys) {
             if (requete.getParametres().containsKey(key)) {
@@ -526,17 +526,24 @@ public class ClientHandler implements Runnable {
                 if (valueObj instanceof String) {
                     try {
                         String encryptedBase64 = (String) valueObj;
-                        Cipher cipherAES = Cipher.getInstance("AES");
-                        cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey);
-                        byte[] decodedBase64 = Base64.getDecoder().decode(encryptedBase64);
-                        byte[] decrypted = cipherAES.doFinal(decodedBase64);
+                        byte[] combined = Base64.getDecoder().decode(encryptedBase64);
+
+                        if (combined.length < 12) continue;
+                        byte[] iv = new byte[12];
+                        byte[] encryptedBytes = new byte[combined.length - 12];
+                        System.arraycopy(combined, 0, iv, 0, 12);
+                        System.arraycopy(combined, 12, encryptedBytes, 0, encryptedBytes.length);
+
+                        Cipher cipherAES = Cipher.getInstance("AES/GCM/NoPadding");
+                        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+                        cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey, gcmSpec);
+
+                        byte[] decrypted = cipherAES.doFinal(encryptedBytes);
 
                         // Remplace donnee chiffree par donnee en clair pour la suite du flux
                         requete.getParametres().put(key, new String(decrypted));
                     } catch (Exception e) {
-                        // Si ça échoue, on ignore. Le format pourrait être en clair à cause du coté
-                        // client pas encore à jour.
-                        // System.err.println("Info - Déchiffrement AES échoué pour " + key);
+                        logger.warn("Info - Déchiffrement AES-GCM échoué/ignoré pour {}", key, e);
                     }
                 }
             }
@@ -559,15 +566,24 @@ public class ClientHandler implements Runnable {
                         oos.flush();
                         byte[] objectBytes = baos.toByteArray();
 
-                        Cipher cipherAES = Cipher.getInstance("AES");
-                        cipherAES.init(Cipher.ENCRYPT_MODE, this.sessionSecretKey);
+                        byte[] iv = new byte[12];
+                        new SecureRandom().nextBytes(iv);
+
+                        Cipher cipherAES = Cipher.getInstance("AES/GCM/NoPadding");
+                        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+                        cipherAES.init(Cipher.ENCRYPT_MODE, this.sessionSecretKey, gcmSpec);
+
                         byte[] encryptedBytes = cipherAES.doFinal(objectBytes);
 
-                        String encryptedBase64 = java.util.Base64.getEncoder().encodeToString(encryptedBytes);
+                        byte[] combined = new byte[iv.length + encryptedBytes.length];
+                        System.arraycopy(iv, 0, combined, 0, iv.length);
+                        System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
+
+                        String encryptedBase64 = java.util.Base64.getEncoder().encodeToString(combined);
 
                         reponse.getDonnees().put(key, encryptedBase64);
                     } catch (Exception e) {
-                        // On ignore silencieusement, utile en debug
+                        logger.warn("Info - Chiffrement AES-GCM échoué pour {}", key, e);
                     }
                 }
             }
