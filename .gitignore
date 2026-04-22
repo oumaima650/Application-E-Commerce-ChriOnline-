@@ -48,3 +48,6 @@ pom.xml
 ### DB Security ###
 src/main/resources/db.properties
 db.properties
+
+### Logs ###
+logs/security_audit.log
