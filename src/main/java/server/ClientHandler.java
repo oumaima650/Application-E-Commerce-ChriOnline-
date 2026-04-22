@@ -516,9 +516,9 @@ public class ClientHandler implements Runnable {
         if (this.sessionSecretKey == null || requete.getParametres() == null)
             return;
 
-        // Liste des champs considérés sensibles que le client va chiffrer
+        // Liste des champs considérés sensibles que le client va chiffrer (étendus PII)
         String[] sensitiveKeys = { "motDePasse", "password", "newPassword", "numeroCarte", "cvv", "dateExpiration",
-                "carteBancaire" };
+                "carteBancaire", "email", "nom", "prenom", "telephone", "dateNaissance", "rue", "ville", "codePostal", "pays", "code" , "commandes" , "panier"};
 
         for (String key : sensitiveKeys) {
             if (requete.getParametres().containsKey(key)) {
@@ -541,12 +541,27 @@ public class ClientHandler implements Runnable {
                 }
             }
         }
+
+        // Déchiffrement en profondeur du jeton JWT de session (Vulnérabilité Hijacking)
+        if (requete.getTokenSession() != null && !requete.getTokenSession().isBlank()) {
+            try {
+                String encryptedBase64 = requete.getTokenSession();
+                Cipher cipherAES = Cipher.getInstance("AES");
+                cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey);
+                byte[] decodedBase64 = Base64.getDecoder().decode(encryptedBase64);
+                byte[] decrypted = cipherAES.doFinal(decodedBase64);
+                
+                requete.setTokenSession(new String(decrypted));
+            } catch (Exception e) {
+                // Silencieux (Le client n'a peut-être pas encore activé le chiffrement du JWT)
+            }
+        }
     }
 
     private void encryptReponseFields(Reponse reponse) {
         if (this.sessionSecretKey == null || reponse == null || reponse.getDonnees() == null) return;
 
-        String[] sensitiveKeys = {"accessToken", "refreshToken", "utilisateur", "commandes", "adresses", "adresse", "historique_commandes", "profil", "paiement"};
+        String[] sensitiveKeys = {"accessToken", "refreshToken", "utilisateur", "commandes", "adresses", "adresse", "historique_commandes", "profil", "paiement", "motDePasse", "password", "newPassword", "email", "nom", "prenom", "telephone", "dateNaissance", "rue", "ville", "codePostal", "pays", "code"};
 
         for (String key : sensitiveKeys) {
             if (reponse.getDonnees().containsKey(key)) {
