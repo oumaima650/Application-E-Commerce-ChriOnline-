@@ -178,6 +178,10 @@ public class ClientHandler implements Runnable {
 
                 try {
                     Reponse reponse = dispatch(requete);
+                    
+                    // --- CHIFFREMENT CIBLE DE LA REPONSE ---
+                    encryptReponseFields(reponse);
+
                     envoyer(reponse);
                 } catch (Exception e) {
                     System.err.println("[ClientHandler] Erreur lors du dispatch : " + e.getMessage());
@@ -533,6 +537,37 @@ public class ClientHandler implements Runnable {
                         // Si ça échoue, on ignore. Le format pourrait être en clair à cause du coté
                         // client pas encore à jour.
                         // System.err.println("Info - Déchiffrement AES échoué pour " + key);
+                    }
+                }
+            }
+        }
+    }
+
+    private void encryptReponseFields(Reponse reponse) {
+        if (this.sessionSecretKey == null || reponse == null || reponse.getDonnees() == null) return;
+
+        String[] sensitiveKeys = {"accessToken", "refreshToken", "utilisateur", "commandes", "adresses", "adresse", "historique_commandes", "profil", "paiement"};
+
+        for (String key : sensitiveKeys) {
+            if (reponse.getDonnees().containsKey(key)) {
+                Object rawValue = reponse.getDonnees().get(key);
+                if (rawValue != null) {
+                    try {
+                        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                        java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(baos);
+                        oos.writeObject(rawValue);
+                        oos.flush();
+                        byte[] objectBytes = baos.toByteArray();
+
+                        Cipher cipherAES = Cipher.getInstance("AES");
+                        cipherAES.init(Cipher.ENCRYPT_MODE, this.sessionSecretKey);
+                        byte[] encryptedBytes = cipherAES.doFinal(objectBytes);
+
+                        String encryptedBase64 = java.util.Base64.getEncoder().encodeToString(encryptedBytes);
+
+                        reponse.getDonnees().put(key, encryptedBase64);
+                    } catch (Exception e) {
+                        // On ignore silencieusement, utile en debug
                     }
                 }
             }
