@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.sql.SQLException;
 
 //importation des classes Log4j2
 import org.apache.logging.log4j.LogManager;
@@ -25,6 +26,12 @@ public class SecurityManager {
     private final LoginAttemptLimitService loginAttemptService = new LoginAttemptLimitService();
     private final ReplayProtectionService replayProtectionService = new ReplayProtectionService();
     private final UdpSecurityService udpSecurityService = new UdpSecurityService();
+    private final TcpDosProtectionService tcpDosService = new TcpDosProtectionService();
+    private final TwoFactorAuthService twoFactorAuthService = new TwoFactorAuthService();
+    private final PasswordResetService passwordResetService = new PasswordResetService();
+    private final RecaptchaService recaptchaService = new RecaptchaService();
+
+
 
     // Whitelist des IPs autorisées pour les accès administrateur
     private final List<String> adminAllowedIps;
@@ -115,7 +122,51 @@ public class SecurityManager {
         return udpSecurityService.isSafePacket(clientId, message);
     }
 
+    /**
+     * Centralisation de la validation DoS TCP.
+     */
+    public boolean canAcceptTcpConnection(String ip) {
+        return tcpDosService.canAcceptConnection(ip);
+    }
+
+    public void releaseTcpConnection(String ip) {
+        tcpDosService.releaseConnection(ip);
+    }
+
+    // --- reCAPTCHA ---
+    public boolean verifyRecaptcha(String token) {
+        return recaptchaService.verify(token);
+    }
+
+    // --- 2FA ---
+    public boolean sendTwoFactorCode(String email) throws SQLException {
+        return twoFactorAuthService.send2FACode(email);
+    }
+
+    public TwoFactorAuthService.VerificationResult verifyTwoFactorCode(String email, String code) throws SQLException {
+        return twoFactorAuthService.verifyCode(email, code);
+    }
+
+    // --- Password Reset ---
+    public boolean sendPasswordResetCode(String email) throws SQLException {
+        return passwordResetService.sendResetCode(email);
+    }
+
+    public boolean verifyPasswordResetCode(String email, String code) throws SQLException {
+        return passwordResetService.verifyCode(email, code);
+    }
+
+    public void clearPasswordResetCode(String email) throws SQLException {
+        passwordResetService.clearCode(email);
+    }
+
+    public TcpDosProtectionService getTcpDosService() {
+
+        return tcpDosService;
+    }
+
     public LoginAttemptLimitService getLoginAttemptService() {
+
         return loginAttemptService;
     }
 }
