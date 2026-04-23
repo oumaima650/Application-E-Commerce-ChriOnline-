@@ -27,6 +27,16 @@
             <AppenderRef ref="ConsoleAppender"/>
             <AppenderRef ref="SecurityFileAppender"/>
         </Logger>
+        
+        <Logger name="server.ClientHandler" level="info" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="SecurityFileAppender"/>
+        </Logger>
+
+        <Logger name="client.ClientSocket" level="info" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="SecurityFileAppender"/>
+        </Logger>
 
         <Root level="error">
             <AppenderRef ref="ConsoleAppender"/>

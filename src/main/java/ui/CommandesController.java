@@ -48,7 +48,7 @@ public class CommandesController {
 
     private ObservableList<OrderRow> allOrders = FXCollections.observableArrayList();
     private ObservableList<OrderRow> filteredOrders = FXCollections.observableArrayList();
-    private final int PAGE_SIZE = 28;
+    private final int PAGE_SIZE = 8;
     private int currentPage = 0;
 
 
