@@ -8,6 +8,7 @@ import model.Utilisateur;
 import shared.Reponse;
 import shared.Requete;
 import dao.RefreshTokenDAO;
+import service.crypto.KDFService;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -60,6 +61,14 @@ public class AuthService {
 
             int userId = loginData.id();
             Utilisateur user = UtilisateurDAO.findById(userId);
+
+            // --- DERIVATION KEK (Connexion) ---
+            if (loginData.salt() != null) {
+                byte[] kek = KDFService.deriveKEK(motDePasse, loginData.salt());
+                String kekPreview = java.util.Base64.getEncoder().encodeToString(kek).substring(0, 8);
+                System.out.println("[SECURITY] KEK générée avec succès pour " + email + " (Début: " + kekPreview + "...)");
+                logger.info("KEK dérivée avec succès pour {}", email);
+            }
 
             // --- [WHITELIST IP ADMIN] Étape 3 : Vérification IP pour les ADMINS uniquement ---
             // Si l'utilisateur est un ADMIN et que son IP n'est pas dans la whitelist → rejet immédiat
@@ -185,11 +194,16 @@ public class AuthService {
                 return new Reponse(false, "Numéro de téléphone déjà utilisé : " + telephone, null);
             }
 
+            // --- KDF (Signup) ---
+            String encryptionSalt = KDFService.generateSalt();
+            byte[] kek = KDFService.deriveKEK(motDePasse, encryptionSalt);
+            // --------------------
+
             // --- 2-Step Signup Verification ---
             // We create the account as 'EN_ATTENTE' and send verification code
             String hashedPw = PasswordService.hash(motDePasse);
             ClientDAO clientDAO = new ClientDAO();
-            Client client = clientDAO.create(email, hashedPw, nom, prenom, telephone, dateNaissance);
+            Client client = clientDAO.create(email, hashedPw, encryptionSalt, nom, prenom, telephone, dateNaissance);
 
             if (securityManager.sendTwoFactorCode(email)) {
                 System.out.println("[AuthService] Signup pending verification for email=" + email);

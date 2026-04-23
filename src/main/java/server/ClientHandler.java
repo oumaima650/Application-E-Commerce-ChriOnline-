@@ -146,9 +146,10 @@ public class ClientHandler implements Runnable {
                 // 4. Construire objet SecretKey AES
                 this.sessionSecretKey = new SecretKeySpec(aesKeyEnClair, 0, aesKeyEnClair.length, "AES");
 
-                logger.info("Handshake RSA/AES réussi avec {}", clientAddr);
+                logger.info("[AUDIT SECU] Handshake RSA/AES réussi : Clé de session établie pour {}", clientAddr);
             } catch (Exception e) {
-                logger.error("Échec du Handshake avec {}", clientAddr, e);
+                logger.error("[AUDIT SECU] ÉCHEC CRITIQUE du Handshake avec {} : Risque de MITM ou erreur de protocole",
+                        clientAddr, e);
                 fermer();
                 return;
             }
@@ -183,7 +184,7 @@ public class ClientHandler implements Runnable {
 
                 try {
                     Reponse reponse = dispatch(requete);
-                    
+
                     // --- CHIFFREMENT CIBLE DE LA REPONSE ---
                     encryptReponseFields(reponse);
 
@@ -517,8 +518,9 @@ public class ClientHandler implements Runnable {
             return;
 
         // Liste des champs considérés sensibles que le client va chiffrer (étendus PII)
-        String[] sensitiveKeys = { "motDePasse", "password", "newPassword", "numeroCarte", "cvv", "dateExpiration",
-                "carteBancaire", "email", "nom", "prenom", "telephone", "dateNaissance", "rue", "ville", "codePostal", "pays", "code" , "commandes" , "panier", "items"};
+        String[] sensitiveKeys = { "motDePasse", "newPassword", "numeroCarte", "cvv", "dateExpiration", "carteBancaire",
+                "email", "nom", "prenom", "telephone", "ville", "codePostal", "addresseComplete",
+                "panier", "items" };
 
         for (String key : sensitiveKeys) {
             if (requete.getParametres().containsKey(key)) {
@@ -528,7 +530,8 @@ public class ClientHandler implements Runnable {
                         String encryptedBase64 = (String) valueObj;
                         byte[] combined = Base64.getDecoder().decode(encryptedBase64);
 
-                        if (combined.length < 12) continue;
+                        if (combined.length < 12)
+                            continue;
                         byte[] iv = new byte[12];
                         byte[] encryptedBytes = new byte[combined.length - 12];
                         System.arraycopy(combined, 0, iv, 0, 12);
@@ -548,22 +551,37 @@ public class ClientHandler implements Runnable {
                         // Remplace donnee chiffree par donnee en clair pour la suite du flux
                         requete.getParametres().put(key, originalObject);
                     } catch (Exception e) {
-                        logger.warn("Info - Déchiffrement AES-GCM échoué/ignoré pour {}", key, e);
+                        logger.warn(
+                                "[AUDIT SECU] ALERTE : Échec du déchiffrement AES-GCM (Altération possible ?) pour le champ '{}' du client {}",
+                                key, socket.getInetAddress());
                     }
                 }
             }
         }
 
-        // Déchiffrement en profondeur du jeton JWT de session (Vulnérabilité Hijacking)
+        // Déchiffrement du jeton JWT de session (Object Privacy / AES-GCM)
         if (requete.getTokenSession() != null && !requete.getTokenSession().isBlank()) {
             try {
                 String encryptedBase64 = requete.getTokenSession();
-                Cipher cipherAES = Cipher.getInstance("AES");
-                cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey);
-                byte[] decodedBase64 = Base64.getDecoder().decode(encryptedBase64);
-                byte[] decrypted = cipherAES.doFinal(decodedBase64);
-                
-                requete.setTokenSession(new String(decrypted));
+                byte[] combined = Base64.getDecoder().decode(encryptedBase64);
+
+                if (combined.length >= 12) {
+                    byte[] iv = new byte[12];
+                    byte[] encryptedBytes = new byte[combined.length - 12];
+                    System.arraycopy(combined, 0, iv, 0, 12);
+                    System.arraycopy(combined, 12, encryptedBytes, 0, encryptedBytes.length);
+
+                    Cipher cipherAES = Cipher.getInstance("AES/GCM/NoPadding");
+                    GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+                    cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey, gcmSpec);
+
+                    byte[] decryptedBytes = cipherAES.doFinal(encryptedBytes);
+
+                    // Unification Objet (Désérialisation du String)
+                    java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
+                    java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais);
+                    requete.setTokenSession((String) ois.readObject());
+                }
             } catch (Exception e) {
                 // Silencieux (Le client n'a peut-être pas encore activé le chiffrement du JWT)
             }
@@ -571,9 +589,12 @@ public class ClientHandler implements Runnable {
     }
 
     private void encryptReponseFields(Reponse reponse) {
-        if (this.sessionSecretKey == null || reponse == null || reponse.getDonnees() == null) return;
+        if (this.sessionSecretKey == null || reponse == null || reponse.getDonnees() == null)
+            return;
 
-        String[] sensitiveKeys = {"accessToken", "refreshToken", "utilisateur", "commandes", "adresses", "adresse", "historique_commandes", "profil", "paiement", "motDePasse", "password", "newPassword", "email", "nom", "prenom", "telephone", "dateNaissance", "rue", "ville", "codePostal", "pays", "code"};
+        String[] sensitiveKeys = { "accessToken", "refreshToken", "utilisateur", "commandes", "adresses", "adresse",
+                "historique_commandes", "profil", "paiement", "motDePasse", "password", "newPassword", "email", "nom",
+                "prenom", "telephone", "dateNaissance", "rue", "ville", "codePostal", "pays", "code" };
 
         for (String key : sensitiveKeys) {
             if (reponse.getDonnees().containsKey(key)) {

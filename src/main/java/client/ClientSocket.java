@@ -91,11 +91,12 @@ public class ClientSocket {
             // 1.5 VERIFICATION MITM
             if (this.trustedServerPublicKey != null) {
                 if (!serverPublicKey.equals(this.trustedServerPublicKey)) {
+                    logger.error("[AUDIT SECU] ALERTE : Tentative de MITM détectée ! La clé publique du serveur ne correspond pas au Truststore.");
                     throw new SecurityException("MITM Detecté : La clé publique du serveur reçue ne correspond pas à la clé de confiance !");
                 }
-                logger.info("Vérification Truststore réussie : L'identité du serveur est confirmée.");
+                logger.info("[AUDIT SECU] Vérification Truststore réussie : Identité du serveur confirmée.");
             } else {
-                logger.warn("Avertissement : Aucune clé de confiance n'est configurée pour vérifier le serveur.");
+                logger.warn("[AUDIT SECU] ATTENTION : Connexion sans Truststore. L'identité du serveur n'est pas vérifiée.");
             }
 
             // 2. Generer nouvelle cle AES 256 bits
@@ -113,9 +114,9 @@ public class ClientSocket {
             out.flush();
             //  FIN HANDSHAKE
 
-            logger.info("Connexion sécurisée Hybride (AES/RSA) établie sur le port {}", PORT);
+            logger.info("[AUDIT SECU] Connexion sécurisée Hybride (AES/RSA) établie sur le port {}", PORT);
         } catch (Exception e) {
-            logger.error("Erreur de connexion sécurisée", e);
+            logger.error("[AUDIT SECU] Échec de l'établissement de la connexion sécurisée : {}", e.getMessage());
             socket = null;
         }
     }
@@ -175,6 +176,34 @@ public class ClientSocket {
             connect();
         }
         if (out != null) {
+            // Chiffrement du Token de Session s'il existe (AES-GCM + Object Privacy)
+            if (req.getTokenSession() != null && !req.getTokenSession().isBlank()) {
+                try {
+                    java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                    java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(baos);
+                    oos.writeObject(req.getTokenSession());
+                    oos.flush();
+                    byte[] tokenBytes = baos.toByteArray();
+
+                    byte[] iv = new byte[12];
+                    new SecureRandom().nextBytes(iv);
+
+                    Cipher cipherAES = Cipher.getInstance("AES/GCM/NoPadding");
+                    GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+                    cipherAES.init(Cipher.ENCRYPT_MODE, this.sessionSecretKey, gcmSpec);
+
+                    byte[] encryptedToken = cipherAES.doFinal(tokenBytes);
+
+                    byte[] combined = new byte[iv.length + encryptedToken.length];
+                    System.arraycopy(iv, 0, combined, 0, iv.length);
+                    System.arraycopy(encryptedToken, 0, combined, iv.length, encryptedToken.length);
+
+                    req.setTokenSession(Base64.getEncoder().encodeToString(combined));
+                } catch (Exception e) {
+                    logger.error("Erreur lors du chiffrement du token de session", e);
+                }
+            }
+
             encryptRequeteFields(req);
             out.writeObject(req);
             out.flush();
@@ -189,7 +218,7 @@ public class ClientSocket {
     private void encryptRequeteFields(Requete requete) {
         if (this.sessionSecretKey == null || requete.getParametres() == null) return;
         
-        String[] sensitiveKeys = {"password", "motDePasse", "carteBancaire", "numeroCarte", "cvv", "dateExpiration", "token", "newPassword", "commande", "panier", "items"};
+        String[] sensitiveKeys = {"motDePasse", "newPassword", "numeroCarte", "cvv", "dateExpiration", "carteBancaire", "email", "nom", "prenom", "telephone", "ville", "codePostal", "addresseComplete", "panier", "items"};
         
         for (String key : sensitiveKeys) {
             if (requete.getParametres().containsKey(key)) {
