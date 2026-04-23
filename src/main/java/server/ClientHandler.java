@@ -518,9 +518,15 @@ public class ClientHandler implements Runnable {
             return;
 
         // Liste des champs considérés sensibles que le client va chiffrer (étendus PII)
-        String[] sensitiveKeys = { "motDePasse", "newPassword", "numeroCarte", "cvv", "dateExpiration", "carteBancaire",
-                "email", "nom", "prenom", "telephone", "ville", "codePostal", "addresseComplete",
-                "panier", "items" };
+        String[] sensitiveKeys = { 
+            "utilisateur", "client", "adresse", "adresses", "adresse_complete", 
+            "commande", "commandes", "items", "panier", "lignes",
+            "accessToken", "refreshToken", "refresh_tokens", "password_reset_codes", "resetCode",
+            "twofactorcodes", "2faCode", "code", "login_security_state",
+            "motDePasse", "newPassword", "password", "email", "nom", "prenom", "telephone", "dateNaissance",
+            "numeroCarte", "cvv", "dateExpiration", "carte", "cartes", "paiement", "carteBancaire",
+            "notifications"
+        };
 
         for (String key : sensitiveKeys) {
             if (requete.getParametres().containsKey(key)) {
@@ -592,9 +598,25 @@ public class ClientHandler implements Runnable {
         if (this.sessionSecretKey == null || reponse == null || reponse.getDonnees() == null)
             return;
 
-        String[] sensitiveKeys = { "accessToken", "refreshToken", "utilisateur", "commandes", "adresses", "adresse",
-                "historique_commandes", "profil", "paiement", "motDePasse", "password", "newPassword", "email", "nom",
-                "prenom", "telephone", "dateNaissance", "rue", "ville", "codePostal", "pays", "code" };
+        // PROTECTION CONTRE LES MAPS IMMUABLES (Map.of, Collections.unmodifiableMap)
+        // Permet de modifier la réponse pour y insérer les versions chiffrées sans crash.
+        try {
+            reponse.getDonnees().put("test_mutability", null);
+            reponse.getDonnees().remove("test_mutability");
+        } catch (UnsupportedOperationException e) {
+            reponse.setDonnees(new java.util.HashMap<>(reponse.getDonnees()));
+        }
+
+        // Liste unifiée des clés sensibles (Attributs, Objets métiers et Tokens de sécurité)
+        String[] sensitiveKeys = { 
+            "utilisateur", "client", "adresse", "adresses", "adresse_complete", 
+            "commande", "commandes", "items", "panier", "lignes",
+            "accessToken", "refreshToken", "refresh_tokens", "password_reset_codes", "resetCode",
+            "twofactorcodes", "2faCode", "code", "login_security_state",
+            "motDePasse", "newPassword", "password", "email", "nom", "prenom", "telephone", "dateNaissance",
+            "numeroCarte", "cvv", "dateExpiration", "carte", "cartes", "paiement", "carteBancaire",
+            "notifications"
+        };
 
         for (String key : sensitiveKeys) {
             if (reponse.getDonnees().containsKey(key)) {
@@ -606,6 +628,11 @@ public class ClientHandler implements Runnable {
                         oos.writeObject(rawValue);
                         oos.flush();
                         byte[] objectBytes = baos.toByteArray();
+
+                        // --- LOG DE TEST VISUEL ---
+                        if (key.equals("commandes") || key.equals("lignes") || key.equals("panier")) {
+                            System.out.println("[TEST-CHIFFREMENT] Champ '" + key + "' avant chiffrement (objet Java) : " + rawValue.toString().substring(0, Math.min(rawValue.toString().length(), 60)) + "...");
+                        }
 
                         byte[] iv = new byte[12];
                         new SecureRandom().nextBytes(iv);
@@ -621,6 +648,10 @@ public class ClientHandler implements Runnable {
                         System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
 
                         String encryptedBase64 = java.util.Base64.getEncoder().encodeToString(combined);
+
+                        if (key.equals("commandes") || key.equals("lignes") || key.equals("panier")) {
+                            System.out.println("[TEST-CHIFFREMENT] Champ '" + key + "' APRÈS chiffrement (Base64) : " + encryptedBase64.substring(0, 40) + "...");
+                        }
 
                         reponse.getDonnees().put(key, encryptedBase64);
                     } catch (Exception e) {

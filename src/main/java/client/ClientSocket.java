@@ -218,7 +218,15 @@ public class ClientSocket {
     private void encryptRequeteFields(Requete requete) {
         if (this.sessionSecretKey == null || requete.getParametres() == null) return;
         
-        String[] sensitiveKeys = {"motDePasse", "newPassword", "numeroCarte", "cvv", "dateExpiration", "carteBancaire", "email", "nom", "prenom", "telephone", "ville", "codePostal", "addresseComplete", "panier", "items"};
+        String[] sensitiveKeys = { 
+            "utilisateur", "client", "adresse", "adresses", "adresse_complete", 
+            "commande", "commandes", "items", "panier", "lignes",
+            "accessToken", "refreshToken", "refresh_tokens", "password_reset_codes", "resetCode",
+            "twofactorcodes", "2faCode", "code", "login_security_state",
+            "motDePasse", "newPassword", "password", "email", "nom", "prenom", "telephone", "dateNaissance",
+            "numeroCarte", "cvv", "dateExpiration", "carte", "cartes", "paiement", "carteBancaire",
+            "notifications"
+        };
         
         for (String key : sensitiveKeys) {
             if (requete.getParametres().containsKey(key)) {
@@ -259,7 +267,15 @@ public class ClientSocket {
     private void decryptReponseFields(Reponse reponse) {
         if (this.sessionSecretKey == null || reponse == null || reponse.getDonnees() == null) return;
 
-        String[] sensitiveKeys = {"accessToken", "refreshToken", "utilisateur", "commandes", "adresses", "adresse", "historique_commandes", "profil", "paiement"};
+        String[] sensitiveKeys = { 
+            "utilisateur", "client", "adresse", "adresses", "adresse_complete", 
+            "commande", "commandes", "items", "panier", "lignes",
+            "accessToken", "refreshToken", "refresh_tokens", "password_reset_codes", "resetCode",
+            "twofactorcodes", "2faCode", "code", "login_security_state",
+            "motDePasse", "newPassword", "password", "email", "nom", "prenom", "telephone", "dateNaissance",
+            "numeroCarte", "cvv", "dateExpiration", "carte", "cartes", "paiement", "carteBancaire",
+            "notifications"
+        };
 
         for (String key : sensitiveKeys) {
             if (reponse.getDonnees().containsKey(key)) {
