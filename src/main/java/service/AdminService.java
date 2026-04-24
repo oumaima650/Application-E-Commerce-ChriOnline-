@@ -261,9 +261,13 @@ public class AdminService {
             ps.setInt(1, idAdresse);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                String rue      = rs.getString("addresseComplete");
-                String ville    = rs.getString("ville");
-                String cp       = rs.getString("codePostal");
+                String encryptedRue = rs.getString("addresseComplete");
+                String ville        = rs.getString("ville");
+                String cp           = rs.getString("codePostal");
+                
+                // Déchiffrement de la rue via le service de stockage
+                String rue = service.StorageEncryptionService.getInstance().decrypt(encryptedRue);
+                
                 StringBuilder sb = new StringBuilder(rue);
                 if (cp   != null && !cp.isBlank())    sb.append(", ").append(cp);
                 if (ville != null && !ville.isBlank()) sb.append(" ").append(ville);

@@ -159,8 +159,6 @@ public class CheckoutController {
                 );
                 shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                 if (rep.isSucces() && rep.getDonnees() != null) {
-                    // DEK Decryption
-                    client.ClientSocket.getInstance().decryptStorageFieldsWithDEK(rep);
                     
                     @SuppressWarnings("unchecked")
                     Map<String, Object> orderData = (Map<String, Object>) rep.getDonnees().get("commande");
@@ -234,8 +232,6 @@ public class CheckoutController {
                         );
                         shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                         if (rep.isSucces() && rep.getDonnees() != null) {
-                            // DEK Decryption
-                            client.ClientSocket.getInstance().decryptStorageFieldsWithDEK(rep);
 
                             @SuppressWarnings("unchecked")
                             Map<String, Object> data = (Map<String, Object>) rep.getDonnees();
@@ -492,13 +488,9 @@ public class CheckoutController {
         if (isNewAddress) {
             executor.submit(() -> {
                 try {
-                    // Zero-Knowledge: Encrypt address before sending to server
-                    javax.crypto.SecretKey dek = SessionManager.getInstance().getCurrentUser().getSessionDek();
-                    String encryptedAddr = client.crypto.EnvelopeEncryptionService.encryptField(newAddr, dek);
-
                     java.util.Map<String, Object> p = new java.util.HashMap<>();
                     p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
-                    p.put("addresseComplete", encryptedAddr);
+                    p.put("addresseComplete", newAddr);
                     p.put("ville", ville);
                     p.put("codePostal", codePostal);
                     shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getAccessToken());
@@ -510,7 +502,7 @@ public class CheckoutController {
                         }
                     }
                 } catch (Exception e) {
-                    Platform.runLater(() -> showAlertErreur("Erreur lors du chiffrement de la nouvelle adresse."));
+                    Platform.runLater(() -> showAlertErreur("Erreur lors de l'enregistrement de l'adresse."));
                 }
             });
         }
@@ -637,8 +629,6 @@ public class CheckoutController {
                     return;
                 }
 
-                // DEK Decryption: Decrypt personal info and product names in the response
-                client.ClientSocket.getInstance().decryptStorageFieldsWithDEK(orderRep);
 
                 Map<String, Object> data = (Map<String, Object>) orderRep.getDonnees();
                 int idCommande = (Integer) data.get("idCommande");

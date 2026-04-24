@@ -16,19 +16,19 @@ public class UtilisateurDAO {
         return ConnexionBDD.getConnection();
     }
 
-    public record LoginData(int id, String hash, boolean twoFactorEnabled, String salt, String wrappedDek) {}
+    public record LoginData(int id, String hash, boolean twoFactorEnabled) {}
 
     /**
      * Gets the user ID and password hash for a given email.
      * @return LoginData or null if user doesn't exist.
      */
     public static LoginData getLoginData(String email) throws SQLException {
-        String sql = "SELECT IdUtilisateur, motDePasse, two_factor_enabled, encryption_salt, wrapped_dek FROM Utilisateur WHERE email = ?";
+        String sql = "SELECT IdUtilisateur, motDePasse, two_factor_enabled FROM Utilisateur WHERE email = ?";
         try (PreparedStatement ps = getConn().prepareStatement(sql)) {
             ps.setString(1, email);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return new LoginData(rs.getInt(1), rs.getString(2), rs.getBoolean(3), rs.getString(4), rs.getString(5));
+                    return new LoginData(rs.getInt(1), rs.getString(2), rs.getBoolean(3));
                 }
             }
         }
@@ -89,7 +89,7 @@ public class UtilisateurDAO {
         if (userType(id) == TypeEtulisateur.CLIENT) {
             return new ClientDAO().findById(id);
         } else {
-            String sql = "SELECT email, motDePasse, encryption_salt, wrapped_dek, two_factor_enabled, createdAt, updatedAt FROM Utilisateur WHERE IdUtilisateur = ?";
+            String sql = "SELECT email, motDePasse, two_factor_enabled, createdAt, updatedAt FROM Utilisateur WHERE IdUtilisateur = ?";
             try (Connection conn = getConn();
                  PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, id);
@@ -97,7 +97,7 @@ public class UtilisateurDAO {
                     if (rs.next()) {
                         LocalDateTime ca = rs.getTimestamp("createdAt") != null ? rs.getTimestamp("createdAt").toLocalDateTime() : null;
                         LocalDateTime ua = rs.getTimestamp("updatedAt") != null ? rs.getTimestamp("updatedAt").toLocalDateTime() : null;
-                        return new Administrateur(id, rs.getString("email"), rs.getString("motDePasse"), rs.getString("encryption_salt"), rs.getString("wrapped_dek"), rs.getBoolean("two_factor_enabled"), ca, ua);
+                        return new Administrateur(id, rs.getString("email"), rs.getString("motDePasse"), rs.getBoolean("two_factor_enabled"), ca, ua);
                     }
                 }
             }
@@ -133,38 +133,6 @@ public class UtilisateurDAO {
         }
     }
 
-    /**
-     * Met à jour le hash du mot de passe ET les données de chiffrement (sel + DEK wrappée)
-     * en une seule transaction. À utiliser lors du reset de mot de passe pour garantir
-     * la cohérence entre le nouveau KEK (dérivé du nouveau mot de passe) et la DEK.
-     */
-    public static boolean updatePasswordAndEncryption(String email, String newHash,
-                                                       String newEncryptionSalt,
-                                                       String newWrappedDek) throws SQLException {
-        String sql = "UPDATE Utilisateur SET motDePasse = ?, encryption_salt = ?, wrapped_dek = ?, updatedAt = NOW() WHERE email = ?";
-        try (Connection conn = getConn();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, newHash);
-            ps.setString(2, newEncryptionSalt);
-            ps.setString(3, newWrappedDek);
-            ps.setString(4, email);
-            return ps.executeUpdate() > 0;
-        }
-    }
-
-    public static boolean updatePasswordAndEncryption(int userId, String newHash,
-                                                       String newEncryptionSalt,
-                                                       String newWrappedDek) throws SQLException {
-        String sql = "UPDATE Utilisateur SET motDePasse = ?, encryption_salt = ?, wrapped_dek = ?, updatedAt = NOW() WHERE IdUtilisateur = ?";
-        try (Connection conn = getConn();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, newHash);
-            ps.setString(2, newEncryptionSalt);
-            ps.setString(3, newWrappedDek);
-            ps.setInt(4, userId);
-            return ps.executeUpdate() > 0;
-        }
-    }
 
     public static boolean updateTwoFactorStatus(String email, boolean enabled) throws SQLException {
         String sql = "UPDATE Utilisateur SET two_factor_enabled = ?, updatedAt = NOW() WHERE email = ?";

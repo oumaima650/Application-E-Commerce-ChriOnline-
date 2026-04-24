@@ -236,10 +236,7 @@ public class ProfileController {
                     SessionManager.getInstance().getSession().getAccessToken());
             Reponse rep = client.ClientSocket.getInstance().envoyer(req);
 
-            // DEK Decryption: Decrypt address list
-            if (rep.isSucces()) {
-                client.ClientSocket.getInstance().decryptStorageFieldsWithDEK(rep);
-            }
+            // Addresses are already decrypted by the server
 
             Platform.runLater(() -> {
                 addressesContainer.getChildren().clear();
@@ -295,7 +292,6 @@ public class ProfileController {
 
             executor.submit(() -> {
                 try {
-                    // Zero-Knowledge: ClientSocket will automatically encrypt fields in STORAGE_SENSITIVE_KEYS
                     Map<String, Object> params = new HashMap<>();
                     params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
                     params.put("addresseComplete", addr);
@@ -399,24 +395,8 @@ public class ProfileController {
             Utilisateur user = SessionManager.getInstance().getCurrentUser();
             
             executor.submit(() -> {
-                try {
-                    // --- PHASE 1 : Vérifier l'ancien mot de passe en essayant de dériver la KEK ---
-                    byte[] oldKek = client.crypto.KDFService.deriveKEK(oldPass, user.getEncryptionSalt());
-                    // On déballe la DEK avec l'ancien mot de passe pour être sûr qu'elle est valide
-                    javax.crypto.SecretKey currentDek = client.crypto.EnvelopeEncryptionService.unwrapDEK(user.getWrappedDek(), oldKek);
-                    
-                    // --- PHASE 2 : Préparer la nouvelle protection ---
-                    String newSalt = client.crypto.KDFService.generateSalt();
-                    byte[] newKek = client.crypto.KDFService.deriveKEK(newPass, newSalt);
-                    
-                    // On re-wrappe la DEK déballée avec la nouvelle KEK
-                    String newWrappedDek = client.crypto.EnvelopeEncryptionService.wrapDEK(currentDek, newKek);
-
-                    // --- PHASE 3 : Envoyer au serveur ---
-                    Map<String, Object> params = new HashMap<>();
-                    params.put("newPassword", newPass);
-                    params.put("newSalt", newSalt);
-                    params.put("newWrappedDek", newWrappedDek);
+                Map<String, Object> params = new HashMap<>();
+                params.put("newPassword", newPass);
                     
                     Requete req = new Requete(RequestType.CHANGE_PASSWORD, params, 
                                             SessionManager.getInstance().getSession().getAccessToken());
@@ -424,28 +404,15 @@ public class ProfileController {
 
                     Platform.runLater(() -> {
                         if (rep.isSucces()) {
-                            // Mettre à jour l'utilisateur localement
-                            user.setEncryptionSalt(newSalt);
-                            user.setWrappedDek(newWrappedDek);
-                            
-                            // Rafraîchir l'affichage
-                            loadProfileData();
-                            updateToggle2FAText();
-                            
                             showAlert(Alert.AlertType.INFORMATION, "Succès", "Votre mot de passe a été modifié avec succès !");
                         } else {
                             showAlert(Alert.AlertType.ERROR, "Erreur", rep.getMessage());
                         }
                     });
-
-                } catch (Exception e) {
-                    Platform.runLater(() -> {
-                        showAlert(Alert.AlertType.ERROR, "Erreur", "L'ancien mot de passe est incorrect ou une erreur est survenue.");
-                    });
-                }
             });
         });
-    }}
+    }
+}
 
     
             

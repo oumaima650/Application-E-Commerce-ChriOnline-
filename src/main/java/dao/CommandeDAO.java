@@ -302,7 +302,7 @@ public class CommandeDAO {
      */
     public List<Commande> getAdminOrders() throws SQLException {
         List<Commande> commandes = new ArrayList<>();
-        String query = "SELECT * FROM Commande WHERE statut != 'en_attente' ORDER BY created_At DESC";
+        String query = "SELECT * FROM Commande ORDER BY created_At DESC";
         
         try (Connection connection = ConnexionBDD.getConnection();
              PreparedStatement stmt = connection.prepareStatement(query)) {

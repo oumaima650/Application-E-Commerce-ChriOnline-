@@ -26,76 +26,128 @@ import java.util.regex.Pattern;
 
 public class LoginController implements Initializable {
 
-    private static final int     PW_MIN       = 8;
-    private static final Pattern HAS_UPPER    = Pattern.compile(".*[A-Z].*");
-    private static final Pattern HAS_DIGIT    = Pattern.compile(".*[0-9].*");
-    private static final Pattern HAS_SPECIAL  = Pattern.compile(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?`~].*");
-    private static final Pattern EMAIL_REGEX  = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static final int PW_MIN = 8;
+    private static final Pattern HAS_UPPER = Pattern.compile(".*[A-Z].*");
+    private static final Pattern HAS_DIGIT = Pattern.compile(".*[0-9].*");
+    private static final Pattern HAS_SPECIAL = Pattern.compile(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?`~].*");
+    private static final Pattern EMAIL_REGEX = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
-    @FXML private StackPane   rootPane;
-    @FXML private VBox        loginCard;
-    @FXML private TabPane     mainTabPane;
-    @FXML private Tab         loginTab;
-    @FXML private Tab         registerTab;
+    @FXML
+    private StackPane rootPane;
+    @FXML
+    private VBox loginCard;
+    @FXML
+    private TabPane mainTabPane;
+    @FXML
+    private Tab loginTab;
+    @FXML
+    private Tab registerTab;
 
-    @FXML private VBox          loginFormBox;
-    @FXML private HBox          loginEmailWrapper;
-    @FXML private HBox          loginPasswordWrapper;
-    @FXML private TextField     loginEmailField;
-    @FXML private PasswordField loginPasswordField;
-    @FXML private Button        loginButton;
-    @FXML private Label         loginErrorLabel;
+    @FXML
+    private VBox loginFormBox;
+    @FXML
+    private HBox loginEmailWrapper;
+    @FXML
+    private HBox loginPasswordWrapper;
+    @FXML
+    private TextField loginEmailField;
+    @FXML
+    private PasswordField loginPasswordField;
+    @FXML
+    private Button loginButton;
+    @FXML
+    private Label loginErrorLabel;
 
-    @FXML private VBox          registerFormBox;
-    @FXML private HBox          registerNameWrapper;
-    @FXML private HBox          registerFirstNameWrapper;
-    @FXML private HBox          registerPhoneWrapper;
-    @FXML private HBox          registerEmailWrapper;
-    @FXML private HBox          registerPasswordWrapper;
-    @FXML private HBox          registerConfirmWrapper;
-    @FXML private TextField     registerNomField;        
-    @FXML private TextField     registerPrenomField;     
-    @FXML private TextField     registerPhoneField;
-    @FXML private TextField     registerEmailField;
-    @FXML private PasswordField registerPasswordField;
-    @FXML private PasswordField registerConfirmPasswordField;
-    @FXML private Button        registerButton;
-    @FXML private Label         registerErrorLabel;
+    @FXML
+    private VBox registerFormBox;
+    @FXML
+    private HBox registerNameWrapper;
+    @FXML
+    private HBox registerFirstNameWrapper;
+    @FXML
+    private HBox registerPhoneWrapper;
+    @FXML
+    private HBox registerEmailWrapper;
+    @FXML
+    private HBox registerPasswordWrapper;
+    @FXML
+    private HBox registerConfirmWrapper;
+    @FXML
+    private TextField registerNomField;
+    @FXML
+    private TextField registerPrenomField;
+    @FXML
+    private TextField registerPhoneField;
+    @FXML
+    private TextField registerEmailField;
+    @FXML
+    private PasswordField registerPasswordField;
+    @FXML
+    private PasswordField registerConfirmPasswordField;
+    @FXML
+    private Button registerButton;
+    @FXML
+    private Label registerErrorLabel;
 
-    @FXML private HBox  strengthBarBox;
-    @FXML private Label strengthLabel;
-    @FXML private Hyperlink forgotPasswordLink;
+    @FXML
+    private HBox strengthBarBox;
+    @FXML
+    private Label strengthLabel;
+    @FXML
+    private Hyperlink forgotPasswordLink;
 
     // --- New Fields ---
-    @FXML private HBox registerBirthdayWrapper;
-    @FXML private DatePicker registerBirthdayPicker;
-    @FXML private TextField loginPasswordVisibleField;
-    @FXML private Button toggleLoginPasswordBtn;
-    @FXML private TextField registerPasswordVisibleField;
-    @FXML private Button toggleRegisterPasswordBtn;
+    @FXML
+    private HBox registerBirthdayWrapper;
+    @FXML
+    private DatePicker registerBirthdayPicker;
+    @FXML
+    private TextField loginPasswordVisibleField;
+    @FXML
+    private Button toggleLoginPasswordBtn;
+    @FXML
+    private TextField registerPasswordVisibleField;
+    @FXML
+    private Button toggleRegisterPasswordBtn;
 
     // Verification Overlay
-    @FXML private VBox  verificationOverlay;
-    @FXML private Label verificationTitle;
-    @FXML private Label verificationSubtitle;
-    @FXML private Label verificationErrorLabel;
-    @FXML private Label verificationRetryLabel;
-    @FXML private HBox  otpContainer;
-    @FXML private TextField otp1, otp2, otp3, otp4, otp5, otp6;
-    @FXML private Button verifyCodeBtn;
+    @FXML
+    private VBox verificationOverlay;
+    @FXML
+    private Label verificationTitle;
+    @FXML
+    private Label verificationSubtitle;
+    @FXML
+    private Label verificationErrorLabel;
+    @FXML
+    private Label verificationRetryLabel;
+    @FXML
+    private HBox otpContainer;
+    @FXML
+    private TextField otp1, otp2, otp3, otp4, otp5, otp6;
+    @FXML
+    private Button verifyCodeBtn;
 
-    @FXML private VBox passwordResetContainer;
-    @FXML private PasswordField newResetPasswordField;
-    @FXML private PasswordField confirmResetPasswordField;
+    @FXML
+    private VBox passwordResetContainer;
+    @FXML
+    private PasswordField newResetPasswordField;
+    @FXML
+    private PasswordField confirmResetPasswordField;
 
     private String pendingEmail = "";
-    private String pendingPassword = ""; // Mot de passe temporaire pour dériver la KEK après login
-    private enum OverlayMode { SIGNUP, LOGIN_2FA, PASSWORD_RESET }
+
+    private enum OverlayMode {
+        SIGNUP, LOGIN_2FA, PASSWORD_RESET
+    }
+
     private OverlayMode currentOverlayMode = OverlayMode.SIGNUP;
 
     // --- reCAPTCHA ---
-    @FXML private StackPane loginRecaptchaContainer;
-    @FXML private StackPane registerRecaptchaContainer;
+    @FXML
+    private StackPane loginRecaptchaContainer;
+    @FXML
+    private StackPane registerRecaptchaContainer;
     private String loginRecaptchaToken = "";
     private String registerRecaptchaToken = "";
     private WebView loginWebView;
@@ -124,15 +176,18 @@ public class LoginController implements Initializable {
     }
 
     private void setupOtpLogic() {
-        TextField[] boxes = {otp1, otp2, otp3, otp4, otp5, otp6};
+        TextField[] boxes = { otp1, otp2, otp3, otp4, otp5, otp6 };
         for (int i = 0; i < boxes.length; i++) {
             final int index = i;
             boxes[i].textProperty().addListener((obs, old, val) -> {
                 if (val.length() > 0) {
-                    if (val.length() > 1) boxes[index].setText(val.substring(val.length() - 1).toUpperCase());
-                    else boxes[index].setText(val.toUpperCase());
-                    
-                    if (index < 5) boxes[index + 1].requestFocus();
+                    if (val.length() > 1)
+                        boxes[index].setText(val.substring(val.length() - 1).toUpperCase());
+                    else
+                        boxes[index].setText(val.toUpperCase());
+
+                    if (index < 5)
+                        boxes[index + 1].requestFocus();
                 }
             });
 
@@ -208,7 +263,8 @@ public class LoginController implements Initializable {
         dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, ButtonType.CANCEL);
 
         GridPane grid = new GridPane();
-        grid.setHgap(10); grid.setVgap(10);
+        grid.setHgap(10);
+        grid.setVgap(10);
         grid.setPadding(new Insets(20, 50, 10, 10));
 
         TextField codeField = new TextField();
@@ -295,7 +351,9 @@ public class LoginController implements Initializable {
 
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type);
-        alert.setTitle(title); alert.setHeaderText(null); alert.setContentText(content);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
         alert.showAndWait();
     }
 
@@ -303,9 +361,21 @@ public class LoginController implements Initializable {
     private void handleLogin() {
         String email = trim(loginEmailField);
         String password = loginPasswordField.getText();
-        if (email.isEmpty()) { showError(loginErrorLabel, "⚠ Email requis."); shake(loginEmailWrapper); return; }
-        if (!EMAIL_REGEX.matcher(email).matches()) { showError(loginErrorLabel, "⚠ Email invalide."); shake(loginEmailWrapper); return; }
-        if (password.isEmpty()) { showError(loginErrorLabel, "⚠ Mot de passe requis."); shake(loginPasswordWrapper); return; }
+        if (email.isEmpty()) {
+            showError(loginErrorLabel, "⚠ Email requis.");
+            shake(loginEmailWrapper);
+            return;
+        }
+        if (!EMAIL_REGEX.matcher(email).matches()) {
+            showError(loginErrorLabel, "⚠ Email invalide.");
+            shake(loginEmailWrapper);
+            return;
+        }
+        if (password.isEmpty()) {
+            showError(loginErrorLabel, "⚠ Mot de passe requis.");
+            shake(loginPasswordWrapper);
+            return;
+        }
 
         // --- reCAPTCHA Validation ---
         if (loginRecaptchaToken == null || loginRecaptchaToken.isEmpty()) {
@@ -314,9 +384,9 @@ public class LoginController implements Initializable {
         }
 
         Map<String, Object> params = new HashMap<>();
-        params.put("email", email); params.put("motDePasse", password);
+        params.put("email", email);
+        params.put("motDePasse", password);
         params.put("recaptchaToken", loginRecaptchaToken);
-        pendingPassword = password; // Conserver pour dériver la KEK après authentification
         setLoginLoading(true);
         runAsync(new Requete(RequestType.LOGIN, params, null), reponse -> {
             setLoginLoading(false);
@@ -326,17 +396,20 @@ public class LoginController implements Initializable {
                 showVerificationOverlay(email, OverlayMode.LOGIN_2FA);
             } else if (reponse != null && "SIGNUP_VERIFICATION_REQUIRED".equals(reponse.getMessage())) {
                 showVerificationOverlay(email, OverlayMode.SIGNUP);
-            // --- [WHITELIST IP ADMIN] Vérification IP non autorisée ---
-            // Si le serveur retourne IP_NOT_AUTHORIZED (admin depuis une IP interdite),
-            // on appelle le gestionnaire global qui : affiche l'alerte + vide la session + redirige
+                // --- [WHITELIST IP ADMIN] Vérification IP non autorisée ---
+                // Si le serveur retourne IP_NOT_AUTHORIZED (admin depuis une IP interdite),
+                // on appelle le gestionnaire global qui : affiche l'alerte + vide la session +
+                // redirige
             } else if (reponse != null && "IP_NOT_AUTHORIZED".equals(reponse.getMessage())) {
                 SessionManager.handleIpNotAuthorized();
-            // --- Fin vérification IP ---
+                // --- Fin vérification IP ---
             } else {
                 showError(loginErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Erreur"));
-                shake(loginEmailWrapper); shake(loginPasswordWrapper);
+                shake(loginEmailWrapper);
+                shake(loginPasswordWrapper);
                 loginRecaptchaToken = "";
-                if (loginWebView != null) loginWebView.getEngine().reload();
+                if (loginWebView != null)
+                    loginWebView.getEngine().reload();
             }
         });
     }
@@ -344,7 +417,7 @@ public class LoginController implements Initializable {
     private void showVerificationOverlay(String email, OverlayMode mode) {
         this.pendingEmail = email;
         this.currentOverlayMode = mode;
-        
+
         passwordResetContainer.setVisible(mode == OverlayMode.PASSWORD_RESET);
         passwordResetContainer.setManaged(mode == OverlayMode.PASSWORD_RESET);
 
@@ -368,15 +441,16 @@ public class LoginController implements Initializable {
                 otpContainer.setVisible(true);
             }
         }
-        
+
         verificationErrorLabel.setVisible(false);
-        
+
         // Clear fields
-        TextField[] boxes = {otp1, otp2, otp3, otp4, otp5, otp6};
-        for (TextField b : boxes) b.clear();
+        TextField[] boxes = { otp1, otp2, otp3, otp4, otp5, otp6 };
+        for (TextField b : boxes)
+            b.clear();
         newResetPasswordField.clear();
         confirmResetPasswordField.clear();
-        
+
         verificationOverlay.setManaged(true);
         verificationOverlay.setVisible(true);
         fadeIn(verificationOverlay);
@@ -385,7 +459,8 @@ public class LoginController implements Initializable {
 
     @FXML
     private void handleVerifyCode() {
-        String code = otp1.getText() + otp2.getText() + otp3.getText() + otp4.getText() + otp5.getText() + otp6.getText();
+        String code = otp1.getText() + otp2.getText() + otp3.getText() + otp4.getText() + otp5.getText()
+                + otp6.getText();
         if (code.length() < 6) {
             verificationErrorLabel.setText("Veuillez entrer le code complet.");
             verificationErrorLabel.setVisible(true);
@@ -405,37 +480,22 @@ public class LoginController implements Initializable {
             // PASSWORD_RESET
             String newPass = newResetPasswordField.getText();
             String confirm = confirmResetPasswordField.getText();
-            
+
             if (newPass.isEmpty() || !newPass.equals(confirm)) {
                 showError(verificationErrorLabel, "⚠ Mots de passe non identiques.");
                 return;
             }
-            
+
             String validationErr = validatePassword(newPass);
             if (validationErr != null) {
                 showError(verificationErrorLabel, "⚠ " + validationErr);
                 return;
             }
-            
-            // Générer un nouveau sel + DEK pour le nouveau mot de passe
-            String newSalt;
-            String newWrappedDek;
-            try {
-                newSalt = client.crypto.KDFService.generateSalt();
-                byte[] newKek = client.crypto.KDFService.deriveKEK(newPass, newSalt);
-                javax.crypto.SecretKey newDek = client.crypto.EnvelopeEncryptionService.generateDEK();
-                newWrappedDek = client.crypto.EnvelopeEncryptionService.wrapDEK(newDek, newKek);
-            } catch (Exception e) {
-                showError(verificationErrorLabel, "⚠ Erreur lors de la préparation du chiffrement.");
-                return;
-            }
+
             params.put("newPassword", newPass);
-            params.put("newEncryptionSalt", newSalt);
-            params.put("newWrappedDek", newWrappedDek);
-            pendingPassword = newPass;
             type = RequestType.CONFIRM_PASSWORD_RESET;
         }
-        
+
         verifyCodeBtn.setDisable(true);
         runAsync(new Requete(type, params, null), reponse -> {
             verifyCodeBtn.setDisable(false);
@@ -465,52 +525,13 @@ public class LoginController implements Initializable {
         Map<String, Object> donnees = reponse.getDonnees();
         Utilisateur user = (Utilisateur) donnees.get("utilisateur");
 
-        // Dériver la KEK et unwrapper la DEK exclusivement en RAM (Zero-Knowledge)
-        String encryptionSalt = (String) donnees.get("encryptionSalt");
-        String wrappedDekStr  = (String) donnees.get("wrappedDek");
-        
-        System.out.println("[LoginController] 🔐 Début Zero-Knowledge unwrap...");
-        System.out.println("[LoginController] | Sel présent: " + (encryptionSalt != null) + (encryptionSalt != null ? " (" + encryptionSalt.substring(0, Math.min(10, encryptionSalt.length())) + "...)" : ""));
-        System.out.println("[LoginController] | DEK enveloppée présente: " + (wrappedDekStr != null) + (wrappedDekStr != null ? " (" + wrappedDekStr.substring(0, Math.min(10, wrappedDekStr.length())) + "...)" : ""));
-
-        if (encryptionSalt != null && wrappedDekStr != null && !pendingPassword.isEmpty()) {
-            try {
-                System.out.println("[LoginController] | Longueur du mot de passe: " + pendingPassword.length());
-                System.out.println("[LoginController] | Dérivation de la KEK via Argon2...");
-                byte[] kek = client.crypto.KDFService.deriveKEK(pendingPassword, encryptionSalt);
-                
-                System.out.println("[LoginController] | Déballage de la DEK (AES-GCM)...");
-                javax.crypto.SecretKey sessionDek =
-                    client.crypto.EnvelopeEncryptionService.unwrapDEK(wrappedDekStr, kek);
-                
-                user.setSessionDek(sessionDek);
-                
-                // Log d'empreinte pour diagnostic (sans révéler la clé)
-                byte[] encoded = sessionDek.getEncoded();
-                String fingerPrint = Base64.getEncoder().encodeToString(java.util.Arrays.copyOf(encoded, 4));
-                System.out.println("[LoginController] ✅ Zero-Knowledge : sessionDek prête (Fingerprint: " + fingerPrint + "...)");
-            } catch (Exception e) {
-                System.err.println("[LoginController] ❌ ÉCHEC unwrap DEK : " + e.getMessage());
-                e.printStackTrace();
-            } finally {
-                pendingPassword = ""; // Effacer le mot de passe de la mémoire
-            }
-        } else {
-            System.err.println("[LoginController] ⚠️ Données de chiffrement manquantes ou mot de passe vide.");
-        }
-
         SessionManager.getInstance().ouvrir(
-            (String)donnees.get("accessToken"),
-            (String)donnees.get("refreshToken"),
-            user
-        );
+                (String) donnees.get("accessToken"),
+                (String) donnees.get("refreshToken"),
+                user);
 
-        // Déchiffrer l'objet utilisateur maintenant que la session est ouverte et la DEK est accessible
-        ClientSocket.getInstance().decryptStorageFieldsWithDEK(reponse);
-
-        navigateToMain((String)donnees.get("typeUtilisateur"));
+        navigateToMain((String) donnees.get("typeUtilisateur"));
     }
-
 
     @FXML
     private void handleRegister() {
@@ -521,10 +542,26 @@ public class LoginController implements Initializable {
         String password = registerPasswordField.getText().trim();
         String confirm = registerConfirmPasswordField.getText().trim();
 
-        if (nom.isEmpty()) { showError(registerErrorLabel, "⚠ Nom requis."); shake(registerNameWrapper); return; }
-        if (prenom.isEmpty()) { showError(registerErrorLabel, "⚠ Prénom requis."); shake(registerFirstNameWrapper); return; }
-        if (registerBirthdayPicker.getValue() == null) { showError(registerErrorLabel, "⚠ Date de naissance requise."); shake(registerBirthdayWrapper); return; }
-        if (!EMAIL_REGEX.matcher(email).matches()) { showError(registerErrorLabel, "⚠ Email invalide."); shake(registerEmailWrapper); return; }
+        if (nom.isEmpty()) {
+            showError(registerErrorLabel, "⚠ Nom requis.");
+            shake(registerNameWrapper);
+            return;
+        }
+        if (prenom.isEmpty()) {
+            showError(registerErrorLabel, "⚠ Prénom requis.");
+            shake(registerFirstNameWrapper);
+            return;
+        }
+        if (registerBirthdayPicker.getValue() == null) {
+            showError(registerErrorLabel, "⚠ Date de naissance requise.");
+            shake(registerBirthdayWrapper);
+            return;
+        }
+        if (!EMAIL_REGEX.matcher(email).matches()) {
+            showError(registerErrorLabel, "⚠ Email invalide.");
+            shake(registerEmailWrapper);
+            return;
+        }
 
         LocalDate dob = registerBirthdayPicker.getValue();
 
@@ -534,41 +571,25 @@ public class LoginController implements Initializable {
             return;
         }
         String pwError = validatePassword(password);
-        if (pwError != null) { showError(registerErrorLabel, pwError); shake(registerPasswordWrapper); return; }
-        if (!password.equals(confirm)) { showError(registerErrorLabel, "⚠ Confirmation différente."); shake(registerConfirmWrapper); return; }
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("email", email); params.put("motDePasse", password);
-        params.put("nom", nom); params.put("prenom", prenom); params.put("telephone", phone);
-        params.put("dateNaissance", dob.toString());
-        params.put("recaptchaToken", registerRecaptchaToken);
-
-        // Génération KEK/DEK côté client avant d'envoyer au serveur
-        try {
-            String encryptionSalt = client.crypto.KDFService.generateSalt();
-            byte[] kek = client.crypto.KDFService.deriveKEK(password, encryptionSalt);
-            javax.crypto.SecretKey dek = client.crypto.EnvelopeEncryptionService.generateDEK();
-            String wrappedDek = client.crypto.EnvelopeEncryptionService.wrapDEK(dek, kek);
-
-            params.put("encryptionSalt", encryptionSalt);
-            params.put("wrappedDek", wrappedDek);
-            pendingPassword = password; // Conserver pour dériver la KEK après vérification signup
-
-            // Chiffrer les données de profil lors de l'inscription (Zero-Knowledge)
-            if (params.containsKey("nom")) 
-                params.put("nom", client.crypto.EnvelopeEncryptionService.encryptField((String)params.get("nom"), dek));
-            if (params.containsKey("prenom")) 
-                params.put("prenom", client.crypto.EnvelopeEncryptionService.encryptField((String)params.get("prenom"), dek));
-            if (params.containsKey("telephone")) 
-                params.put("telephone", client.crypto.EnvelopeEncryptionService.encryptField((String)params.get("telephone"), dek));
-            if (params.containsKey("dateNaissance")) 
-                params.put("dateNaissance", client.crypto.EnvelopeEncryptionService.encryptField((String)params.get("dateNaissance"), dek));
-
-        } catch (Exception e) {
-            System.err.println("[LoginController] Erreur préparation chiffrement : " + e.getMessage());
-            showError(registerErrorLabel, "⚠ Erreur lors de la préparation du chiffrement.");
+        if (pwError != null) {
+            showError(registerErrorLabel, pwError);
+            shake(registerPasswordWrapper);
             return;
         }
+        if (!password.equals(confirm)) {
+            showError(registerErrorLabel, "⚠ Confirmation différente.");
+            shake(registerConfirmWrapper);
+            return;
+        }
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("email", email);
+        params.put("motDePasse", password);
+        params.put("nom", nom);
+        params.put("prenom", prenom);
+        params.put("telephone", phone);
+        params.put("dateNaissance", dob.toString());
+        params.put("recaptchaToken", registerRecaptchaToken);
 
         setRegisterLoading(true);
         runAsync(new Requete(RequestType.REGISTER, params, null), reponse -> {
@@ -581,38 +602,51 @@ public class LoginController implements Initializable {
             } else {
                 showError(registerErrorLabel, "⚠ " + (reponse != null ? reponse.getMessage() : "Erreur"));
                 registerRecaptchaToken = "";
-                if (registerWebView != null) registerWebView.getEngine().reload();
+                if (registerWebView != null)
+                    registerWebView.getEngine().reload();
             }
         });
     }
 
-    @FXML private void handleSwitchToRegister() { mainTabPane.getSelectionModel().select(registerTab); }
+    @FXML
+    private void handleSwitchToRegister() {
+        mainTabPane.getSelectionModel().select(registerTab);
+    }
 
     private String validatePassword(String pw) {
-        if (pw == null || pw.isEmpty()) return "⚠ Requis.";
-        if (pw.length() < PW_MIN) return "⚠ Min " + PW_MIN + " caractères.";
-        if (!HAS_UPPER.matcher(pw).matches()) return "⚠ Majuscule requise (A-Z).";
-        if (!HAS_DIGIT.matcher(pw).matches()) return "⚠ Chiffre requis (0-9).";
-        if (!HAS_SPECIAL.matcher(pw).matches()) return "⚠ Caractère spécial requis.";
+        if (pw == null || pw.isEmpty())
+            return "⚠ Requis.";
+        if (pw.length() < PW_MIN)
+            return "⚠ Min " + PW_MIN + " caractères.";
+        if (!HAS_UPPER.matcher(pw).matches())
+            return "⚠ Majuscule requise (A-Z).";
+        if (!HAS_DIGIT.matcher(pw).matches())
+            return "⚠ Chiffre requis (0-9).";
+        if (!HAS_SPECIAL.matcher(pw).matches())
+            return "⚠ Caractère spécial requis.";
         return null;
     }
 
     private int scorePassword(String pw) {
-        if (pw == null || pw.isEmpty()) return 0;
+        if (pw == null || pw.isEmpty())
+            return 0;
         int score = 0;
-        if (pw.length() >= PW_MIN) score++;
-        if (HAS_UPPER.matcher(pw).matches()) score++;
-        if (HAS_DIGIT.matcher(pw).matches()) score++;
-        if (HAS_SPECIAL.matcher(pw).matches()) score++;
+        if (pw.length() >= PW_MIN)
+            score++;
+        if (HAS_UPPER.matcher(pw).matches())
+            score++;
+        if (HAS_DIGIT.matcher(pw).matches())
+            score++;
+        if (HAS_SPECIAL.matcher(pw).matches())
+            score++;
         return score;
     }
 
     private void setupPasswordStrengthMeter() {
         if (registerPasswordField != null && strengthBarBox != null)
-            registerPasswordField.textProperty().addListener((obs, old, val) -> updateStrengthDisplay(val, strengthBarBox, strengthLabel));
+            registerPasswordField.textProperty()
+                    .addListener((obs, old, val) -> updateStrengthDisplay(val, strengthBarBox, strengthLabel));
     }
-
-
 
     private void updateStrengthDisplay(String pw, HBox barBox, Label textLabel) {
         int score = scorePassword(pw);
@@ -672,13 +706,15 @@ public class LoginController implements Initializable {
     }
 
     private void registerUdpPort(String token) {
-        if (token == null) return;
+        if (token == null)
+            return;
         new Thread(() -> {
             try {
-                Map<String, Object> p = new HashMap<>(); 
+                Map<String, Object> p = new HashMap<>();
                 p.put("udpPort", client.ClientApp.UDP_PORT);
                 ClientSocket.getInstance().envoyer(new Requete(RequestType.REGISTER_UDP_PORT, p, token));
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }).start();
     }
 
@@ -686,7 +722,8 @@ public class LoginController implements Initializable {
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, old, selected) -> {
             clearErrors();
             VBox form = (selected == loginTab) ? loginFormBox : registerFormBox;
-            if (form != null) slideIn(form);
+            if (form != null)
+                slideIn(form);
         });
     }
 
@@ -700,55 +737,106 @@ public class LoginController implements Initializable {
         bindFocus(registerPasswordField, registerPasswordWrapper);
         bindFocus(registerConfirmPasswordField, registerConfirmWrapper);
     }
+
     private void bindFocus(TextField f, HBox w) {
-        if (f == null || w == null) return;
+        if (f == null || w == null)
+            return;
         f.focusedProperty().addListener((obs, was, is) -> {
-            if (is) w.getStyleClass().add("input-wrapper-focused");
-            else w.getStyleClass().remove("input-wrapper-focused");
+            if (is)
+                w.getStyleClass().add("input-wrapper-focused");
+            else
+                w.getStyleClass().remove("input-wrapper-focused");
         });
     }
+
     private void setupLiveValidation() {
-        for (TextField f : new TextField[]{loginEmailField, loginPasswordField, registerNomField, registerPrenomField, registerPhoneField, registerEmailField, registerPasswordField, registerConfirmPasswordField}) {
-            if (f != null) f.textProperty().addListener((o, old, n) -> clearErrors());
+        for (TextField f : new TextField[] { loginEmailField, loginPasswordField, registerNomField, registerPrenomField,
+                registerPhoneField, registerEmailField, registerPasswordField, registerConfirmPasswordField }) {
+            if (f != null)
+                f.textProperty().addListener((o, old, n) -> clearErrors());
         }
     }
+
     private void setupEnterNavigation() {
-        if (loginEmailField != null) loginEmailField.setOnAction(e -> loginPasswordField.requestFocus());
-        if (loginPasswordField != null) loginPasswordField.setOnAction(e -> handleLogin());
-        if (registerConfirmPasswordField != null) registerConfirmPasswordField.setOnAction(e -> handleRegister());
+        if (loginEmailField != null)
+            loginEmailField.setOnAction(e -> loginPasswordField.requestFocus());
+        if (loginPasswordField != null)
+            loginPasswordField.setOnAction(e -> handleLogin());
+        if (registerConfirmPasswordField != null)
+            registerConfirmPasswordField.setOnAction(e -> handleRegister());
     }
-    private void setLoginLoading(boolean l) { if (loginButton != null) loginButton.setDisable(l); }
-    private void setRegisterLoading(boolean l) { if (registerButton != null) registerButton.setDisable(l); }
-    private void showError(Label l, String m) { if (l != null) { l.setText(m); l.getStyleClass().add("error-label"); fadeIn(l); } }
-    private void showSuccess(Label l, String m) { if (l != null) { l.setText(m); l.getStyleClass().add("error-label-success"); fadeIn(l); } }
-    private void clearErrors() { 
-        if (loginErrorLabel != null) loginErrorLabel.setText(""); 
-        if (registerErrorLabel != null) registerErrorLabel.setText(""); 
+
+    private void setLoginLoading(boolean l) {
+        if (loginButton != null)
+            loginButton.setDisable(l);
     }
+
+    private void setRegisterLoading(boolean l) {
+        if (registerButton != null)
+            registerButton.setDisable(l);
+    }
+
+    private void showError(Label l, String m) {
+        if (l != null) {
+            l.setText(m);
+            l.getStyleClass().add("error-label");
+            fadeIn(l);
+        }
+    }
+
+    private void showSuccess(Label l, String m) {
+        if (l != null) {
+            l.setText(m);
+            l.getStyleClass().add("error-label-success");
+            fadeIn(l);
+        }
+    }
+
+    private void clearErrors() {
+        if (loginErrorLabel != null)
+            loginErrorLabel.setText("");
+        if (registerErrorLabel != null)
+            registerErrorLabel.setText("");
+    }
+
     private void animateCardEntrance() {
-        if (loginCard == null) return;
-        loginCard.setOpacity(0); loginCard.setTranslateY(20);
+        if (loginCard == null)
+            return;
+        loginCard.setOpacity(0);
+        loginCard.setTranslateY(20);
         FadeTransition ft = new FadeTransition(Duration.millis(500), loginCard);
-        ft.setFromValue(0); ft.setToValue(1);
+        ft.setFromValue(0);
+        ft.setToValue(1);
         TranslateTransition tt = new TranslateTransition(Duration.millis(500), loginCard);
-        tt.setFromY(20); tt.setToY(0);
+        tt.setFromY(20);
+        tt.setToY(0);
         new ParallelTransition(ft, tt).play();
     }
+
     private void slideIn(VBox f) {
-        if (f == null) return;
-        f.setOpacity(0); f.setTranslateY(10);
+        if (f == null)
+            return;
+        f.setOpacity(0);
+        f.setTranslateY(10);
         FadeTransition ft = new FadeTransition(Duration.millis(300), f);
-        ft.setFromValue(0); ft.setToValue(1);
+        ft.setFromValue(0);
+        ft.setToValue(1);
         TranslateTransition tt = new TranslateTransition(Duration.millis(300), f);
-        tt.setFromY(10); tt.setToY(0);
+        tt.setFromY(10);
+        tt.setToY(0);
         new ParallelTransition(ft, tt).play();
     }
+
     private void setupRecaptcha(StackPane container, boolean isLogin) {
-        if (container == null) return;
+        if (container == null)
+            return;
         container.getChildren().clear();
 
         WebView webView = new WebView();
-        if (isLogin) loginWebView = webView; else registerWebView = webView;
+        if (isLogin)
+            loginWebView = webView;
+        else
+            registerWebView = webView;
 
         // Force full size from the VERY beginning to spoof Google's viewport checks
         // Google will compute the layout bounds based on this 420x600 size
@@ -765,15 +853,17 @@ public class LoginController implements Initializable {
         formWrapper.setPrefSize(304, 78);
         formWrapper.setMinSize(304, 78);
         formWrapper.setMaxSize(304, 78);
-        
+
         WebEngine engine = webView.getEngine();
-        engine.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        engine.setUserAgent(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
         engine.setJavaScriptEnabled(true);
 
         engine.setOnAlert(event -> {
             String msg = event.getData();
-            if (msg == null) return;
-            
+            if (msg == null)
+                return;
+
             if ("CHALLENGE_STARTED".equals(msg)) {
                 Platform.runLater(() -> {
                     System.out.println("[reCAPTCHA] Challenge detected, opening modal...");
@@ -803,18 +893,22 @@ public class LoginController implements Initializable {
                 });
             } else if ("EXPIRED".equals(msg) || "ERROR".equals(msg)) {
                 Platform.runLater(() -> {
-                    if (isLogin) loginRecaptchaToken = "";
-                    else registerRecaptchaToken = "";
+                    if (isLogin)
+                        loginRecaptchaToken = "";
+                    else
+                        registerRecaptchaToken = "";
                     System.out.println("[reCAPTCHA] Token expired or error.");
                 });
             }
         });
 
         String url = client.utils.RecaptchaLocalServer.getUrl();
-        if (url != null) engine.load(url);
+        if (url != null)
+            engine.load(url);
         else {
             URL resource = getClass().getResource("/html/recaptcha.html");
-            if (resource != null) engine.load(resource.toExternalForm());
+            if (resource != null)
+                engine.load(resource.toExternalForm());
         }
 
         container.getChildren().add(formWrapper);
@@ -823,7 +917,8 @@ public class LoginController implements Initializable {
     private javafx.stage.Stage currentModalStage;
 
     private void openRecaptchaModal(boolean isLogin, WebView webView) {
-        if (currentModalStage != null && currentModalStage.isShowing()) return;
+        if (currentModalStage != null && currentModalStage.isShowing())
+            return;
 
         // Ensure we handle the stage reference immediately on FX thread
         if (!Platform.isFxApplicationThread()) {
@@ -847,30 +942,30 @@ public class LoginController implements Initializable {
         // Remove the clip so the full 420x600 puzzle is visible in the modal
         webView.setClip(null);
 
-            VBox layout = new VBox(webView);
-            layout.setAlignment(javafx.geometry.Pos.CENTER);
-            layout.setStyle("-fx-background-color: #ffffff;");
-            
-            javafx.scene.Scene scene = new javafx.scene.Scene(layout);
-            modalStage.setScene(scene);
-            
-            modalStage.setOnHidden(e -> {
-                // Restore to form when modal closes
-                Platform.runLater(() -> {
-                    if (webView.getParent() != originalParent) {
-                        layout.getChildren().remove(webView);
-                        // Re-apply the strict tight clip
-                        webView.setClip(new javafx.scene.shape.Rectangle(304, 78));
-                        if (originalParent != null && !originalParent.getChildren().contains(webView)) {
-                            originalParent.getChildren().add(webView);
-                        }
+        VBox layout = new VBox(webView);
+        layout.setAlignment(javafx.geometry.Pos.CENTER);
+        layout.setStyle("-fx-background-color: #ffffff;");
+
+        javafx.scene.Scene scene = new javafx.scene.Scene(layout);
+        modalStage.setScene(scene);
+
+        modalStage.setOnHidden(e -> {
+            // Restore to form when modal closes
+            Platform.runLater(() -> {
+                if (webView.getParent() != originalParent) {
+                    layout.getChildren().remove(webView);
+                    // Re-apply the strict tight clip
+                    webView.setClip(new javafx.scene.shape.Rectangle(304, 78));
+                    if (originalParent != null && !originalParent.getChildren().contains(webView)) {
+                        originalParent.getChildren().add(webView);
                     }
-                    currentModalStage = null;
-                });
+                }
+                currentModalStage = null;
             });
+        });
 
         modalStage.show();
-        
+
         // Check if token was received while we were already opening/showing
         if (isLogin && !loginRecaptchaToken.isEmpty() || !isLogin && !registerRecaptchaToken.isEmpty()) {
             modalStage.close();
@@ -878,11 +973,33 @@ public class LoginController implements Initializable {
     }
 
     private void shake(Region n) {
-        if (n == null) return;
+        if (n == null)
+            return;
         TranslateTransition t = new TranslateTransition(Duration.millis(50), n);
-        t.setFromX(0); t.setByX(5); t.setCycleCount(6); t.setAutoReverse(true); t.setOnFinished(e -> n.setTranslateX(0)); t.play();
+        t.setFromX(0);
+        t.setByX(5);
+        t.setCycleCount(6);
+        t.setAutoReverse(true);
+        t.setOnFinished(e -> n.setTranslateX(0));
+        t.play();
     }
-    private void fadeIn(Node n) { if (n != null) { FadeTransition ft = new FadeTransition(Duration.millis(300), n); ft.setFromValue(0); ft.setToValue(1); ft.play(); } }
-    private void delay(int ms, Runnable a) { PauseTransition p = new PauseTransition(Duration.millis(ms)); p.setOnFinished(e -> a.run()); p.play(); }
-    private String trim(TextField f) { return (f == null || f.getText() == null) ? "" : f.getText().trim(); }
+
+    private void fadeIn(Node n) {
+        if (n != null) {
+            FadeTransition ft = new FadeTransition(Duration.millis(300), n);
+            ft.setFromValue(0);
+            ft.setToValue(1);
+            ft.play();
+        }
+    }
+
+    private void delay(int ms, Runnable a) {
+        PauseTransition p = new PauseTransition(Duration.millis(ms));
+        p.setOnFinished(e -> a.run());
+        p.play();
+    }
+
+    private String trim(TextField f) {
+        return (f == null || f.getText() == null) ? "" : f.getText().trim();
+    }
 }
