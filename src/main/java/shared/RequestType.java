@@ -9,6 +9,7 @@ public enum RequestType {
     REFRESH,
     REQUEST_PASSWORD_RESET,
     CONFIRM_PASSWORD_RESET,
+    CHANGE_PASSWORD,
 
     
     //produits

@@ -8,7 +8,6 @@ import model.Utilisateur;
 import shared.Reponse;
 import shared.Requete;
 import dao.RefreshTokenDAO;
-import service.crypto.KDFService;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -62,13 +61,6 @@ public class AuthService {
             int userId = loginData.id();
             Utilisateur user = UtilisateurDAO.findById(userId);
 
-            // --- DERIVATION KEK (Connexion) ---
-            if (loginData.salt() != null) {
-                byte[] kek = KDFService.deriveKEK(motDePasse, loginData.salt());
-                String kekPreview = java.util.Base64.getEncoder().encodeToString(kek).substring(0, 8);
-                System.out.println("[SECURITY] KEK générée avec succès pour " + email + " (Début: " + kekPreview + "...)");
-                logger.info("KEK dérivée avec succès pour {}", email);
-            }
 
             // --- [WHITELIST IP ADMIN] Étape 3 : Vérification IP pour les ADMINS uniquement ---
             // Si l'utilisateur est un ADMIN et que son IP n'est pas dans la whitelist → rejet immédiat
@@ -129,6 +121,12 @@ public class AuthService {
         donnees.put("refreshToken", refreshToken);
         donnees.put("utilisateur", user);
         donnees.put("typeUtilisateur", role);
+        
+        // --- CLIENT-SIDE DECRYPTION DATA ---
+        if (user.getEncryptionSalt() != null) {
+            donnees.put("encryptionSalt", user.getEncryptionSalt());
+            donnees.put("wrappedDek", user.getWrappedDek());
+        }
 
         return new Reponse(true, "Connexion réussie.", donnees);
     }
@@ -162,8 +160,7 @@ public class AuthService {
             String dobString  = (String) params.get("dateNaissance"); // ISO format YYYY-MM-DD
             String recaptchaToken = (String) params.get("recaptchaToken");
 
-            if (dobString == null) return new Reponse(false, "Date de naissance requise.", null);
-            java.time.LocalDate dateNaissance = java.time.LocalDate.parse(dobString);
+            // java.time.LocalDate dateNaissance = java.time.LocalDate.parse(dobString); // Supprimé car date chiffrée
  
             // --- reCAPTCHA Verification (Via SecurityManager) ---
             if (!securityManager.verifyRecaptcha(recaptchaToken)) {
@@ -171,15 +168,14 @@ public class AuthService {
             }
 
 
-            // --- Age Check (>= 16) ---
+            /* Supprimé pour Zero-Knowledge : le serveur ne peut plus vérifier l'âge
             if (java.time.Period.between(dateNaissance, java.time.LocalDate.now()).getYears() < 16) {
                 return new Reponse(false, "Vous devez avoir au moins 16 ans pour vous inscrire.", null);
             }
+            */
 
             // --- Identity-based Password Safety Check ---
-            if (containsIdentityInfo(motDePasse, nom, prenom, dateNaissance)) {
-                return new Reponse(false, "Le mot de passe ne peut pas contenir votre nom, prénom ou date de naissance.", null);
-            }
+            // if (containsIdentityInfo(motDePasse, nom, prenom, dateNaissance)) { // Supprimé car date chiffrée
 
             PasswordService.ValidationResult strength = PasswordService.validateStrength(motDePasse);
             if (!strength.isValid()) {
@@ -194,16 +190,18 @@ public class AuthService {
                 return new Reponse(false, "Numéro de téléphone déjà utilisé : " + telephone, null);
             }
 
-            // --- KDF (Signup) ---
-            String encryptionSalt = KDFService.generateSalt();
-            byte[] kek = KDFService.deriveKEK(motDePasse, encryptionSalt);
-            // --------------------
+            String encryptionSalt = (String) params.get("encryptionSalt");
+            String wrappedDek = (String) params.get("wrappedDek");
+
+            if (encryptionSalt == null || wrappedDek == null || encryptionSalt.isBlank() || wrappedDek.isBlank()) {
+                return new Reponse(false, "Données de chiffrement manquantes : encryptionSalt et wrappedDek requis.", null);
+            }
 
             // --- 2-Step Signup Verification ---
             // We create the account as 'EN_ATTENTE' and send verification code
             String hashedPw = PasswordService.hash(motDePasse);
             ClientDAO clientDAO = new ClientDAO();
-            Client client = clientDAO.create(email, hashedPw, encryptionSalt, nom, prenom, telephone, dateNaissance);
+            Client client = clientDAO.create(email, hashedPw, encryptionSalt, wrappedDek, nom, prenom, telephone, dobString);
 
             if (securityManager.sendTwoFactorCode(email)) {
                 System.out.println("[AuthService] Signup pending verification for email=" + email);
@@ -371,11 +369,25 @@ public class AuthService {
             if (!strength.isValid()) return new Reponse(false, strength.message(), null);
 
             String hashedPw = PasswordService.hash(newPassword);
-            if (UtilisateurDAO.updatePassword(email, hashedPw)) {
+
+            // Récupérer le nouveau sel + DEK wrappée envoyés par le client
+            String newEncryptionSalt = (String) params.get("newEncryptionSalt");
+            String newWrappedDek     = (String) params.get("newWrappedDek");
+
+            boolean updated;
+            if (newEncryptionSalt != null && !newEncryptionSalt.isBlank()
+                    && newWrappedDek != null && !newWrappedDek.isBlank()) {
+                // Mise à jour atomique : hash + nouveau sel + nouvelle DEK wrappée
+                updated = UtilisateurDAO.updatePasswordAndEncryption(email, hashedPw, newEncryptionSalt, newWrappedDek);
+            } else {
+                // Fallback si le client n'a pas fourni les données de chiffrement
+                updated = UtilisateurDAO.updatePassword(email, hashedPw);
+            }
+
+            if (updated) {
                 securityManager.clearPasswordResetCode(email);
                 securityService.completePasswordReset(email);
                 return new Reponse(true, "Mot de passe modifié. Compte débloqué.", null);
-
             } else {
                 return new Reponse(false, "Erreur lors de la mise à jour.", null);
             }
@@ -465,6 +477,38 @@ public class AuthService {
             }
         } catch (SQLException e) {
             return new Reponse(false, "Erreur serveur.", null);
+        }
+    }
+
+    public Reponse handleChangePassword(Requete requete) {
+        try {
+            int userId = getUserIdFromToken(requete.getTokenSession());
+            if (userId == -1) return new Reponse(false, "Non autorisé.", null);
+
+            Map<String, Object> params = requete.getParametres();
+            if (params == null || !params.containsKey("newPassword") || !params.containsKey("newSalt") || !params.containsKey("newWrappedDek")) {
+                return new Reponse(false, "Paramètres manquants.", null);
+            }
+
+            String newPassword   = (String) params.get("newPassword");
+            String newSalt       = (String) params.get("newSalt");
+            String newWrappedDek = (String) params.get("newWrappedDek");
+
+            // Vérification de sécurité sur le mot de passe (server-side backup)
+            PasswordService.ValidationResult strength = PasswordService.validateStrength(newPassword);
+            if (!strength.isValid()) {
+                return new Reponse(false, strength.message(), null);
+            }
+
+            String hashedPw = PasswordService.hash(newPassword);
+            if (UtilisateurDAO.updatePasswordAndEncryption(userId, hashedPw, newSalt, newWrappedDek)) {
+                return new Reponse(true, "Mot de passe et clés mis à jour avec succès.", null);
+            } else {
+                return new Reponse(false, "Erreur lors de la mise à jour en base de données.", null);
+            }
+        } catch (Exception e) {
+            System.err.println("[AuthService] Erreur changement mot de passe : " + e.getMessage());
+            return new Reponse(false, "Erreur serveur lors du changement de mot de passe.", null);
         }
     }
 }

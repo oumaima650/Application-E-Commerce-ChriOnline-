@@ -12,6 +12,7 @@ import shared.Reponse;
 import shared.Requete;
 import shared.RequestType;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -230,21 +231,34 @@ public class ProfileController {
 
     private void loadAddresses() {
         executor.submit(() -> {
-            Requete req = new Requete(RequestType.GET_ADDRESSES, null,
+            int idClient = SessionManager.getInstance().getCurrentUser().getIdUtilisateur();
+            Requete req = new Requete(RequestType.GET_ADDRESSES, Map.of("idClient", idClient),
                     SessionManager.getInstance().getSession().getAccessToken());
             Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+
+            // DEK Decryption: Decrypt address list
+            if (rep.isSucces()) {
+                client.ClientSocket.getInstance().decryptStorageFieldsWithDEK(rep);
+            }
 
             Platform.runLater(() -> {
                 addressesContainer.getChildren().clear();
                 if (rep.isSucces() && rep.getDonnees() != null) {
-                    List<Map<String, Object>> ads = (List<Map<String, Object>>) rep.getDonnees().get("adresses");
+                    List<?> ads = (List<?>) rep.getDonnees().get("adresses");
                     if (ads != null && !ads.isEmpty()) {
-                        for (Map<String, Object> ad : ads) {
-                            String full = (String) ad.get("addresseComplete") + ", " + ad.get("ville") + " ("
-                                    + ad.get("codePostal") + ")";
-                            Label l = new Label("• " + full);
-                            l.getStyleClass().add("address-item");
-                            addressesContainer.getChildren().add(l);
+                        for (Object adObj : ads) {
+                            String full = "";
+                            if (adObj instanceof model.Adresse a) {
+                                full = a.getAddresseComplete() + ", " + a.getVille() + " (" + a.getCodePostal() + ")";
+                            } else if (adObj instanceof Map<?, ?> m) {
+                                Map<String, Object> ad = (Map<String, Object>) m;
+                                full = (String) ad.get("addresseComplete") + ", " + ad.get("ville") + " (" + ad.get("codePostal") + ")";
+                            }
+                            if (!full.isEmpty()) {
+                                Label l = new Label("• " + full);
+                                l.getStyleClass().add("address-item");
+                                addressesContainer.getChildren().add(l);
+                            }
                         }
                     } else {
                         addressesContainer.getChildren().add(new Label("Aucune adresse enregistrée."));
@@ -276,23 +290,30 @@ public class ProfileController {
         dialog.setContentText("Adresse complète (Rue, n°, etc.):");
 
         dialog.showAndWait().ifPresent(addr -> {
-            // Simplified: asking for 3 parts in one dialog is tricky, let's just do a
-            // simple add
             String ville = "Casablanca"; // Default for mockup
             String cp = "20000";
 
             executor.submit(() -> {
-                Map<String, Object> params = Map.of(
-                        "addresseComplete", addr,
-                        "ville", ville,
-                        "codePostal", cp);
-                Requete req = new Requete(RequestType.ADD_ADDRESS, params,
-                        SessionManager.getInstance().getSession().getAccessToken());
-                Reponse rep = client.ClientSocket.getInstance().envoyer(req);
-                Platform.runLater(() -> {
-                    if (rep.isSucces())
-                        loadAddresses();
-                });
+                try {
+                    // Zero-Knowledge: ClientSocket will automatically encrypt fields in STORAGE_SENSITIVE_KEYS
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
+                    params.put("addresseComplete", addr);
+                    params.put("ville", ville);
+                    params.put("codePostal", cp);
+                    
+                    Requete req = new Requete(RequestType.ADD_ADDRESS, params,
+                            SessionManager.getInstance().getSession().getAccessToken());
+                    Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+                    Platform.runLater(() -> {
+                        if (rep.isSucces())
+                            loadAddresses();
+                        else
+                            showAlert(Alert.AlertType.ERROR, "Erreur", rep.getMessage());
+                    });
+                } catch (Exception e) {
+                    Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Erreur", "Échec du chiffrement de l'adresse."));
+                }
             });
         });
     }
@@ -332,6 +353,98 @@ public class ProfileController {
     @FXML
     private void goToCart() {
         SceneManager.switchTo("panier.fxml", "ChriOnline - Panier");
+    }
+
+    @FXML
+    private void handleChangePassword() {
+        // 1. Création d'une boîte de dialogue personnalisée pour le changement de mot de passe
+        Dialog<Map<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Changer le mot de passe");
+        dialog.setHeaderText("Sécurisez votre compte sans perdre vos données.");
+
+        ButtonType changeButtonType = new ButtonType("Modifier", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(changeButtonType, ButtonType.CANCEL);
+
+        VBox container = new VBox(10);
+        PasswordField oldPassField = new PasswordField();
+        oldPassField.setPromptText("Ancien mot de passe");
+        PasswordField newPassField = new PasswordField();
+        newPassField.setPromptText("Nouveau mot de passe");
+        PasswordField confirmPassField = new PasswordField();
+        confirmPassField.setPromptText("Confirmer le nouveau mot de passe");
+
+        container.getChildren().addAll(new Label("Ancien mot de passe :"), oldPassField, 
+                                     new Label("Nouveau mot de passe :"), newPassField, 
+                                     new Label("Confirmation :"), confirmPassField);
+        dialog.getDialogPane().setContent(container);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == changeButtonType) {
+                return Map.of("old", oldPassField.getText(), "new", newPassField.getText(), "confirm", confirmPassField.getText());
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(res -> {
+            String oldPass = res.get("old").trim();
+            String newPass = res.get("new").trim();
+            String confirm = res.get("confirm").trim();
+
+            if (oldPass.isEmpty() || newPass.isEmpty()) return;
+            if (!newPass.equals(confirm)) {
+                showAlert(Alert.AlertType.ERROR, "Erreur", "Les nouveaux mots de passe ne correspondent pas.");
+                return;
+            }
+
+            Utilisateur user = SessionManager.getInstance().getCurrentUser();
+            
+            executor.submit(() -> {
+                try {
+                    // --- PHASE 1 : Vérifier l'ancien mot de passe en essayant de dériver la KEK ---
+                    byte[] oldKek = client.crypto.KDFService.deriveKEK(oldPass, user.getEncryptionSalt());
+                    // On déballe la DEK avec l'ancien mot de passe pour être sûr qu'elle est valide
+                    javax.crypto.SecretKey currentDek = client.crypto.EnvelopeEncryptionService.unwrapDEK(user.getWrappedDek(), oldKek);
+                    
+                    // --- PHASE 2 : Préparer la nouvelle protection ---
+                    String newSalt = client.crypto.KDFService.generateSalt();
+                    byte[] newKek = client.crypto.KDFService.deriveKEK(newPass, newSalt);
+                    
+                    // On re-wrappe la DEK déballée avec la nouvelle KEK
+                    String newWrappedDek = client.crypto.EnvelopeEncryptionService.wrapDEK(currentDek, newKek);
+
+                    // --- PHASE 3 : Envoyer au serveur ---
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("newPassword", newPass);
+                    params.put("newSalt", newSalt);
+                    params.put("newWrappedDek", newWrappedDek);
+                    
+                    Requete req = new Requete(RequestType.CHANGE_PASSWORD, params, 
+                                            SessionManager.getInstance().getSession().getAccessToken());
+                    Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+
+                    Platform.runLater(() -> {
+                        if (rep.isSucces()) {
+                            // Mettre à jour l'utilisateur localement
+                            user.setEncryptionSalt(newSalt);
+                            user.setWrappedDek(newWrappedDek);
+                            
+                            // Rafraîchir l'affichage
+                            loadProfileData();
+                            updateToggle2FAText();
+                            
+                            showAlert(Alert.AlertType.INFORMATION, "Succès", "Votre mot de passe a été modifié avec succès !");
+                        } else {
+                            showAlert(Alert.AlertType.ERROR, "Erreur", rep.getMessage());
+                        }
+                    });
+
+                } catch (Exception e) {
+                    Platform.runLater(() -> {
+                        showAlert(Alert.AlertType.ERROR, "Erreur", "L'ancien mot de passe est incorrect ou une erreur est survenue.");
+                    });
+                }
+            });
+        });
     }}
 
     

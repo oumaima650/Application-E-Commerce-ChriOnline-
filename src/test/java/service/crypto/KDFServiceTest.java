@@ -1,5 +1,6 @@
 package service.crypto;
 
+import client.crypto.KDFService;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
