@@ -1,4 +1,4 @@
-package service.crypto;
+package client.crypto;
 
 import de.mkammerer.argon2.Argon2Advanced;
 import de.mkammerer.argon2.Argon2Factory;
@@ -6,12 +6,12 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
- * Service pour la dérivation de clé (KDF).
+ * Service pour la dérivation de clé (KDF) côté client.
  * Utilise Argon2id pour transformer un mot de passe en une clé binaire de 256 bits (KEK).
  */
 public class KDFService {
 
-    // Paramètres Argon2id recommandés (A ajuster selon les performances du serveur)
+    // Paramètres Argon2id recommandés
     private static final int ITERATIONS = 3;
     private static final int MEMORY = 65536; // 64 MB
     private static final int PARALLELISM = 1;
@@ -31,32 +31,23 @@ public class KDFService {
 
     /**
      * Dérive une clé (KEK) à partir du mot de passe et du sel via Argon2id.
-     * @param password Le mot de passe de l'utilisateur.
-     * @param saltBase64 Le sel au format Base64.
-     * @return La clé dérivée en tableau d'octets.
      */
     public static byte[] deriveKEK(String password, String saltBase64) {
         byte[] salt = Base64.getDecoder().decode(saltBase64);
-        
-        // Argon2-jvm ne propose pas de sortie brute directe de longueur fixe facilement 
-        // sans passer par le hash. On peut utiliser les octets du hash résultant.
-        // On convertit le mot de passe en char[] pour plus de sécurité (effacement possible)
         char[] passwordChars = password.toCharArray();
         
         try {
-            // Note: argon2.hash produit une chaîne formatée ($argon2id$v=19$m=65536...).
-            // Pour une clé de dérivation brute, on peut extraire le hash binaire.
-            // Cependant, la bibliothèque argon2-jvm est optimisée pour le hachage.
-            // On utilise une approche stable : le hash brut.
-            byte[] hash = argon2.rawHash(ITERATIONS, MEMORY, PARALLELISM, passwordChars, salt);
+            // Utilisation de la signature : iterations, memory, parallelism, password, charset, salt
+            byte[] hash = argon2.rawHash(ITERATIONS, MEMORY, PARALLELISM, passwordChars, java.nio.charset.StandardCharsets.UTF_8, salt);
             
-            // On s'assure d'avoir au moins 32 octets (KEY_LENGTH)
+            // On s'assure d'avoir une clé de 32 octets (256 bits)
             byte[] kek = new byte[KEY_LENGTH];
             System.arraycopy(hash, 0, kek, 0, Math.min(hash.length, KEY_LENGTH));
-            
             return kek;
+        } catch (Exception e) {
+            System.err.println("[KDF] Erreur critique lors de la dérivation de clé : " + e.getMessage());
+            return new byte[KEY_LENGTH];
         } finally {
-            // Sécurité : effacer le mot de passe de la mémoire après usage
             argon2.wipeArray(passwordChars);
         }
     }

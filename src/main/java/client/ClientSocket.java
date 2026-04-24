@@ -5,6 +5,8 @@ import shared.Reponse;
 import shared.RequestType;
 import shared.Session;
 import client.utils.SessionManager;
+
+import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.io.IOException;
@@ -176,6 +178,9 @@ public class ClientSocket {
             connect();
         }
         if (out != null) {
+            if (req.getParametres() != null && req.getParametres().get("email") != null) {
+                logger.info("[AUDIT] 🚀 Requête {} pour : {}", req.getType(), req.getParametres().get("email"));
+            }
             // Chiffrement du Token de Session s'il existe (AES-GCM + Object Privacy)
             if (req.getTokenSession() != null && !req.getTokenSession().isBlank()) {
                 try {
@@ -204,16 +209,187 @@ public class ClientSocket {
                 }
             }
 
-            encryptRequeteFields(req);
+            encryptStorageFieldsWithDEK(req);  // Couche 1 : chiffrement DEK (stockage BDD)
+            encryptRequeteFields(req);           // Couche 2 : chiffrement session (réseau)
             out.writeObject(req);
             out.flush();
             out.reset();
             Reponse reponse = (Reponse) in.readObject();
-            decryptReponseFields(reponse);
+            decryptReponseFields(reponse);           // Couche 2 : déchiffrement session (réseau)
+            decryptStorageFieldsWithDEK(reponse);    // Couche 1 : déchiffrement DEK (stockage BDD)
             return reponse;
         }
         throw new IOException("Socket non disponible");
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // COUCHE 1 : Chiffrement DEK (données sensibles pour stockage BDD)
+    // ─────────────────────────────────────────────────────────────────
+
+    /** Champs dont la valeur String est chiffrée avec la DEK avant stockage en BDD. */
+    private static final String[] STORAGE_SENSITIVE_KEYS = {
+        "numeroCarte", "cvv", "dateExpiration",
+        "nom", "prenom", "telephone", "dateNaissance",
+        "adresse_complete", "addresseComplete",
+        "notifications"
+    };
+
+    /**
+     * Chiffre les champs sensibles d'une requête avec la DEK de l'utilisateur connecté.
+     * Seules les valeurs de type String sont chiffrées (les objets complexes sont gérés
+     * par encryptRequeteFields avec la clé de session réseau).
+     * Sans effet si l'utilisateur n'est pas connecté ou si la DEK n'est pas disponible.
+     */
+    private void encryptStorageFieldsWithDEK(Requete requete) {
+        if (requete.getParametres() == null) return;
+        model.Utilisateur currentUser = SessionManager.getInstance().getCurrentUser();
+        if (currentUser == null) return;
+        javax.crypto.SecretKey dek = currentUser.getSessionDek();
+        if (dek == null) return;
+
+        Map<String, Object> params = requete.getParametres();
+        boolean isMutable = true;
+        try {
+            params.put("temp_check", null);
+            params.remove("temp_check");
+        } catch (UnsupportedOperationException e) {
+            isMutable = false;
+        }
+
+        Map<String, Object> targetParams = isMutable ? params : new HashMap<>(params);
+
+        for (String key : STORAGE_SENSITIVE_KEYS) {
+            Object value = targetParams.get(key);
+            if (value instanceof String plaintext) {
+                try {
+                    String encrypted = client.crypto.EnvelopeEncryptionService.encryptField(plaintext, dek);
+                    targetParams.put(key, encrypted);
+                } catch (Exception e) {
+                    logger.error("[DEK] Échec chiffrement stockage pour le champ '{}'", key, e);
+                }
+            }
+        }
+
+        if (!isMutable) {
+            requete.setParametres(targetParams);
+        }
+    }
+
+    /**
+     * Déchiffre les champs sensibles d'une réponse avec la DEK de l'utilisateur connecté.
+     * Sans effet si l'utilisateur n'est pas connecté ou si la DEK n'est pas disponible.
+     */
+    public void decryptStorageFieldsWithDEK(Reponse reponse) {
+        if (reponse == null || reponse.getDonnees() == null) return;
+        
+        javax.crypto.SecretKey dek = null;
+        
+        // 1. Essayer de récupérer la clé depuis la session active
+        model.Utilisateur currentUser = SessionManager.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            dek = currentUser.getSessionDek();
+        }
+        
+        // 2. Si pas de session (cas du Login), essayer de récupérer la clé dans l'objet utilisateur de la réponse
+        Object userObj = reponse.getDonnees().get("utilisateur");
+        if (dek == null && userObj instanceof model.Utilisateur u) {
+            dek = u.getSessionDek();
+        }
+
+        if (dek == null) {
+            logger.warn("[DEK] ⚠️ Aucune clé DEK disponible pour déchiffrer la réponse.");
+            return;
+        }
+
+        // Fingerprint pour diagnostic
+        byte[] encoded = dek.getEncoded();
+        String fingerPrint = Base64.getEncoder().encodeToString(java.util.Arrays.copyOf(encoded, 4));
+        logger.info("[DEK] 🔑 Clé DEK détectée (Fingerprint: {}...), début du déchiffrement...", fingerPrint);
+
+        // 3. Déchiffrement les champs à la racine de la map
+        for (String key : STORAGE_SENSITIVE_KEYS) {
+            Object value = reponse.getDonnees().get(key);
+            if (value instanceof String encrypted) {
+                try {
+                    String plaintext = client.crypto.EnvelopeEncryptionService.decryptField(encrypted, dek);
+                    reponse.getDonnees().put(key, plaintext);
+                    logger.info("[DEK] ✅ Champ racine déchiffré : {}", key);
+                } catch (Exception e) {
+                    logger.debug("[DEK] Champ racine '{}' non déchiffrable (déjà en clair ou erreur)", key);
+                }
+            }
+        }
+
+        // 4. Déchiffrer les champs à l'intérieur de l'objet Utilisateur/Client s'il est présent
+        if (userObj instanceof model.Client c) {
+            logger.info("[DEK] Déchiffrement de l'objet Client ({})...", c.getEmail());
+            try {
+                if (c.getNom() != null) {
+                    c.setNom(client.crypto.EnvelopeEncryptionService.decryptField(c.getNom(), dek));
+                    logger.info("[DEK] | Nom OK");
+                }
+                if (c.getPrenom() != null) {
+                    c.setPrenom(client.crypto.EnvelopeEncryptionService.decryptField(c.getPrenom(), dek));
+                    logger.info("[DEK] | Prénom OK");
+                }
+                if (c.getTelephone() != null) {
+                    c.setTelephone(client.crypto.EnvelopeEncryptionService.decryptField(c.getTelephone(), dek));
+                    logger.info("[DEK] | Téléphone OK");
+                }
+                if (c.getDateNaissance() != null) {
+                    c.setDateNaissance(client.crypto.EnvelopeEncryptionService.decryptField(c.getDateNaissance(), dek));
+                    logger.info("[DEK] | Date Naissance OK");
+                }
+            } catch (Exception e) {
+                logger.warn("[DEK] ❌ Échec déchiffrement Client : {}", e.getMessage());
+            }
+        }
+
+        // 5. Déchiffrement récursif pour les listes (ex: items de commande, adresses)
+        String[] listKeys = {"items", "commandes", "adresses", "panier"};
+        for (String lKey : listKeys) {
+            Object listObj = reponse.getDonnees().get(lKey);
+            if (listObj instanceof List<?> list) {
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> m) {
+                        Map<String, Object> map = (Map<String, Object>) m;
+                        for (String sKey : STORAGE_SENSITIVE_KEYS) {
+                            if (map.containsKey(sKey) && map.get(sKey) instanceof String encrypted) {
+                                try { map.put(sKey, client.crypto.EnvelopeEncryptionService.decryptField(encrypted, dek)); } catch (Exception e) {}
+                            }
+                        }
+                    } else if (item instanceof model.Adresse a) {
+                        try { if (a.getAddresseComplete() != null) a.setAddresseComplete(client.crypto.EnvelopeEncryptionService.decryptField(a.getAddresseComplete(), dek)); } catch (Exception e) {}
+                    } else if (item instanceof Map<?, ?> mapItem && mapItem.containsKey("nom")) {
+                        // Cas particulier pour les items de commande dans une liste
+                        try {
+                            Map<String, Object> m = (Map<String, Object>) mapItem;
+                            if (m.get("nom") instanceof String enc) m.put("nom", client.crypto.EnvelopeEncryptionService.decryptField(enc, dek));
+                        } catch (Exception e) {}
+                    }
+                }
+            }
+        }
+        
+        // 6. Déchiffrement pour l'objet "commande" ou "adresse" s'ils sont seuls
+        Object singleObj = reponse.getDonnees().get("commande");
+        if (singleObj == null) singleObj = reponse.getDonnees().get("adresse");
+        
+        if (singleObj instanceof Map<?, ?> m) {
+            Map<String, Object> map = (Map<String, Object>) m;
+            for (String sKey : STORAGE_SENSITIVE_KEYS) {
+                if (map.containsKey(sKey) && map.get(sKey) instanceof String encrypted) {
+                    try { map.put(sKey, client.crypto.EnvelopeEncryptionService.decryptField(encrypted, dek)); } catch (Exception e) { }
+                }
+            }
+        } else if (singleObj instanceof model.Adresse a) {
+            try { if (a.getAddresseComplete() != null) a.setAddresseComplete(client.crypto.EnvelopeEncryptionService.decryptField(a.getAddresseComplete(), dek)); } catch (Exception e) {}
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────────
+    // COUCHE 2 : Chiffrement session (données sensibles pour le réseau)
+    // ─────────────────────────────────────────────────────────────────
 
     private void encryptRequeteFields(Requete requete) {
         if (this.sessionSecretKey == null || requete.getParametres() == null) return;

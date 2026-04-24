@@ -89,6 +89,7 @@ public class LoginController implements Initializable {
     @FXML private PasswordField confirmResetPasswordField;
 
     private String pendingEmail = "";
+    private String pendingPassword = ""; // Mot de passe temporaire pour dériver la KEK après login
     private enum OverlayMode { SIGNUP, LOGIN_2FA, PASSWORD_RESET }
     private OverlayMode currentOverlayMode = OverlayMode.SIGNUP;
 
@@ -315,6 +316,7 @@ public class LoginController implements Initializable {
         Map<String, Object> params = new HashMap<>();
         params.put("email", email); params.put("motDePasse", password);
         params.put("recaptchaToken", loginRecaptchaToken);
+        pendingPassword = password; // Conserver pour dériver la KEK après authentification
         setLoginLoading(true);
         runAsync(new Requete(RequestType.LOGIN, params, null), reponse -> {
             setLoginLoading(false);
@@ -415,7 +417,22 @@ public class LoginController implements Initializable {
                 return;
             }
             
+            // Générer un nouveau sel + DEK pour le nouveau mot de passe
+            String newSalt;
+            String newWrappedDek;
+            try {
+                newSalt = client.crypto.KDFService.generateSalt();
+                byte[] newKek = client.crypto.KDFService.deriveKEK(newPass, newSalt);
+                javax.crypto.SecretKey newDek = client.crypto.EnvelopeEncryptionService.generateDEK();
+                newWrappedDek = client.crypto.EnvelopeEncryptionService.wrapDEK(newDek, newKek);
+            } catch (Exception e) {
+                showError(verificationErrorLabel, "⚠ Erreur lors de la préparation du chiffrement.");
+                return;
+            }
             params.put("newPassword", newPass);
+            params.put("newEncryptionSalt", newSalt);
+            params.put("newWrappedDek", newWrappedDek);
+            pendingPassword = newPass;
             type = RequestType.CONFIRM_PASSWORD_RESET;
         }
         
@@ -446,11 +463,51 @@ public class LoginController implements Initializable {
 
     private void handleLoginSuccess(Reponse reponse) {
         Map<String, Object> donnees = reponse.getDonnees();
+        Utilisateur user = (Utilisateur) donnees.get("utilisateur");
+
+        // Dériver la KEK et unwrapper la DEK exclusivement en RAM (Zero-Knowledge)
+        String encryptionSalt = (String) donnees.get("encryptionSalt");
+        String wrappedDekStr  = (String) donnees.get("wrappedDek");
+        
+        System.out.println("[LoginController] 🔐 Début Zero-Knowledge unwrap...");
+        System.out.println("[LoginController] | Sel présent: " + (encryptionSalt != null) + (encryptionSalt != null ? " (" + encryptionSalt.substring(0, Math.min(10, encryptionSalt.length())) + "...)" : ""));
+        System.out.println("[LoginController] | DEK enveloppée présente: " + (wrappedDekStr != null) + (wrappedDekStr != null ? " (" + wrappedDekStr.substring(0, Math.min(10, wrappedDekStr.length())) + "...)" : ""));
+
+        if (encryptionSalt != null && wrappedDekStr != null && !pendingPassword.isEmpty()) {
+            try {
+                System.out.println("[LoginController] | Longueur du mot de passe: " + pendingPassword.length());
+                System.out.println("[LoginController] | Dérivation de la KEK via Argon2...");
+                byte[] kek = client.crypto.KDFService.deriveKEK(pendingPassword, encryptionSalt);
+                
+                System.out.println("[LoginController] | Déballage de la DEK (AES-GCM)...");
+                javax.crypto.SecretKey sessionDek =
+                    client.crypto.EnvelopeEncryptionService.unwrapDEK(wrappedDekStr, kek);
+                
+                user.setSessionDek(sessionDek);
+                
+                // Log d'empreinte pour diagnostic (sans révéler la clé)
+                byte[] encoded = sessionDek.getEncoded();
+                String fingerPrint = Base64.getEncoder().encodeToString(java.util.Arrays.copyOf(encoded, 4));
+                System.out.println("[LoginController] ✅ Zero-Knowledge : sessionDek prête (Fingerprint: " + fingerPrint + "...)");
+            } catch (Exception e) {
+                System.err.println("[LoginController] ❌ ÉCHEC unwrap DEK : " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                pendingPassword = ""; // Effacer le mot de passe de la mémoire
+            }
+        } else {
+            System.err.println("[LoginController] ⚠️ Données de chiffrement manquantes ou mot de passe vide.");
+        }
+
         SessionManager.getInstance().ouvrir(
-            (String)donnees.get("accessToken"), 
-            (String)donnees.get("refreshToken"), 
-            (Utilisateur)donnees.get("utilisateur")
+            (String)donnees.get("accessToken"),
+            (String)donnees.get("refreshToken"),
+            user
         );
+
+        // Déchiffrer l'objet utilisateur maintenant que la session est ouverte et la DEK est accessible
+        ClientSocket.getInstance().decryptStorageFieldsWithDEK(reponse);
+
         navigateToMain((String)donnees.get("typeUtilisateur"));
     }
 
@@ -461,8 +518,8 @@ public class LoginController implements Initializable {
         String prenom = trim(registerPrenomField);
         String phone = trim(registerPhoneField);
         String email = trim(registerEmailField);
-        String password = registerPasswordField.getText();
-        String confirm = registerConfirmPasswordField.getText();
+        String password = registerPasswordField.getText().trim();
+        String confirm = registerConfirmPasswordField.getText().trim();
 
         if (nom.isEmpty()) { showError(registerErrorLabel, "⚠ Nom requis."); shake(registerNameWrapper); return; }
         if (prenom.isEmpty()) { showError(registerErrorLabel, "⚠ Prénom requis."); shake(registerFirstNameWrapper); return; }
@@ -485,6 +542,33 @@ public class LoginController implements Initializable {
         params.put("nom", nom); params.put("prenom", prenom); params.put("telephone", phone);
         params.put("dateNaissance", dob.toString());
         params.put("recaptchaToken", registerRecaptchaToken);
+
+        // Génération KEK/DEK côté client avant d'envoyer au serveur
+        try {
+            String encryptionSalt = client.crypto.KDFService.generateSalt();
+            byte[] kek = client.crypto.KDFService.deriveKEK(password, encryptionSalt);
+            javax.crypto.SecretKey dek = client.crypto.EnvelopeEncryptionService.generateDEK();
+            String wrappedDek = client.crypto.EnvelopeEncryptionService.wrapDEK(dek, kek);
+
+            params.put("encryptionSalt", encryptionSalt);
+            params.put("wrappedDek", wrappedDek);
+            pendingPassword = password; // Conserver pour dériver la KEK après vérification signup
+
+            // Chiffrer les données de profil lors de l'inscription (Zero-Knowledge)
+            if (params.containsKey("nom")) 
+                params.put("nom", client.crypto.EnvelopeEncryptionService.encryptField((String)params.get("nom"), dek));
+            if (params.containsKey("prenom")) 
+                params.put("prenom", client.crypto.EnvelopeEncryptionService.encryptField((String)params.get("prenom"), dek));
+            if (params.containsKey("telephone")) 
+                params.put("telephone", client.crypto.EnvelopeEncryptionService.encryptField((String)params.get("telephone"), dek));
+            if (params.containsKey("dateNaissance")) 
+                params.put("dateNaissance", client.crypto.EnvelopeEncryptionService.encryptField((String)params.get("dateNaissance"), dek));
+
+        } catch (Exception e) {
+            System.err.println("[LoginController] Erreur préparation chiffrement : " + e.getMessage());
+            showError(registerErrorLabel, "⚠ Erreur lors de la préparation du chiffrement.");
+            return;
+        }
 
         setRegisterLoading(true);
         runAsync(new Requete(RequestType.REGISTER, params, null), reponse -> {

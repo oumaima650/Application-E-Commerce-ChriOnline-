@@ -281,6 +281,7 @@ public class ClientHandler implements Runnable {
         return switch (type) {
             case LOGOUT -> authService.logout(requete);
             case LOGOUT_ALL -> authService.logoutAll(requete);
+            case CHANGE_PASSWORD -> authService.handleChangePassword(requete);
 
             // 2FA (Secure)
             case GENERATE_2FA_CODE -> authService.handleGenerate2FACode(requete);
@@ -549,17 +550,14 @@ public class ClientHandler implements Runnable {
 
                         byte[] decryptedBytes = cipherAES.doFinal(encryptedBytes);
 
-                        // Deserialize Object
-                        java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
-                        java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais);
-                        Object originalObject = ois.readObject();
-
-                        // Remplace donnee chiffree par donnee en clair pour la suite du flux
-                        requete.getParametres().put(key, originalObject);
+                        try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
+                             java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais)) {
+                            requete.getParametres().put(key, ois.readObject());
+                        } catch (Exception e) {
+                            requete.getParametres().put(key, new String(decryptedBytes, java.nio.charset.StandardCharsets.UTF_8));
+                        }
                     } catch (Exception e) {
-                        logger.warn(
-                                "[AUDIT SECU] ALERTE : Échec du déchiffrement AES-GCM (Altération possible ?) pour le champ '{}' du client {}",
-                                key, socket.getInetAddress());
+                        logger.warn("[AUDIT SECU] Erreur déchiffrement champ '{}'", key);
                     }
                 }
             }

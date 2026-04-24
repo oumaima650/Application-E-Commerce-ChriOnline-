@@ -11,16 +11,16 @@ public class Client extends Utilisateur {
     private List<Adresse> adresses;
     private LocalDateTime deletedAt;
     private String statut; 
-    private java.time.LocalDate dateNaissance;
+    private String dateNaissance;
 
     public Client() {
         super();
         this.adresses = new ArrayList<>();
     }
 
-    public Client(int idUtilisateur, String email, String motDePasse, String encryptionSalt, boolean twoFactorEnabled, LocalDateTime createdAt, LocalDateTime updatedAt,
-                  String nom, String prenom, String telephone, java.time.LocalDate dateNaissance, LocalDateTime deletedAt) {
-        super(idUtilisateur, email, motDePasse, encryptionSalt, twoFactorEnabled, createdAt, updatedAt);
+    public Client(int idUtilisateur, String email, String motDePasse, String encryptionSalt, String wrappedDek, boolean twoFactorEnabled, LocalDateTime createdAt, LocalDateTime updatedAt,
+                  String nom, String prenom, String telephone, String dateNaissance, LocalDateTime deletedAt) {
+        super(idUtilisateur, email, motDePasse, encryptionSalt, wrappedDek, twoFactorEnabled, createdAt, updatedAt);
         this.nom = nom;
         this.prenom = prenom;
         this.telephone = telephone;
@@ -49,6 +49,6 @@ public class Client extends Utilisateur {
     public String getStatut() { return statut; }
     public void setStatut(String statut) { this.statut = statut; }
 
-    public java.time.LocalDate getDateNaissance() { return dateNaissance; }
-    public void setDateNaissance(java.time.LocalDate dateNaissance) { this.dateNaissance = dateNaissance; }
+    public String getDateNaissance() { return dateNaissance; }
+    public void setDateNaissance(String dateNaissance) { this.dateNaissance = dateNaissance; }
 }

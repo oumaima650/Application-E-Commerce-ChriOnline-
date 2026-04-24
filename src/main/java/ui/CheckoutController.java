@@ -159,6 +159,9 @@ public class CheckoutController {
                 );
                 shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                 if (rep.isSucces() && rep.getDonnees() != null) {
+                    // DEK Decryption
+                    client.ClientSocket.getInstance().decryptStorageFieldsWithDEK(rep);
+                    
                     @SuppressWarnings("unchecked")
                     Map<String, Object> orderData = (Map<String, Object>) rep.getDonnees().get("commande");
                     
@@ -231,6 +234,9 @@ public class CheckoutController {
                         );
                         shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
                         if (rep.isSucces() && rep.getDonnees() != null) {
+                            // DEK Decryption
+                            client.ClientSocket.getInstance().decryptStorageFieldsWithDEK(rep);
+
                             @SuppressWarnings("unchecked")
                             Map<String, Object> data = (Map<String, Object>) rep.getDonnees();
                             String prenom = (String) data.get("prenom");
@@ -485,18 +491,26 @@ public class CheckoutController {
         // If "Nouvelle adresse" — save it first and capture the returned idAdresse
         if (isNewAddress) {
             executor.submit(() -> {
-                java.util.Map<String, Object> p = new java.util.HashMap<>();
-                p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
-                p.put("addresseComplete", newAddr);
-                p.put("ville", ville);
-                p.put("codePostal", codePostal);
-                shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getAccessToken());
-                shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
-                if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
-                    Object idObj = rep.getDonnees().get("idAdresse");
-                    if (idObj instanceof Number) {
-                        selectedIdAdresse = ((Number) idObj).intValue();
+                try {
+                    // Zero-Knowledge: Encrypt address before sending to server
+                    javax.crypto.SecretKey dek = SessionManager.getInstance().getCurrentUser().getSessionDek();
+                    String encryptedAddr = client.crypto.EnvelopeEncryptionService.encryptField(newAddr, dek);
+
+                    java.util.Map<String, Object> p = new java.util.HashMap<>();
+                    p.put("idClient", SessionManager.getInstance().getCurrentUser().getIdUtilisateur());
+                    p.put("addresseComplete", encryptedAddr);
+                    p.put("ville", ville);
+                    p.put("codePostal", codePostal);
+                    shared.Requete req = new shared.Requete(shared.RequestType.ADD_ADDRESS, p, SessionManager.getInstance().getSession().getAccessToken());
+                    shared.Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+                    if (rep != null && rep.isSucces() && rep.getDonnees() != null) {
+                        Object idObj = rep.getDonnees().get("idAdresse");
+                        if (idObj instanceof Number) {
+                            selectedIdAdresse = ((Number) idObj).intValue();
+                        }
                     }
+                } catch (Exception e) {
+                    Platform.runLater(() -> showAlertErreur("Erreur lors du chiffrement de la nouvelle adresse."));
                 }
             });
         }
@@ -582,8 +596,12 @@ public class CheckoutController {
                         shared.Reponse addRep = client.ClientSocket.getInstance().envoyer(addReq);
                         
                         if (addRep.isSucces() && addRep.getDonnees() != null) {
-                            Map<String, Object> cardData = (Map<String, Object>) addRep.getDonnees().get("carte");
-                            idCarte = (Integer) cardData.get("idCarte");
+                            Object cardData = addRep.getDonnees().get("carte");
+                            if (cardData instanceof model.CarteBancaire cb) {
+                                idCarte = cb.getIdCarte();
+                            } else if (cardData instanceof Map<?, ?> map) {
+                                idCarte = (Integer) map.get("idCarte");
+                            }
                         } else if (chkSaveCard.isSelected()) {
                              Platform.runLater(() -> showAlertErreur("Erreur lors de la sauvegarde de la carte."));
                         }
@@ -618,6 +636,9 @@ public class CheckoutController {
                     });
                     return;
                 }
+
+                // DEK Decryption: Decrypt personal info and product names in the response
+                client.ClientSocket.getInstance().decryptStorageFieldsWithDEK(orderRep);
 
                 Map<String, Object> data = (Map<String, Object>) orderRep.getDonnees();
                 int idCommande = (Integer) data.get("idCommande");

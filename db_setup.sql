@@ -6,7 +6,7 @@ SET NAMES utf8mb4;
 
 -- updates :
 ALTER TABLE Client  ADD COLUMN statut     ENUM('ACTIF', 'BANNI', 'EN_ATTENTE') DEFAULT 'EN_ATTENTE' AFTER telephone;
-ALTER TABLE Client  ADD COLUMN dateNaissance DATE NULL AFTER statut;
+ALTER TABLE Client  ADD COLUMN dateNaissance VARCHAR(255) NULL AFTER statut;
 ALTER TABLE Adresse ADD COLUMN codePostal VARCHAR(10) NULL AFTER ville;
 
 -- ------------------------------------------------------------
@@ -17,6 +17,7 @@ CREATE TABLE Utilisateur (
     email           VARCHAR(255)    NOT NULL UNIQUE,
     motDePasse      VARCHAR(255)    NOT NULL,
     encryption_salt VARCHAR(255)    NULL,      -- Salt pour dériver la KEK (Argon2id)
+    wrapped_dek     TEXT            NULL,      -- Clé AES-256 de l'utilisateur, chiffrée par sa KEK (Zero-Knowledge)
     two_factor_enabled BOOLEAN      NOT NULL DEFAULT FALSE,
     createdAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updatedAt       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -28,9 +29,9 @@ CREATE TABLE Utilisateur (
 -- ------------------------------------------------------------
 CREATE TABLE Client (
     IdUtilisateur   INT             NOT NULL,
-    nom             VARCHAR(100)    NOT NULL,
-    prenom          VARCHAR(100)    NOT NULL,
-    telephone       VARCHAR(20),
+    nom             VARCHAR(255)    NOT NULL,
+    prenom          VARCHAR(255)    NOT NULL,
+    telephone       VARCHAR(255),
     deletedAt       DATETIME        NULL,
     PRIMARY KEY (IdUtilisateur),
     CONSTRAINT fk_client_utilisateur FOREIGN KEY (IdUtilisateur)
@@ -68,7 +69,7 @@ CREATE TABLE Adresse (
 CREATE TABLE Carte_bancaire (
     idCarte         INT             NOT NULL AUTO_INCREMENT,
     IdClient        INT             NOT NULL,   -- ← renommé
-    numeroCarte     VARCHAR(20)     NOT NULL,
+    numeroCarte     VARCHAR(255)    NOT NULL,
     typeCarte       VARCHAR(50)     NOT NULL,
     PRIMARY KEY (idCarte),
     CONSTRAINT fk_carte_client FOREIGN KEY (IdClient)
