@@ -582,12 +582,35 @@ public class AdminController {
                 shared.Reponse reponse = ClientSocket.getInstance().envoyer(requete);
  
                 if (reponse.isSucces() && reponse.getDonnees() != null) {
- 
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> dataMap = (Map<String, Object>) reponse.getDonnees();
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> commandesData =
-                            (List<Map<String, Object>>) dataMap.get("commandes");
+                    
+                    Object commandesObj = reponse.getDonnees().get("commandes");
+                    List<Map<String, Object>> commandesData = new ArrayList<>();
+
+                    if (commandesObj instanceof String) {
+                        // La donnée est chiffrée par le serveur pour le transport réseau
+                        try {
+                            byte[] combined = java.util.Base64.getDecoder().decode((String) commandesObj);
+                            byte[] iv = new byte[12];
+                            byte[] encryptedBytes = new byte[combined.length - 12];
+                            System.arraycopy(combined, 0, iv, 0, 12);
+                            System.arraycopy(combined, 12, encryptedBytes, 0, encryptedBytes.length);
+
+                            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");
+                            javax.crypto.spec.GCMParameterSpec spec = new javax.crypto.spec.GCMParameterSpec(128, iv);
+                            cipher.init(javax.crypto.Cipher.DECRYPT_MODE, ClientSocket.getInstance().getSessionSecretKey(), spec);
+                            
+                            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+                            
+                            try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
+                                 java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais)) {
+                                commandesData = (List<Map<String, Object>>) ois.readObject();
+                            }
+                        } catch (Exception e) {
+                            System.err.println("[AdminController] Erreur déchiffrement commandes: " + e.getMessage());
+                        }
+                    } else if (commandesObj instanceof List) {
+                        commandesData = (List<Map<String, Object>>) commandesObj;
+                    }
  
                     // Garder les maps brutes pour les cellValueFactory
                     rawCommandesData = commandesData;
@@ -655,10 +678,37 @@ public class AdminController {
         task.setOnSucceeded(e -> {
             Reponse rep = task.getValue();
             if (rep != null && rep.isSucces()) {
-                @SuppressWarnings("unchecked")
-                List<Client> clients = (List<Client>) rep.getDonnees().get("clients");
+                Object clientsObj = rep.getDonnees().get("clients");
+                List<Client> clientsData = new ArrayList<>();
+
+                if (clientsObj instanceof String) {
+                    try {
+                        byte[] combined = java.util.Base64.getDecoder().decode((String) clientsObj);
+                        byte[] iv = new byte[12];
+                        byte[] encryptedBytes = new byte[combined.length - 12];
+                        System.arraycopy(combined, 0, iv, 0, 12);
+                        System.arraycopy(combined, 12, encryptedBytes, 0, encryptedBytes.length);
+
+                        javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding");
+                        javax.crypto.spec.GCMParameterSpec spec = new javax.crypto.spec.GCMParameterSpec(128, iv);
+                        cipher.init(javax.crypto.Cipher.DECRYPT_MODE, ClientSocket.getInstance().getSessionSecretKey(), spec);
+                        
+                        byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+                        
+                        try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
+                             java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais)) {
+                            clientsData = (List<Client>) ois.readObject();
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("[AdminController] Erreur déchiffrement clients: " + ex.getMessage());
+                    }
+                } else if (clientsObj instanceof List) {
+                    clientsData = (List<Client>) clientsObj;
+                }
+
+                final List<Client> finalClients = clientsData;
                 javafx.application.Platform.runLater(() -> {
-                    tableClients.setItems(FXCollections.observableArrayList(clients));
+                    tableClients.setItems(FXCollections.observableArrayList(finalClients));
                 });
             } else {
                 System.err.println("[AdminController] Échec chargement clients: " + (rep != null ? rep.getMessage() : "Inconnu"));

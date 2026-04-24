@@ -21,14 +21,15 @@ public class AuthService {
     private static final Logger logger = LogManager.getLogger(AuthService.class);
 
     private final LoginAttemptLimitService securityService;
-    // [WHITELIST IP ADMIN] Instance du SecurityManager pour vérifier l'IP lors du login admin
+    // [WHITELIST IP ADMIN] Instance du SecurityManager pour vérifier l'IP lors du
+    // login admin
     private final SecurityManager securityManager;
     private static final long ANTI_TIMING_DELAY_MS = 200;
 
-
     public AuthService(LoginAttemptLimitService securityService, SecurityManager securityManager) {
         this.securityService = securityService;
-        // [WHITELIST IP ADMIN] Réutilisation de l'instance existante (whitelist déjà chargée)
+        // [WHITELIST IP ADMIN] Réutilisation de l'instance existante (whitelist déjà
+        // chargée)
         this.securityManager = securityManager;
     }
 
@@ -38,18 +39,18 @@ public class AuthService {
             Map<String, Object> params = requete.getParametres();
 
             if (params == null || !params.containsKey("email") || !params.containsKey("motDePasse")) {
-                return applyTimingDelay(new Reponse(false, "Champs manquants : email et motDePasse requis.", null), startTime);
+                return applyTimingDelay(new Reponse(false, "Champs manquants : email et motDePasse requis.", null),
+                        startTime);
             }
 
-            String email      = (String) params.get("email");
+            String email = (String) params.get("email");
             String motDePasse = (String) params.get("motDePasse");
 
             String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
             String recaptchaToken = (String) params.get("recaptchaToken");
-            
+
             // --- reCAPTCHA Verification (Via SecurityManager) ---
             boolean captchaValide = securityManager.verifyRecaptcha(recaptchaToken);
-
 
             UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
 
@@ -61,9 +62,10 @@ public class AuthService {
             int userId = loginData.id();
             Utilisateur user = UtilisateurDAO.findById(userId);
 
-
-            // --- [WHITELIST IP ADMIN] Étape 3 : Vérification IP pour les ADMINS uniquement ---
-            // Si l'utilisateur est un ADMIN et que son IP n'est pas dans la whitelist → rejet immédiat
+            // --- [WHITELIST IP ADMIN] Étape 3 : Vérification IP pour les ADMINS uniquement
+            // ---
+            // Si l'utilisateur est un ADMIN et que son IP n'est pas dans la whitelist →
+            // rejet immédiat
             // Les CLIENTs ne sont PAS affectés par ce contrôle (flux inchangé)
             if (!(user instanceof Client)) {
                 if (!securityManager.isIpAuthorized(clientIp)) {
@@ -76,7 +78,8 @@ public class AuthService {
             if (user instanceof Client) {
                 String statut = ((Client) user).getStatut();
                 if ("BANNI".equals(statut)) {
-                    return applyTimingDelay(new Reponse(false, "Ce compte a été banni par l'administrateur.", null), startTime);
+                    return applyTimingDelay(new Reponse(false, "Ce compte a été banni par l'administrateur.", null),
+                            startTime);
                 }
                 if ("EN_ATTENTE".equals(statut)) {
                     securityManager.sendTwoFactorCode(email);
@@ -95,7 +98,6 @@ public class AuthService {
                 }
             }
 
-
             securityService.registerSuccess(clientIp, email, captchaValide);
             return applyTimingDelay(generateAuthReponse(user), startTime);
 
@@ -112,7 +114,7 @@ public class AuthService {
 
         String accessToken = JWTService.generateAccessToken(String.valueOf(userId), role, sessionId);
         String refreshToken = JWTService.generateRefreshToken();
-        
+
         RefreshTokenDAO refreshTokenDAO = new RefreshTokenDAO();
         refreshTokenDAO.save(userId, refreshToken, LocalDateTime.now().plusDays(7));
 
@@ -121,12 +123,6 @@ public class AuthService {
         donnees.put("refreshToken", refreshToken);
         donnees.put("utilisateur", user);
         donnees.put("typeUtilisateur", role);
-        
-        // --- CLIENT-SIDE DECRYPTION DATA ---
-        if (user.getEncryptionSalt() != null) {
-            donnees.put("encryptionSalt", user.getEncryptionSalt());
-            donnees.put("wrappedDek", user.getWrappedDek());
-        }
 
         return new Reponse(true, "Connexion réussie.", donnees);
     }
@@ -148,34 +144,39 @@ public class AuthService {
             Map<String, Object> params = requete.getParametres();
 
             if (params == null || !params.containsKey("email") || !params.containsKey("motDePasse")
-                    || !params.containsKey("nom") || !params.containsKey("prenom") || !params.containsKey("telephone")) {
+                    || !params.containsKey("nom") || !params.containsKey("prenom")
+                    || !params.containsKey("telephone")) {
                 return new Reponse(false, "Champs manquants : email, motDePasse, nom, prenom, telephone requis.", null);
             }
 
-            String email      = (String) params.get("email");
+            String email = (String) params.get("email");
             String motDePasse = (String) params.get("motDePasse");
-            String nom        = (String) params.get("nom");
-            String prenom     = (String) params.get("prenom");
-            String telephone  = (String) params.get("telephone");
-            String dobString  = (String) params.get("dateNaissance"); // ISO format YYYY-MM-DD
+            String nom = (String) params.get("nom");
+            String prenom = (String) params.get("prenom");
+            String telephone = (String) params.get("telephone");
+            String dobString = (String) params.get("dateNaissance"); // ISO format YYYY-MM-DD
             String recaptchaToken = (String) params.get("recaptchaToken");
 
-            // java.time.LocalDate dateNaissance = java.time.LocalDate.parse(dobString); // Supprimé car date chiffrée
- 
+            // java.time.LocalDate dateNaissance = java.time.LocalDate.parse(dobString); //
+            // Supprimé car date chiffrée
+
             // --- reCAPTCHA Verification (Via SecurityManager) ---
             if (!securityManager.verifyRecaptcha(recaptchaToken)) {
                 return new Reponse(false, "Vérification reCAPTCHA échouée. Veuillez réessayer.", null);
             }
 
-
-            /* Supprimé pour Zero-Knowledge : le serveur ne peut plus vérifier l'âge
-            if (java.time.Period.between(dateNaissance, java.time.LocalDate.now()).getYears() < 16) {
-                return new Reponse(false, "Vous devez avoir au moins 16 ans pour vous inscrire.", null);
-            }
-            */
+            /*
+             * Supprimé pour Zero-Knowledge : le serveur ne peut plus vérifier l'âge
+             * if (java.time.Period.between(dateNaissance,
+             * java.time.LocalDate.now()).getYears() < 16) {
+             * return new Reponse(false,
+             * "Vous devez avoir au moins 16 ans pour vous inscrire.", null);
+             * }
+             */
 
             // --- Identity-based Password Safety Check ---
-            // if (containsIdentityInfo(motDePasse, nom, prenom, dateNaissance)) { // Supprimé car date chiffrée
+            // if (containsIdentityInfo(motDePasse, nom, prenom, dateNaissance)) { //
+            // Supprimé car date chiffrée
 
             PasswordService.ValidationResult strength = PasswordService.validateStrength(motDePasse);
             if (!strength.isValid()) {
@@ -190,30 +191,25 @@ public class AuthService {
                 return new Reponse(false, "Numéro de téléphone déjà utilisé : " + telephone, null);
             }
 
-            String encryptionSalt = (String) params.get("encryptionSalt");
-            String wrappedDek = (String) params.get("wrappedDek");
-
-            if (encryptionSalt == null || wrappedDek == null || encryptionSalt.isBlank() || wrappedDek.isBlank()) {
-                return new Reponse(false, "Données de chiffrement manquantes : encryptionSalt et wrappedDek requis.", null);
-            }
-
             // --- 2-Step Signup Verification ---
             // We create the account as 'EN_ATTENTE' and send verification code
             String hashedPw = PasswordService.hash(motDePasse);
             ClientDAO clientDAO = new ClientDAO();
-            Client client = clientDAO.create(email, hashedPw, encryptionSalt, wrappedDek, nom, prenom, telephone, dobString);
+            Client client = clientDAO.create(email, hashedPw, nom, prenom, telephone, dobString);
 
             if (securityManager.sendTwoFactorCode(email)) {
                 System.out.println("[AuthService] Signup pending verification for email=" + email);
                 return new Reponse(false, "SIGNUP_VERIFICATION_REQUIRED", null);
             } else {
-                // Cleanup: Delete the account if the initial email fails to avoid ghost accounts
+                // Cleanup: Delete the account if the initial email fails to avoid ghost
+                // accounts
                 try {
                     UtilisateurDAO.delete(client.getIdUtilisateur());
                 } catch (SQLException ex) {
                     System.err.println("[AuthService] Échec du nettoyage après erreur email : " + ex.getMessage());
                 }
-                return new Reponse(false, "Échec de l'envoi de l'e-mail de vérification. Compte non créé. Veuillez réessayer.", null);
+                return new Reponse(false,
+                        "Échec de l'envoi de l'e-mail de vérification. Compte non créé. Veuillez réessayer.", null);
             }
 
         } catch (Exception e) {
@@ -247,17 +243,18 @@ public class AuthService {
                 // Activate account
                 String sql = "UPDATE Client SET statut = 'ACTIF' WHERE IdUtilisateur = (SELECT IdUtilisateur FROM Utilisateur WHERE email = ?)";
                 try (java.sql.Connection conn = ConnexionBDD.getConnection();
-                     java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
+                        java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
                     ps.setString(1, email);
                     ps.executeUpdate();
                 }
-                
+
                 UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
                 Utilisateur user = UtilisateurDAO.findById(loginData.id());
-                
+
                 System.out.println("[AuthService] Signup verified OK — userId=" + user.getIdUtilisateur());
-                new NotificationService().notifierAdmins("Nouveau client inscrit : " + ((Client)user).getPrenom() + " " + ((Client)user).getNom() + " (" + email + ")");
-                
+                new NotificationService().notifierAdmins("Nouveau client inscrit : " + ((Client) user).getPrenom() + " "
+                        + ((Client) user).getNom() + " (" + email + ")");
+
                 return generateAuthReponse(user);
             } else {
                 return new Reponse(false, result.message(), null);
@@ -278,13 +275,16 @@ public class AuthService {
             RefreshTokenDAO dao = new RefreshTokenDAO();
             RefreshTokenDAO.RefreshTokenInfo info = dao.findByToken(rawRefreshToken);
 
-            if (info == null) return new Reponse(false, "INVALID_TOKEN", null);
-            if (info.isRevoked()) return new Reponse(false, "TOKEN_REVOKED", null);
+            if (info == null)
+                return new Reponse(false, "INVALID_TOKEN", null);
+            if (info.isRevoked())
+                return new Reponse(false, "TOKEN_REVOKED", null);
             if (info.isUsed()) {
                 dao.revokeAllForUser(info.userId());
                 return new Reponse(false, "REFRESH_TOKEN_REUSE_DETECTED", null);
             }
-            if (info.expiresAt().isBefore(LocalDateTime.now())) return new Reponse(false, "TOKEN_EXPIRED", null);
+            if (info.expiresAt().isBefore(LocalDateTime.now()))
+                return new Reponse(false, "TOKEN_EXPIRED", null);
 
             dao.markAsUsed(info.id());
 
@@ -292,7 +292,8 @@ public class AuthService {
             String role = (user instanceof Client) ? "CLIENT" : "ADMIN";
             String newSessionId = UUID.randomUUID().toString();
 
-            String newAccessToken = JWTService.generateAccessToken(String.valueOf(user.getIdUtilisateur()), role, newSessionId);
+            String newAccessToken = JWTService.generateAccessToken(String.valueOf(user.getIdUtilisateur()), role,
+                    newSessionId);
             String newRefreshToken = JWTService.generateRefreshToken();
             dao.save(user.getIdUtilisateur(), newRefreshToken, LocalDateTime.now().plusDays(7));
 
@@ -353,7 +354,8 @@ public class AuthService {
     public Reponse handleConfirmReset(Requete requete) {
         try {
             Map<String, Object> params = requete.getParametres();
-            if (params == null || !params.containsKey("email") || !params.containsKey("code") || !params.containsKey("newPassword")) {
+            if (params == null || !params.containsKey("email") || !params.containsKey("code")
+                    || !params.containsKey("newPassword")) {
                 return new Reponse(false, "Données manquantes.", null);
             }
 
@@ -366,23 +368,12 @@ public class AuthService {
             }
 
             PasswordService.ValidationResult strength = PasswordService.validateStrength(newPassword);
-            if (!strength.isValid()) return new Reponse(false, strength.message(), null);
+            if (!strength.isValid())
+                return new Reponse(false, strength.message(), null);
 
             String hashedPw = PasswordService.hash(newPassword);
 
-            // Récupérer le nouveau sel + DEK wrappée envoyés par le client
-            String newEncryptionSalt = (String) params.get("newEncryptionSalt");
-            String newWrappedDek     = (String) params.get("newWrappedDek");
-
-            boolean updated;
-            if (newEncryptionSalt != null && !newEncryptionSalt.isBlank()
-                    && newWrappedDek != null && !newWrappedDek.isBlank()) {
-                // Mise à jour atomique : hash + nouveau sel + nouvelle DEK wrappée
-                updated = UtilisateurDAO.updatePasswordAndEncryption(email, hashedPw, newEncryptionSalt, newWrappedDek);
-            } else {
-                // Fallback si le client n'a pas fourni les données de chiffrement
-                updated = UtilisateurDAO.updatePassword(email, hashedPw);
-            }
+            boolean updated = UtilisateurDAO.updatePassword(email, hashedPw);
 
             if (updated) {
                 securityManager.clearPasswordResetCode(email);
@@ -398,7 +389,8 @@ public class AuthService {
 
     public static int getUserIdFromToken(String token) {
         try {
-            if (token == null || token.isBlank()) return -1;
+            if (token == null || token.isBlank())
+                return -1;
             return Integer.parseInt(JWTService.verifyAccessToken(token).userId());
         } catch (Exception e) {
             return -1;
@@ -418,10 +410,10 @@ public class AuthService {
             if (result.success()) {
                 UtilisateurDAO.LoginData loginData = UtilisateurDAO.getLoginData(email);
                 Utilisateur user = UtilisateurDAO.findById(loginData.id());
-                
+
                 String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
                 securityService.registerSuccess(clientIp, email, true);
-                
+
                 return generateAuthReponse(user);
             } else {
                 return new Reponse(false, result.message(), null);
@@ -441,15 +433,20 @@ public class AuthService {
             String code = (String) params.get("code"); // Only required if enabling
 
             int userId = getUserIdFromToken(requete.getTokenSession());
-            if (userId == -1) return new Reponse(false, "Non autorisé.", null);
+            if (userId == -1)
+                return new Reponse(false, "Non autorisé.", null);
 
             Utilisateur user = UtilisateurDAO.findById(userId);
-            if (user == null) return new Reponse(false, "Utilisateur introuvable.", null);
+            if (user == null)
+                return new Reponse(false, "Utilisateur introuvable.", null);
 
             if (enabled) {
-                if (code == null) return new Reponse(false, "Code de confirmation requis.", null);
-                TwoFactorAuthService.VerificationResult result = securityManager.verifyTwoFactorCode(user.getEmail(), code);
-                if (!result.success()) return new Reponse(false, result.message(), null);
+                if (code == null)
+                    return new Reponse(false, "Code de confirmation requis.", null);
+                TwoFactorAuthService.VerificationResult result = securityManager.verifyTwoFactorCode(user.getEmail(),
+                        code);
+                if (!result.success())
+                    return new Reponse(false, result.message(), null);
             }
 
             if (UtilisateurDAO.updateTwoFactorStatus(user.getEmail(), enabled)) {
@@ -465,10 +462,12 @@ public class AuthService {
     public Reponse handleGenerate2FACode(Requete requete) {
         try {
             int userId = getUserIdFromToken(requete.getTokenSession());
-            if (userId == -1) return new Reponse(false, "Non autorisé.", null);
+            if (userId == -1)
+                return new Reponse(false, "Non autorisé.", null);
 
             Utilisateur user = UtilisateurDAO.findById(userId);
-            if (user == null) return new Reponse(false, "Utilisateur introuvable.", null);
+            if (user == null)
+                return new Reponse(false, "Utilisateur introuvable.", null);
 
             if (securityManager.sendTwoFactorCode(user.getEmail())) {
                 return new Reponse(true, "Un code de confirmation a été envoyé à votre email.", null);
@@ -483,26 +482,26 @@ public class AuthService {
     public Reponse handleChangePassword(Requete requete) {
         try {
             int userId = getUserIdFromToken(requete.getTokenSession());
-            if (userId == -1) return new Reponse(false, "Non autorisé.", null);
+            if (userId == -1)
+                return new Reponse(false, "Non autorisé.", null);
 
             Map<String, Object> params = requete.getParametres();
-            if (params == null || !params.containsKey("newPassword") || !params.containsKey("newSalt") || !params.containsKey("newWrappedDek")) {
-                return new Reponse(false, "Paramètres manquants.", null);
+            if (params == null || !params.containsKey("newPassword")) {
+                return new Reponse(false, "Paramètre 'newPassword' manquant.", null);
             }
 
-            String newPassword   = (String) params.get("newPassword");
-            String newSalt       = (String) params.get("newSalt");
-            String newWrappedDek = (String) params.get("newWrappedDek");
-
-            // Vérification de sécurité sur le mot de passe (server-side backup)
+            String newPassword = (String) params.get("newPassword");
             PasswordService.ValidationResult strength = PasswordService.validateStrength(newPassword);
             if (!strength.isValid()) {
                 return new Reponse(false, strength.message(), null);
             }
 
+            Utilisateur user = UtilisateurDAO.findById(userId);
+            if (user == null) return new Reponse(false, "Utilisateur introuvable.", null);
+
             String hashedPw = PasswordService.hash(newPassword);
-            if (UtilisateurDAO.updatePasswordAndEncryption(userId, hashedPw, newSalt, newWrappedDek)) {
-                return new Reponse(true, "Mot de passe et clés mis à jour avec succès.", null);
+            if (UtilisateurDAO.updatePassword(user.getEmail(), hashedPw)) {
+                return new Reponse(true, "Mot de passe mis à jour avec succès.", null);
             } else {
                 return new Reponse(false, "Erreur lors de la mise à jour en base de données.", null);
             }

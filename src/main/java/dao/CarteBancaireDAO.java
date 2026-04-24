@@ -4,8 +4,12 @@ import model.CarteBancaire;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import service.StorageEncryptionService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CarteBancaireDAO {
+    private static final Logger logger = LogManager.getLogger(CarteBancaireDAO.class);
 
     public boolean create(CarteBancaire carte) {
         String sql = "INSERT INTO carte_bancaire (IdClient, numeroCarte, typeCarte) VALUES (?, ?, ?)";
@@ -13,7 +17,9 @@ public class CarteBancaireDAO {
              PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             ps.setInt(1, carte.getIdClient());
-            ps.setString(2, carte.getNumeroCarte());
+            logger.debug("[CARD-SEC] Chiffrement du numéro de carte pour client ID: {}", carte.getIdClient());
+            String encryptedNumero = StorageEncryptionService.getInstance().encrypt(carte.getNumeroCarte());
+            ps.setString(2, encryptedNumero);
             ps.setString(3, carte.getTypeCarte());
             
             int rowsAffected = ps.executeUpdate();
@@ -68,7 +74,8 @@ public class CarteBancaireDAO {
         String sql = "UPDATE Carte_bancaire SET numeroCarte = ?, typeCarte = ? WHERE idCarte = ?";
         try (Connection con = ConnexionBDD.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, carte.getNumeroCarte());
+            String encryptedNumero = StorageEncryptionService.getInstance().encrypt(carte.getNumeroCarte());
+            ps.setString(1, encryptedNumero);
             ps.setString(2, carte.getTypeCarte());
             ps.setInt(3, carte.getIdCarte());
             return ps.executeUpdate() > 0;
@@ -95,7 +102,9 @@ public class CarteBancaireDAO {
         CarteBancaire carte = new CarteBancaire();
         carte.setIdCarte(rs.getInt("idCarte"));
         carte.setIdClient(rs.getInt("IdClient"));
-        carte.setNumeroCarte(rs.getString("numeroCarte"));
+        String decryptedNumero = StorageEncryptionService.getInstance().decrypt(rs.getString("numeroCarte"));
+        logger.debug("[CARD-SEC] Déchiffrement du numéro de carte réussi.");
+        carte.setNumeroCarte(decryptedNumero);
         carte.setTypeCarte(rs.getString("typeCarte"));
         return carte;
     }

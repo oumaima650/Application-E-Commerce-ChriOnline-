@@ -4,8 +4,12 @@ import model.Adresse;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import service.StorageEncryptionService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AdresseDAO {
+    private static final Logger logger = LogManager.getLogger(AdresseDAO.class);
 
     public boolean create(Adresse adresse) {
         String sql = "INSERT INTO Adresse (IdClient, addresseComplete, ville, codePostal, createdAt) VALUES (?, ?, ?, ?, ?)";
@@ -13,7 +17,9 @@ public class AdresseDAO {
              PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             ps.setInt(1, adresse.getIdClient());
-            ps.setString(2, adresse.getAddresseComplete());
+            logger.debug("[ADDR-SEC] Chiffrement de l'adresse pour client ID: {}", adresse.getIdClient());
+            String encryptedAddress = StorageEncryptionService.getInstance().encrypt(adresse.getAddresseComplete());
+            ps.setString(2, encryptedAddress);
             ps.setString(3, adresse.getVille());
             ps.setString(4, adresse.getCodePostal());
             ps.setTimestamp(5, adresse.getCreatedAt() != null ? Timestamp.valueOf(adresse.getCreatedAt()) : new Timestamp(System.currentTimeMillis()));
@@ -70,7 +76,8 @@ public class AdresseDAO {
         String sql = "UPDATE Adresse SET addresseComplete = ?, ville = ?, codePostal = ? WHERE idAdresse = ? AND deletedAt IS NULL";
         try (Connection con = ConnexionBDD.getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, adresse.getAddresseComplete());
+            String encryptedAddress = StorageEncryptionService.getInstance().encrypt(adresse.getAddresseComplete());
+            ps.setString(1, encryptedAddress);
             ps.setString(2, adresse.getVille());
             ps.setString(3, adresse.getCodePostal());
             ps.setInt(4, adresse.getIdAdresse());
@@ -98,7 +105,9 @@ public class AdresseDAO {
         Adresse adresse = new Adresse();
         adresse.setIdAdresse(rs.getInt("idAdresse"));
         adresse.setIdClient(rs.getInt("IdClient"));
-        adresse.setAddresseComplete(rs.getString("addresseComplete"));
+        String decryptedAddress = StorageEncryptionService.getInstance().decrypt(rs.getString("addresseComplete"));
+        logger.debug("[ADDR-SEC] Déchiffrement de l'adresse réussi.");
+        adresse.setAddresseComplete(decryptedAddress);
         adresse.setVille(rs.getString("ville"));
         adresse.setCodePostal(rs.getString("codePostal"));
         if (rs.getTimestamp("createdAt") != null) {

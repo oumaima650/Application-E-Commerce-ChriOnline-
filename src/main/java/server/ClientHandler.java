@@ -248,6 +248,7 @@ public class ClientHandler implements Runnable {
                 if (token == null || token.isBlank()) {
                     return new Reponse(false, "INVALID_TOKEN", null);
                 }
+                logger.debug("[AUDIT SECU] Vérification JWT pour le token : {}...", (token.length() > 20 ? token.substring(0, 20) : token));
                 claims = JWTService.verifyAccessToken(token);
             } catch (ExpiredJwtException e) {
                 return new Reponse(false, "TOKEN_EXPIRED", null);
@@ -512,58 +513,59 @@ public class ClientHandler implements Runnable {
                 type == RequestType.GET_SKU_BY_VARIANTS ||
                 type == RequestType.GET_PRODUCT_VARIANTS;
     }
-    //
 
     private void decryptRequeteFields(Requete requete) {
-        if (this.sessionSecretKey == null || requete.getParametres() == null)
+        if (this.sessionSecretKey == null || requete == null)
             return;
 
-        // Liste des champs considérés sensibles que le client va chiffrer (étendus PII)
-        String[] sensitiveKeys = { 
-            "utilisateur", "client", "adresse", "adresses", "adresse_complete", 
-            "commande", "commandes", "items", "panier", "lignes",
-            "accessToken", "refreshToken", "refresh_tokens", "password_reset_codes", "resetCode",
-            "twofactorcodes", "2faCode", "code", "login_security_state",
-            "motDePasse", "newPassword", "password", "email", "nom", "prenom", "telephone", "dateNaissance",
-            "numeroCarte", "cvv", "dateExpiration", "carte", "cartes", "paiement", "carteBancaire",
-            "notifications"
-        };
+        // 1. Déchiffrement des paramètres sensibles (si présents)
+        if (requete.getParametres() != null) {
+            String[] sensitiveKeys = { 
+                "utilisateur", "client", "clients", "adresse", "adresses", "adresse_complete", 
+                "commande", "commandes", "items", "panier", "lignes",
+                "accessToken", "refreshToken", "refresh_tokens", "password_reset_codes", "resetCode",
+                "twofactorcodes", "2faCode", "code", "login_security_state",
+                "motDePasse", "newPassword", "password", "email", "nom", "prenom", "telephone", "dateNaissance",
+                "numeroCarte", "cvv", "dateExpiration", "carte", "cartes", "paiement", "carteBancaire",
+                "notifications"
+            };
 
-        for (String key : sensitiveKeys) {
-            if (requete.getParametres().containsKey(key)) {
-                Object valueObj = requete.getParametres().get(key);
-                if (valueObj instanceof String) {
-                    try {
-                        String encryptedBase64 = (String) valueObj;
-                        byte[] combined = Base64.getDecoder().decode(encryptedBase64);
+            for (String key : sensitiveKeys) {
+                if (requete.getParametres().containsKey(key)) {
+                    Object valueObj = requete.getParametres().get(key);
+                    if (valueObj instanceof String) {
+                        try {
+                            String encryptedBase64 = (String) valueObj;
+                            byte[] combined = Base64.getDecoder().decode(encryptedBase64);
 
-                        if (combined.length < 12)
-                            continue;
-                        byte[] iv = new byte[12];
-                        byte[] encryptedBytes = new byte[combined.length - 12];
-                        System.arraycopy(combined, 0, iv, 0, 12);
-                        System.arraycopy(combined, 12, encryptedBytes, 0, encryptedBytes.length);
+                            if (combined.length < 12)
+                                continue;
+                            byte[] iv = new byte[12];
+                            byte[] encryptedBytes = new byte[combined.length - 12];
+                            System.arraycopy(combined, 0, iv, 0, 12);
+                            System.arraycopy(combined, 12, encryptedBytes, 0, encryptedBytes.length);
 
-                        Cipher cipherAES = Cipher.getInstance("AES/GCM/NoPadding");
-                        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
-                        cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey, gcmSpec);
+                            Cipher cipherAES = Cipher.getInstance("AES/GCM/NoPadding");
+                            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
+                            cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey, gcmSpec);
 
-                        byte[] decryptedBytes = cipherAES.doFinal(encryptedBytes);
+                            byte[] decryptedBytes = cipherAES.doFinal(encryptedBytes);
 
-                        try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
-                             java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais)) {
-                            requete.getParametres().put(key, ois.readObject());
+                            try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
+                                 java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais)) {
+                                requete.getParametres().put(key, ois.readObject());
+                            } catch (Exception e) {
+                                requete.getParametres().put(key, new String(decryptedBytes, java.nio.charset.StandardCharsets.UTF_8));
+                            }
                         } catch (Exception e) {
-                            requete.getParametres().put(key, new String(decryptedBytes, java.nio.charset.StandardCharsets.UTF_8));
+                            logger.warn("[AUDIT SECU] Erreur déchiffrement champ '{}'", key);
                         }
-                    } catch (Exception e) {
-                        logger.warn("[AUDIT SECU] Erreur déchiffrement champ '{}'", key);
                     }
                 }
             }
         }
 
-        // Déchiffrement du jeton JWT de session (Object Privacy / AES-GCM)
+        // 2. Déchiffrement du jeton JWT de session (Object Privacy / AES-GCM)
         if (requete.getTokenSession() != null && !requete.getTokenSession().isBlank()) {
             try {
                 String encryptedBase64 = requete.getTokenSession();
@@ -581,13 +583,16 @@ public class ClientHandler implements Runnable {
 
                     byte[] decryptedBytes = cipherAES.doFinal(encryptedBytes);
 
-                    // Unification Objet (Désérialisation du String)
-                    java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
-                    java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais);
-                    requete.setTokenSession((String) ois.readObject());
+                    // Désérialisation du String Token
+                    try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
+                         java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais)) {
+                        String decryptedToken = (String) ois.readObject();
+                        requete.setTokenSession(decryptedToken);
+                        logger.debug("[AUDIT SECU] Token de session déchiffré avec succès.");
+                    }
                 }
             } catch (Exception e) {
-                // Silencieux (Le client n'a peut-être pas encore activé le chiffrement du JWT)
+                logger.error("[AUDIT SECU] ÉCHEC du déchiffrement du Token de session : {}", e.getMessage());
             }
         }
     }
@@ -607,7 +612,7 @@ public class ClientHandler implements Runnable {
 
         // Liste unifiée des clés sensibles (Attributs, Objets métiers et Tokens de sécurité)
         String[] sensitiveKeys = { 
-            "utilisateur", "client", "adresse", "adresses", "adresse_complete", 
+            "utilisateur", "client", "clients", "adresse", "adresses", "adresse_complete", 
             "commande", "commandes", "items", "panier", "lignes",
             "accessToken", "refreshToken", "refresh_tokens", "password_reset_codes", "resetCode",
             "twofactorcodes", "2faCode", "code", "login_security_state",
