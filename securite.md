@@ -148,7 +148,38 @@ Cette documentation détaille les couches de sécurité ajoutées à l'applicati
 
 **Pourquoi :** Cette architecture garantit que l'application reste modulaire et facile à auditer. Tous les événements de sécurité passent par un point unique, permettant une journalisation cohérente et empêchant les services métiers (`AuthService`, `ClientHandler`) d'être pollués par de la logique de sécurité complexe.
 
+## 19. Chiffrement des Données au Repos (Server-Side Storage Encryption)
+**Quoi :** Protection intégrale des données sensibles (PII) stockées dans la base de données MySQL.
+**Comment :** 
+- Utilisation du `StorageEncryptionService` basé sur l'algorithme **AES-256 GCM**.
+- Les clés de chiffrement (DEK - Data Encryption Key) sont chargées depuis un **KeyStore Java (`.p12`)** protégé par mot de passe et ne sont jamais stockées en clair.
+- **Données concernées :** Nom, Prénom, Téléphone, Adresse, Date de Naissance, Numéros de carte bancaire.
+**Pourquoi :** Garantit la confidentialité totale des données même en cas de dump complet de la base de données ou d'accès physique non autorisé aux fichiers de stockage.
+
+## 20. Recherche Déterministe Sécurisée (Searchable Encryption)
+**Quoi :** Capacité à effectuer des recherches SQL précises sur des colonnes chiffrées sans compromettre la sécurité.
+**Comment :** 
+- Utilisation d'un **chiffrement déterministe** (IV fixe dérivé de la StorageKey) pour les champs indexables (`nom`, `prenom`, `telephone`).
+- Le serveur transforme la requête de recherche en ciphertext avant de l'envoyer à MySQL (`SELECT ... WHERE nom = 'ENCRYPTED_VALUE'`).
+- Les données non indexables (ex: adresse) utilisent un **chiffrement probabiliste** (IV aléatoire) pour une sécurité maximale.
+**Pourquoi :** Concilie le besoin opérationnel de recherche administrative avec l'exigence de confidentialité stricte du RGPD.
+
+## 21. Chiffrement Applicatif de la Couche Réseau (Double Protection)
+**Quoi :** Chiffrement des données sensibles directement au niveau de la couche applicative, avant même l'envoi sur le socket TLS.
+**Comment :** 
+- Chaque champ sensible dans les objets `Requete` et `Reponse` est chiffré individuellement en **AES-GCM** avec la clé de session établie lors du Handshake RSA.
+- Le jeton JWT de session est lui-même chiffré avant transit.
+**Pourquoi :** Ajoute une couche de "Défense en Profondeur". Même en cas de compromission théorique de la couche TLS 1.3, les données extraites resteraient chiffrées par une clé de session unique et volatile.
+
+## 22. Audit de Sécurité et Traçabilité Cryptographique
+**Quoi :** Journalisation systématique des opérations critiques de sécurité.
+**Comment :** 
+- Utilisation du tag **`[AUDIT SECU]`** dans les logs (via Log4j2).
+- Tracement du chargement des clés, des opérations de chiffrement/déchiffrement et des échecs de validation de tokens.
+- Affichage des empreintes (fingerprints) de clés pour vérifier l'intégrité du matériel cryptographique au démarrage du serveur.
+**Pourquoi :** Permet une détection rapide des anomalies et facilite les audits de conformité en prouvant que les données sont effectivement protégées avant chaque écriture en base de données.
+
 ---
-*Dernière mise à jour : Avril 2026*
+*Dernière mise à jour : Avril 2026 - Migration vers Storage Encryption*
 
 
