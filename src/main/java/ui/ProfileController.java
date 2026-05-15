@@ -249,7 +249,8 @@ public class ProfileController {
                                 full = a.getAddresseComplete() + ", " + a.getVille() + " (" + a.getCodePostal() + ")";
                             } else if (adObj instanceof Map<?, ?> m) {
                                 Map<String, Object> ad = (Map<String, Object>) m;
-                                full = (String) ad.get("addresseComplete") + ", " + ad.get("ville") + " (" + ad.get("codePostal") + ")";
+                                full = (String) ad.get("addresseComplete") + ", " + ad.get("ville") + " ("
+                                        + ad.get("codePostal") + ")";
                             }
                             if (!full.isEmpty()) {
                                 Label l = new Label("• " + full);
@@ -297,7 +298,7 @@ public class ProfileController {
                     params.put("addresseComplete", addr);
                     params.put("ville", ville);
                     params.put("codePostal", cp);
-                    
+
                     Requete req = new Requete(RequestType.ADD_ADDRESS, params,
                             SessionManager.getInstance().getSession().getAccessToken());
                     Reponse rep = client.ClientSocket.getInstance().envoyer(req);
@@ -308,7 +309,8 @@ public class ProfileController {
                             showAlert(Alert.AlertType.ERROR, "Erreur", rep.getMessage());
                     });
                 } catch (Exception e) {
-                    Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Erreur", "Échec du chiffrement de l'adresse."));
+                    Platform.runLater(
+                            () -> showAlert(Alert.AlertType.ERROR, "Erreur", "Échec du chiffrement de l'adresse."));
                 }
             });
         });
@@ -353,7 +355,8 @@ public class ProfileController {
 
     @FXML
     private void handleChangePassword() {
-        // 1. Création d'une boîte de dialogue personnalisée pour le changement de mot de passe
+        // 1. Création d'une boîte de dialogue personnalisée pour le changement de mot
+        // de passe
         Dialog<Map<String, String>> dialog = new Dialog<>();
         dialog.setTitle("Changer le mot de passe");
         dialog.setHeaderText("Sécurisez votre compte sans perdre vos données.");
@@ -369,14 +372,15 @@ public class ProfileController {
         PasswordField confirmPassField = new PasswordField();
         confirmPassField.setPromptText("Confirmer le nouveau mot de passe");
 
-        container.getChildren().addAll(new Label("Ancien mot de passe :"), oldPassField, 
-                                     new Label("Nouveau mot de passe :"), newPassField, 
-                                     new Label("Confirmation :"), confirmPassField);
+        container.getChildren().addAll(new Label("Ancien mot de passe :"), oldPassField,
+                new Label("Nouveau mot de passe :"), newPassField,
+                new Label("Confirmation :"), confirmPassField);
         dialog.getDialogPane().setContent(container);
 
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == changeButtonType) {
-                return Map.of("old", oldPassField.getText(), "new", newPassField.getText(), "confirm", confirmPassField.getText());
+                return Map.of("old", oldPassField.getText(), "new", newPassField.getText(), "confirm",
+                        confirmPassField.getText());
             }
             return null;
         });
@@ -386,77 +390,32 @@ public class ProfileController {
             String newPass = res.get("new").trim();
             String confirm = res.get("confirm").trim();
 
-            if (oldPass.isEmpty() || newPass.isEmpty()) return;
+            if (oldPass.isEmpty() || newPass.isEmpty())
+                return;
             if (!newPass.equals(confirm)) {
                 showAlert(Alert.AlertType.ERROR, "Erreur", "Les nouveaux mots de passe ne correspondent pas.");
                 return;
             }
 
             Utilisateur user = SessionManager.getInstance().getCurrentUser();
-            
+
             executor.submit(() -> {
                 Map<String, Object> params = new HashMap<>();
                 params.put("newPassword", newPass);
-                    
-                    Requete req = new Requete(RequestType.CHANGE_PASSWORD, params, 
-                                            SessionManager.getInstance().getSession().getAccessToken());
-                    Reponse rep = client.ClientSocket.getInstance().envoyer(req);
 
-                    Platform.runLater(() -> {
-                        if (rep.isSucces()) {
-                            showAlert(Alert.AlertType.INFORMATION, "Succès", "Votre mot de passe a été modifié avec succès !");
-                        } else {
-                            showAlert(Alert.AlertType.ERROR, "Erreur", rep.getMessage());
-                        }
-                    });
+                Requete req = new Requete(RequestType.CHANGE_PASSWORD, params,
+                        SessionManager.getInstance().getSession().getAccessToken());
+                Reponse rep = client.ClientSocket.getInstance().envoyer(req);
+
+                Platform.runLater(() -> {
+                    if (rep.isSucces()) {
+                        showAlert(Alert.AlertType.INFORMATION, "Succès",
+                                "Votre mot de passe a été modifié avec succès !");
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Erreur", rep.getMessage());
+                    }
+                });
             });
         });
     }
 }
-
-    
-            
-    
-    
-        
-            
-    
-    
-
-    
-    
-        
-        
-        
-    
-
-    
-    
-        
-        
-        
-        
-
-        
-            
-                
-                        
-                
-                
-                    
-                        
-                
-            
-        
-    
-
-    
-    
-        
-    
-
-    
-    
-        
-    
-
