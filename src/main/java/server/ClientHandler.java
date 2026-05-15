@@ -20,17 +20,6 @@ import shared.RequestType;
 import service.SecurityManager;
 
 import java.util.Map;
-//pour RSA/AES
-import java.util.Base64;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import javax.crypto.spec.GCMParameterSpec;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-//
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -178,7 +167,9 @@ public class ClientHandler implements Runnable {
         // 1. PUBLIC ENDPOINTS (No Auth)
         if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH ||
                 type == RequestType.REQUEST_PASSWORD_RESET || type == RequestType.CONFIRM_PASSWORD_RESET ||
-                type == RequestType.VERIFY_2FA_LOGIN || type == RequestType.VERIFY_SIGNUP) {
+                type == RequestType.VERIFY_2FA_LOGIN || type == RequestType.VERIFY_SIGNUP ||
+                type == RequestType.ADMIN_CHALLENGE_REQUEST || type == RequestType.ADMIN_CHALLENGE_VERIFY ||
+                type == RequestType.ADMIN_SECURITY_RECOVERY) {
 
             // Inject client context (IP) for security
             if (requete.getParametres() == null) {
@@ -194,6 +185,9 @@ public class ClientHandler implements Runnable {
                 case CONFIRM_PASSWORD_RESET -> authService.handleConfirmReset(requete);
                 case VERIFY_2FA_LOGIN -> authService.handleVerify2FALogin(requete);
                 case VERIFY_SIGNUP -> authService.handleVerifySignup(requete);
+                case ADMIN_CHALLENGE_REQUEST -> authService.handleAdminChallengeRequest(requete);
+                case ADMIN_CHALLENGE_VERIFY -> authService.handleAdminChallengeVerify(requete);
+                case ADMIN_SECURITY_RECOVERY -> authService.handleAdminSecurityRecovery(requete);
                 default -> new Reponse(false, "Internal Error", null);
             };
         }
@@ -471,7 +465,10 @@ public class ClientHandler implements Runnable {
                 type == RequestType.GET_SKU_BY_PRODUIT ||
                 type == RequestType.GET_SKU_BY_CODE ||
                 type == RequestType.GET_SKU_BY_VARIANTS ||
-                type == RequestType.GET_PRODUCT_VARIANTS;
+                type == RequestType.GET_PRODUCT_VARIANTS ||
+                type == RequestType.ADMIN_CHALLENGE_REQUEST ||
+                type == RequestType.ADMIN_CHALLENGE_VERIFY ||
+                type == RequestType.ADMIN_SECURITY_RECOVERY;
     }
 }
-
+

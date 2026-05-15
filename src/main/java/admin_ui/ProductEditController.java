@@ -1,4 +1,4 @@
-package ui;
+package admin_ui;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;

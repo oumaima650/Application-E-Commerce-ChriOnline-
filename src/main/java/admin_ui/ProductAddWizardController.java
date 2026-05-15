@@ -1,4 +1,4 @@
-package ui;
+package admin_ui;
 
 import client.ClientSocket;
 import javafx.collections.FXCollections;

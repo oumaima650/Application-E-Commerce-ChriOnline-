@@ -1,4 +1,4 @@
-package ui;
+package admin_ui;
 
 import client.ClientSocket;
 import javafx.stage.Stage;
@@ -69,7 +69,7 @@ public class AdminController {
         System.out.println("[AdminController] Déconnexion en cours...");
         SessionManager.getInstance().fermer();
         SceneManager.clearHistory();
-        SceneManager.switchTo("login.fxml", "ChriOnline - Connexion");
+        SceneManager.switchTo("admin_login.fxml", "ChriOnline - Connexion");
     }
 
     @FXML
