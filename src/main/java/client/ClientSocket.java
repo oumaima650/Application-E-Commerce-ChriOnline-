@@ -71,6 +71,7 @@ public class ClientSocket {
         }
     }
 
+    //charge Truststore contenant certif pub du serveur
     private SSLSocketFactory getSSLSocketFactory() throws Exception {
         String truststorePath = config.getProperty("client.truststore.path");
         String truststorePass = config.getProperty("client.truststore.password");

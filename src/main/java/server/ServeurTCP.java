@@ -101,6 +101,7 @@ public class ServeurTCP {
         }
     }
 
+    //charge keystore contenant cle privee + configure keymanager pour prouver identite du serveur au client
     private SSLServerSocketFactory getSSLServerSocketFactory() throws Exception {
         String keystorePath = config.getProperty("server.keystore.path");
         String keystorePass = config.getProperty("server.keystore.password");
