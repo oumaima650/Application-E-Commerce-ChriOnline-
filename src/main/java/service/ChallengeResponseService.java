@@ -26,15 +26,7 @@ public class ChallengeResponseService {
         }
 
         try {
-            String publicKeyBase64 = dao.UtilisateurDAO.getAdminPublicKey(email);
-            if (publicKeyBase64 == null) return false;
-
-            // Nettoyage de la clé (suppression des espaces/newlines potentiels)
-            publicKeyBase64 = publicKeyBase64.replaceAll("\\s", "");
-            byte[] publicBytes = Base64.getDecoder().decode(publicKeyBase64);
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicBytes);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            PublicKey publicKey = keyFactory.generatePublic(keySpec);
+            PublicKey publicKey = security.VaultClient.getPublicKey(email);
 
             Signature sig = Signature.getInstance("SHA256withRSA");
             sig.initVerify(publicKey);

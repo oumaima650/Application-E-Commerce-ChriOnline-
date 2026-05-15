@@ -22,7 +22,14 @@ public class AdminKeyGenerator {
         System.out.print("Enter Admin Email: ");
         String email = scanner.nextLine().trim();
         System.out.print("Enter Password for .p12 file: ");
-        String password = scanner.nextLine().trim();
+        String password;
+        if (System.console() != null) {
+            password = new String(System.console().readPassword());
+        } else {
+            // Fallback for IDEs where Console might be null
+            password = scanner.nextLine().trim();
+            System.out.println("⚠️ Warning: Password visibility could not be masked in this terminal.");
+        }
 
         try {
             // 1. Generate RSA Key Pair
@@ -79,13 +86,12 @@ public class AdminKeyGenerator {
                 }
                 
                 java.security.cert.Certificate cert = ks.getCertificate(email);
-                String publicKeyBase64 = Base64.getEncoder().encodeToString(cert.getPublicKey().getEncoded());
                 
-                System.out.println("\n--- DATABASE SETUP ---");
-                System.out.println("SQL to update your admin account:");
-                System.out.println("UPDATE Admin SET cle_publique = '" + publicKeyBase64 + "' WHERE IdUtilisateur = (SELECT IdUtilisateur FROM Utilisateur WHERE email = '" + email + "');");
-                System.out.println("\nCopy this public key Base64:");
-                System.out.println(publicKeyBase64);
+                // 4. Store Public Key in HashiCorp Vault
+                System.out.println("Enrolling public key in Vault...");
+                security.VaultClient.storePublicKey(email, cert.getPublicKey());
+                
+                System.out.println("\n✅ Successfully enrolled public key in Vault.");
                 System.out.println("-----------------------\n");
                 
             } else {
