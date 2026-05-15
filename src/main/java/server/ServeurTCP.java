@@ -1,16 +1,19 @@
 package server;
 
 import service.CleanupService;
-
+//pour tls
+import javax.net.ssl.*;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.KeyStore;
+/*
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
+*/
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
@@ -26,9 +29,9 @@ public class ServeurTCP {
 
     private static final String CONFIG_PATH = "src/main/resources/config.properties";
     private final Properties config = new Properties();
-    private ServerSocket serverSocket;
-    private PrivateKey serverPrivateKey;
-    private PublicKey serverPublicKey;
+    /* 
+    */
+    private SSLServerSocket serverSocket;
     private final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
     private final CleanupService cleanupService = new CleanupService();
     private final SecurityManager securityManager = new SecurityManager();
@@ -43,12 +46,15 @@ public class ServeurTCP {
     public void start() {
         try {
             loadConfig();
-            loadKeys();
-
+            
+            SSLServerSocketFactory ssf = getSSLServerSocketFactory();
             int port = Integer.parseInt(config.getProperty("server.port", "8443"));
-            serverSocket = new ServerSocket(port);
+            serverSocket = (SSLServerSocket) ssf.createServerSocket(port);
+            
+            // Forcer l'utilisation de TLS 1.3
+            serverSocket.setEnabledProtocols(new String[]{"TLSv1.3"});
 
-            logger.info("Serveur sécurisé (Hybride AES/RSA) lancé sur le port {}", port);
+            logger.info("Serveur sécurisé (TLS 1.3) lancé sur le port {}", port);
 
             // Start the background cleanup task
             cleanupService.start();
@@ -64,14 +70,12 @@ public class ServeurTCP {
                         continue;
                     }
 
-                    logger.info("ACCEPTED Nouvelle connexion de {}", clientIp);
+                    logger.info("ACCEPTED Nouvelle connexion TLS de {}", clientIp);
 
                     // hand off to Virtual Thread
                     virtualThreadExecutor.submit(() -> {
                         try {
-                            // TP3 - Simulate connection logic holdup for SYN Flood DoS
-                            // Thread.sleep(10000); // Décommenter si DoS nécessaire
-                            new ClientHandler(clientSocket, securityManager, serverPrivateKey, serverPublicKey).run();
+                            new ClientHandler(clientSocket, securityManager).run();
                         } catch (Exception e) {
                             logger.error("Erreur dans le Thread du client : {}", e.getMessage(), e);
                         } finally {
@@ -97,7 +101,7 @@ public class ServeurTCP {
         }
     }
 
-    private void loadKeys() throws Exception {
+    private SSLServerSocketFactory getSSLServerSocketFactory() throws Exception {
         String keystorePath = config.getProperty("server.keystore.path");
         String keystorePass = config.getProperty("server.keystore.password");
         String keystoreType = config.getProperty("server.keystore.type", "PKCS12");
@@ -107,16 +111,17 @@ public class ServeurTCP {
             ks.load(fis, keystorePass.toCharArray());
         }
 
-        // On prend le premier alias qui existe dans le keystore
-        String alias = ks.aliases().nextElement();
-        serverPrivateKey = (PrivateKey) ks.getKey(alias, keystorePass.toCharArray());
-        Certificate cert = ks.getCertificate(alias);
-        serverPublicKey = cert.getPublicKey();
-        
-        logger.info("Clés RSA (Privée/Publique) chargées depuis le Keystore : {}", keystorePath);
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(ks, keystorePass.toCharArray());
+
+        SSLContext sslContext = SSLContext.getInstance("TLSv1.3");
+        sslContext.init(kmf.getKeyManagers(), null, null);
+
+        return sslContext.getServerSocketFactory();
     }
 
     public static void main(String[] args) {
         new ServeurTCP().start();
     }
 }
+
