@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ChallengeResponseService {
     private final Map<String, ChallengeInfo> pendingChallenges = new ConcurrentHashMap<>();
-    private static final long CHALLENGE_EXPIRY_MS = 30000; // 30 secondes
+    private static final long CHALLENGE_EXPIRY_MS = 120000; // 120 secondes (2 minutes)
 
     private record ChallengeInfo(String challenge, long timestamp) {}
 

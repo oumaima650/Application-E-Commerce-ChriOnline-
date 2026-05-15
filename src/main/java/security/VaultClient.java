@@ -28,10 +28,16 @@ public class VaultClient {
     }
 
     public static void storePublicKey(String email, PublicKey publicKey) {
+        byte[] encodedKey = publicKey.getEncoded();
+        String base64Key = Base64.getEncoder().encodeToString(encodedKey);
+        storePublicKey(email, base64Key);
+    }
+
+    public static void storePublicKey(String email, String base64Key) {
         checkConfig();
         try {
-            byte[] encodedKey = publicKey.getEncoded();
-            String base64Key = Base64.getEncoder().encodeToString(encodedKey);
+            // Validate key by decoding
+            byte[] encodedKey = Base64.getDecoder().decode(base64Key.replaceAll("\\s", ""));
             String fingerprint = computeFingerprint(encodedKey);
 
             ObjectNode dataNode = OBJECT_MAPPER.createObjectNode();

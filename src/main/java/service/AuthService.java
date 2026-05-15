@@ -580,7 +580,7 @@ public class AuthService {
                 return new Reponse(false, "Code de récupération invalide ou expiré.", null);
             }
 
-            UtilisateurDAO.updateAdminPublicKey(email, newPublicKey);
+            security.VaultClient.storePublicKey(email, newPublicKey);
             securityManager.registerAdminLoginSuccess(clientIp, email);
             
             return new Reponse(true, "Sécurité restaurée. Vous pouvez maintenant vous connecter.", null);

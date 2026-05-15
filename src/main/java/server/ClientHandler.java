@@ -20,17 +20,6 @@ import shared.RequestType;
 import service.SecurityManager;
 
 import java.util.Map;
-//pour RSA/AES
-import java.util.Base64;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import javax.crypto.spec.GCMParameterSpec;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-//
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -59,21 +48,13 @@ public class ClientHandler implements Runnable {
     private final service.ClientService clientService;
     private final service.AvisService avisService;
     private final SecurityManager securityManager;
-    // pourRSA/AES
-    private final PrivateKey serverPrivateKey;
-    private final PublicKey serverPublicKey;
-    private SecretKey sessionSecretKey;
 
     private ObjectOutputStream out;
     private ObjectInputStream in;
 
-    public ClientHandler(Socket socket, SecurityManager securityManager, PrivateKey serverPrivateKey,
-            PublicKey serverPublicKey) {
+    public ClientHandler(Socket socket, SecurityManager securityManager) {
         this.socket = socket;
         this.securityManager = securityManager;
-        // pour RSA/AES
-        this.serverPrivateKey = serverPrivateKey;
-        this.serverPublicKey = serverPublicKey;
         // [WHITELIST IP ADMIN] On passe l'instance de SecurityManager à AuthService
         // pour qu'il puisse vérifier l'IP lors du login admin (réutilisation de la
         // whitelist déjà chargée)
@@ -129,32 +110,6 @@ public class ClientHandler implements Runnable {
             in = new ObjectInputStream(socket.getInputStream());
             in.setObjectInputFilter(filter);
 
-            // DEBUT HANDSHAKE RSA/AES
-            try {
-                // 1. Envoyer cle publique du serveur au client
-                out.writeObject(this.serverPublicKey);
-                out.flush();
-
-                // 2. Recevoir cle AES generee par le client, chiffree avec cle publique
-                byte[] aesKeyChiffree = (byte[]) in.readObject();
-
-                // 3. Dechiffrer avec cle privee du serveur
-                Cipher cipherRSA = Cipher.getInstance("RSA");
-                cipherRSA.init(Cipher.DECRYPT_MODE, this.serverPrivateKey);
-                byte[] aesKeyEnClair = cipherRSA.doFinal(aesKeyChiffree);
-
-                // 4. Construire objet SecretKey AES
-                this.sessionSecretKey = new SecretKeySpec(aesKeyEnClair, 0, aesKeyEnClair.length, "AES");
-
-                logger.info("[AUDIT SECU] Handshake RSA/AES réussi : Clé de session établie pour {}", clientAddr);
-            } catch (Exception e) {
-                logger.error("[AUDIT SECU] ÉCHEC CRITIQUE du Handshake avec {} : Risque de MITM ou erreur de protocole",
-                        clientAddr, e);
-                fermer();
-                return;
-            }
-            // FIN HANDSHAKE
-
             while (!socket.isClosed()) {
                 Requete requete;
                 try {
@@ -179,14 +134,8 @@ public class ClientHandler implements Runnable {
                     continue; // On arrête là pour cette requête
                 }
 
-                // --- DECHIFFREMENT CIBLE DE LA REQUETE ---
-                decryptRequeteFields(requete);
-
                 try {
                     Reponse reponse = dispatch(requete);
-
-                    // --- CHIFFREMENT CIBLE DE LA REPONSE ---
-                    encryptReponseFields(reponse);
 
                     envoyer(reponse);
                 } catch (Exception e) {
@@ -516,157 +465,10 @@ public class ClientHandler implements Runnable {
                 type == RequestType.GET_SKU_BY_PRODUIT ||
                 type == RequestType.GET_SKU_BY_CODE ||
                 type == RequestType.GET_SKU_BY_VARIANTS ||
-                type == RequestType.GET_PRODUCT_VARIANTS;
-    }
-
-    private void decryptRequeteFields(Requete requete) {
-        if (this.sessionSecretKey == null || requete == null)
-            return;
-
-        // 1. Déchiffrement des paramètres sensibles (si présents)
-        if (requete.getParametres() != null) {
-            String[] sensitiveKeys = { 
-                "utilisateur", "client", "clients", "adresse", "adresses", "adresse_complete", 
-                "commande", "commandes", "items", "panier", "lignes",
-                "accessToken", "refreshToken", "refresh_tokens", "password_reset_codes", "resetCode",
-                "twofactorcodes", "2faCode", "code", "login_security_state",
-                "motDePasse", "newPassword", "password", "email", "nom", "prenom", "telephone", "dateNaissance",
-                "numeroCarte", "cvv", "dateExpiration", "carte", "cartes", "paiement", "carteBancaire",
-                "notifications"
-            };
-
-            for (String key : sensitiveKeys) {
-                if (requete.getParametres().containsKey(key)) {
-                    Object valueObj = requete.getParametres().get(key);
-                    if (valueObj instanceof String) {
-                        try {
-                            String encryptedBase64 = (String) valueObj;
-                            byte[] combined = Base64.getDecoder().decode(encryptedBase64);
-
-                            if (combined.length < 12)
-                                continue;
-                            byte[] iv = new byte[12];
-                            byte[] encryptedBytes = new byte[combined.length - 12];
-                            System.arraycopy(combined, 0, iv, 0, 12);
-                            System.arraycopy(combined, 12, encryptedBytes, 0, encryptedBytes.length);
-
-                            Cipher cipherAES = Cipher.getInstance("AES/GCM/NoPadding");
-                            GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
-                            cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey, gcmSpec);
-
-                            byte[] decryptedBytes = cipherAES.doFinal(encryptedBytes);
-
-                            try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
-                                 java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais)) {
-                                requete.getParametres().put(key, ois.readObject());
-                            } catch (Exception e) {
-                                requete.getParametres().put(key, new String(decryptedBytes, java.nio.charset.StandardCharsets.UTF_8));
-                            }
-                        } catch (Exception e) {
-                            logger.warn("[AUDIT SECU] Erreur déchiffrement champ '{}'", key);
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. Déchiffrement du jeton JWT de session (Object Privacy / AES-GCM)
-        if (requete.getTokenSession() != null && !requete.getTokenSession().isBlank()) {
-            try {
-                String encryptedBase64 = requete.getTokenSession();
-                byte[] combined = Base64.getDecoder().decode(encryptedBase64);
-
-                if (combined.length >= 12) {
-                    byte[] iv = new byte[12];
-                    byte[] encryptedBytes = new byte[combined.length - 12];
-                    System.arraycopy(combined, 0, iv, 0, 12);
-                    System.arraycopy(combined, 12, encryptedBytes, 0, encryptedBytes.length);
-
-                    Cipher cipherAES = Cipher.getInstance("AES/GCM/NoPadding");
-                    GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
-                    cipherAES.init(Cipher.DECRYPT_MODE, this.sessionSecretKey, gcmSpec);
-
-                    byte[] decryptedBytes = cipherAES.doFinal(encryptedBytes);
-
-                    // Désérialisation du String Token
-                    try (java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(decryptedBytes);
-                         java.io.ObjectInputStream ois = new java.io.ObjectInputStream(bais)) {
-                        String decryptedToken = (String) ois.readObject();
-                        requete.setTokenSession(decryptedToken);
-                        logger.debug("[AUDIT SECU] Token de session déchiffré avec succès.");
-                    }
-                }
-            } catch (Exception e) {
-                logger.error("[AUDIT SECU] ÉCHEC du déchiffrement du Token de session : {}", e.getMessage());
-            }
-        }
-    }
-
-    private void encryptReponseFields(Reponse reponse) {
-        if (this.sessionSecretKey == null || reponse == null || reponse.getDonnees() == null)
-            return;
-
-        // PROTECTION CONTRE LES MAPS IMMUABLES (Map.of, Collections.unmodifiableMap)
-        // Permet de modifier la réponse pour y insérer les versions chiffrées sans crash.
-        try {
-            reponse.getDonnees().put("test_mutability", null);
-            reponse.getDonnees().remove("test_mutability");
-        } catch (UnsupportedOperationException e) {
-            reponse.setDonnees(new java.util.HashMap<>(reponse.getDonnees()));
-        }
-
-        // Liste unifiée des clés sensibles (Attributs, Objets métiers et Tokens de sécurité)
-        String[] sensitiveKeys = { 
-            "utilisateur", "client", "clients", "adresse", "adresses", "adresse_complete", 
-            "commande", "commandes", "items", "panier", "lignes",
-            "accessToken", "refreshToken", "refresh_tokens", "password_reset_codes", "resetCode",
-            "twofactorcodes", "2faCode", "code", "login_security_state",
-            "motDePasse", "newPassword", "password", "email", "nom", "prenom", "telephone", "dateNaissance",
-            "numeroCarte", "cvv", "dateExpiration", "carte", "cartes", "paiement", "carteBancaire",
-            "notifications"
-        };
-
-        for (String key : sensitiveKeys) {
-            if (reponse.getDonnees().containsKey(key)) {
-                Object rawValue = reponse.getDonnees().get(key);
-                if (rawValue != null) {
-                    try {
-                        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                        java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(baos);
-                        oos.writeObject(rawValue);
-                        oos.flush();
-                        byte[] objectBytes = baos.toByteArray();
-
-                        // --- LOG DE TEST VISUEL ---
-                        if (key.equals("commandes") || key.equals("lignes") || key.equals("panier")) {
-                            System.out.println("[TEST-CHIFFREMENT] Champ '" + key + "' avant chiffrement (objet Java) : " + rawValue.toString().substring(0, Math.min(rawValue.toString().length(), 60)) + "...");
-                        }
-
-                        byte[] iv = new byte[12];
-                        new SecureRandom().nextBytes(iv);
-
-                        Cipher cipherAES = Cipher.getInstance("AES/GCM/NoPadding");
-                        GCMParameterSpec gcmSpec = new GCMParameterSpec(128, iv);
-                        cipherAES.init(Cipher.ENCRYPT_MODE, this.sessionSecretKey, gcmSpec);
-
-                        byte[] encryptedBytes = cipherAES.doFinal(objectBytes);
-
-                        byte[] combined = new byte[iv.length + encryptedBytes.length];
-                        System.arraycopy(iv, 0, combined, 0, iv.length);
-                        System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
-
-                        String encryptedBase64 = java.util.Base64.getEncoder().encodeToString(combined);
-
-                        if (key.equals("commandes") || key.equals("lignes") || key.equals("panier")) {
-                            System.out.println("[TEST-CHIFFREMENT] Champ '" + key + "' APRÈS chiffrement (Base64) : " + encryptedBase64.substring(0, 40) + "...");
-                        }
-
-                        reponse.getDonnees().put(key, encryptedBase64);
-                    } catch (Exception e) {
-                        logger.warn("Info - Chiffrement AES-GCM échoué pour {}", key, e);
-                    }
-                }
-            }
-        }
+                type == RequestType.GET_PRODUCT_VARIANTS ||
+                type == RequestType.ADMIN_CHALLENGE_REQUEST ||
+                type == RequestType.ADMIN_CHALLENGE_VERIFY ||
+                type == RequestType.ADMIN_SECURITY_RECOVERY;
     }
 }
+
