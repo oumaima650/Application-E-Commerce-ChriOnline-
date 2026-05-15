@@ -9,7 +9,7 @@
       style="-fx-background-color: #F8F9FD;" 
       stylesheets="@../com/chrionline/css/global.css,@../com/chrionline/css/login.css"
       xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
-      fx:controller="ui.ProductAddWizardController">
+      fx:controller="admin_ui.ProductAddWizardController">
 
     <!-- ══ Header / Step Indicator ════════════════════════════ -->
     <VBox spacing="10" style="-fx-background-color: #1A1C2E; -fx-padding: 30 40;">

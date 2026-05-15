@@ -218,7 +218,9 @@ public class ClientHandler implements Runnable {
         // 1. PUBLIC ENDPOINTS (No Auth)
         if (type == RequestType.LOGIN || type == RequestType.REGISTER || type == RequestType.REFRESH ||
                 type == RequestType.REQUEST_PASSWORD_RESET || type == RequestType.CONFIRM_PASSWORD_RESET ||
-                type == RequestType.VERIFY_2FA_LOGIN || type == RequestType.VERIFY_SIGNUP) {
+                type == RequestType.VERIFY_2FA_LOGIN || type == RequestType.VERIFY_SIGNUP ||
+                type == RequestType.ADMIN_CHALLENGE_REQUEST || type == RequestType.ADMIN_CHALLENGE_VERIFY ||
+                type == RequestType.ADMIN_SECURITY_RECOVERY) {
 
             // Inject client context (IP) for security
             if (requete.getParametres() == null) {
@@ -234,6 +236,9 @@ public class ClientHandler implements Runnable {
                 case CONFIRM_PASSWORD_RESET -> authService.handleConfirmReset(requete);
                 case VERIFY_2FA_LOGIN -> authService.handleVerify2FALogin(requete);
                 case VERIFY_SIGNUP -> authService.handleVerifySignup(requete);
+                case ADMIN_CHALLENGE_REQUEST -> authService.handleAdminChallengeRequest(requete);
+                case ADMIN_CHALLENGE_VERIFY -> authService.handleAdminChallengeVerify(requete);
+                case ADMIN_SECURITY_RECOVERY -> authService.handleAdminSecurityRecovery(requete);
                 default -> new Reponse(false, "Internal Error", null);
             };
         }

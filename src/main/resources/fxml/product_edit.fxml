@@ -5,7 +5,7 @@
 <?import javafx.geometry.Insets?>
 
 <VBox spacing="20" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" 
-      fx:controller="ui.ProductEditController"
+      fx:controller="admin_ui.ProductEditController"
       style="-fx-background-color: #F8F9FA; -fx-padding: 30;">
     
     <Label text="Modifier le Produit" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #2A2C41;"/>

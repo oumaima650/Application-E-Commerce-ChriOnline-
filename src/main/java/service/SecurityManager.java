@@ -30,6 +30,7 @@ public class SecurityManager {
     private final TwoFactorAuthService twoFactorAuthService = new TwoFactorAuthService();
     private final PasswordResetService passwordResetService = new PasswordResetService();
     private final RecaptchaService recaptchaService = new RecaptchaService();
+    private final ChallengeResponseService challengeResponseService = new ChallengeResponseService();
 
 
 
@@ -88,15 +89,18 @@ public class SecurityManager {
             return new Reponse(false, ipCheck.message, null);
         }
 
-        // 2. Verification specifique au LOGIN (Blocage par Email)
-        if (requete.getType() == RequestType.LOGIN) {
+        // 2. Verification specifique au LOGIN et ADMIN AUTH (Blocage par Email)
+        if (requete.getType() == RequestType.LOGIN || 
+            requete.getType() == RequestType.ADMIN_CHALLENGE_REQUEST || 
+            requete.getType() == RequestType.ADMIN_CHALLENGE_VERIFY) {
+            
             Map<String, Object> params = requete.getParametres();
             if (params != null && params.containsKey("email")) {
                 String email = (String) params.get("email");
                 LoginAttemptLimitService.CheckResult emailCheck = loginAttemptService.checkAccess(email, "EMAIL");
                 if (!emailCheck.allowed) {
                     //enregistrer attaque ciblee sur un email
-                    logger.warn("ALERTE BRUTE FORCE: Le compte lié à l'email '{}' est ciblé depuis l'IP {}. Rejet de la requête.", email, clientIp);
+                    logger.warn("ALERTE BRUTE FORCE: Le compte lié à l'email '{}' est ciblé depuis l'IP {}. Rejet de la requête {}.", email, clientIp, requete.getType());
                     return new Reponse(false, emailCheck.message, null);
                 }
             }
@@ -165,8 +169,26 @@ public class SecurityManager {
         return tcpDosService;
     }
 
-    public LoginAttemptLimitService getLoginAttemptService() {
+    // --- Admin Challenge-Response ---
+    public String generateAdminChallenge(String email) {
+        return challengeResponseService.generateChallenge(email);
+    }
 
+    public boolean verifyAdminChallengeSignature(String email, String signatureBase64) {
+        return challengeResponseService.verifyChallengeSignature(email, signatureBase64);
+    }
+
+    public void registerAdminLoginFailure(String ip, String email) {
+        logger.warn("ADMIN LOGIN FAILED: IP={} Email={}", ip, email);
+        loginAttemptService.registerFailure(ip, email, true);
+    }
+
+    public void registerAdminLoginSuccess(String ip, String email) {
+        logger.info("ADMIN LOGIN SUCCESS: IP={} Email={}", ip, email);
+        loginAttemptService.registerSuccess(ip, email, true);
+    }
+
+    public LoginAttemptLimitService getLoginAttemptService() {
         return loginAttemptService;
     }
 }
