@@ -60,6 +60,19 @@ public class UtilisateurDAO {
         }
     }
 
+    public static Utilisateur findByEmail(String email) throws SQLException {
+        String sql = "SELECT IdUtilisateur FROM Utilisateur WHERE email = ?";
+        try (PreparedStatement ps = getConn().prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return findById(rs.getInt(1));
+                }
+            }
+        }
+        return null;
+    }
+
     public static TypeEtulisateur userType(int idUtilisateur) throws SQLException {
         String getInfoRequete = "SELECT * FROM Client WHERE IdUtilisateur = ?";
         try (PreparedStatement ps = getConn().prepareStatement(getInfoRequete)) {
@@ -172,6 +185,47 @@ public class UtilisateurDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, hours);
             return ps.executeUpdate();
+        }
+    }
+    public static boolean isAdmin(String email) throws SQLException {
+        String sql = "SELECT 1 FROM Admin a INNER JOIN Utilisateur u ON a.IdUtilisateur = u.IdUtilisateur WHERE u.email = ?";
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    public static String getAdminPublicKey(String email) throws SQLException {
+        String sql = "SELECT a.cle_publique FROM Admin a INNER JOIN Utilisateur u ON a.IdUtilisateur = u.IdUtilisateur WHERE u.email = ?";
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString("cle_publique");
+            }
+        }
+        return null;
+    }
+
+    public static void clearAdminPublicKey(String email) throws SQLException {
+        String sql = "UPDATE Admin SET cle_publique = NULL WHERE IdUtilisateur = (SELECT IdUtilisateur FROM Utilisateur WHERE email = ?)";
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ps.executeUpdate();
+        }
+    }
+
+    public static void updateAdminPublicKey(String email, String publicKey) throws SQLException {
+        String sql = "UPDATE Admin SET cle_publique = ? WHERE IdUtilisateur = (SELECT IdUtilisateur FROM Utilisateur WHERE email = ?)";
+        try (Connection conn = getConn();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, publicKey);
+            ps.setString(2, email);
+            ps.executeUpdate();
         }
     }
 }

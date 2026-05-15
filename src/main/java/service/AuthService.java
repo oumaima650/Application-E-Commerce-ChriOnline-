@@ -510,4 +510,82 @@ public class AuthService {
             return new Reponse(false, "Erreur serveur lors du changement de mot de passe.", null);
         }
     }
+    public Reponse handleAdminChallengeRequest(Requete requete) {
+        try {
+            Map<String, Object> params = requete.getParametres();
+            if (params == null || !params.containsKey("email")) {
+                return new Reponse(false, "Email requis.", null);
+            }
+            String email = (String) params.get("email");
+            String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
+
+            if (!UtilisateurDAO.isAdmin(email)) {
+                securityManager.registerAdminLoginFailure(clientIp, email);
+                return new Reponse(false, "Accès non autorisé.", null);
+            }
+
+            String challenge = securityManager.generateAdminChallenge(email);
+            Map<String, Object> data = new HashMap<>();
+            data.put("challenge", challenge);
+            return new Reponse(true, "Challenge généré.", data);
+        } catch (SQLException e) {
+            return new Reponse(false, "Erreur serveur.", null);
+        }
+    }
+
+    public Reponse handleAdminChallengeVerify(Requete requete) {
+        try {
+            Map<String, Object> params = requete.getParametres();
+            if (params == null || !params.containsKey("email") || !params.containsKey("signature")) {
+                return new Reponse(false, "Données manquantes.", null);
+            }
+            String email = (String) params.get("email");
+            String signature = (String) params.get("signature");
+            String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
+
+            boolean isValid = securityManager.verifyAdminChallengeSignature(email, signature);
+            if (!isValid) {
+                securityManager.registerAdminLoginFailure(clientIp, email);
+                return new Reponse(false, "Signature invalide ou challenge expiré.", null);
+            }
+
+            Utilisateur user = UtilisateurDAO.findByEmail(email);
+            if (user == null) {
+                securityManager.registerAdminLoginFailure(clientIp, email);
+                return new Reponse(false, "Utilisateur introuvable.", null);
+            }
+
+            securityManager.registerAdminLoginSuccess(clientIp, email);
+            return generateAuthReponse(user);
+        } catch (SQLException e) {
+            return new Reponse(false, "Erreur serveur.", null);
+        }
+    }
+
+    public Reponse handleAdminSecurityRecovery(Requete requete) {
+        try {
+            Map<String, Object> params = requete.getParametres();
+            if (params == null || !params.containsKey("email") || !params.containsKey("code") || !params.containsKey("publicKey")) {
+                return new Reponse(false, "Données de récupération manquantes.", null);
+            }
+
+            String email = (String) params.get("email");
+            String code = (String) params.get("code");
+            String newPublicKey = (String) params.get("publicKey");
+            String clientIp = (String) params.getOrDefault("clientIp", "UNKNOWN");
+
+            TwoFactorAuthService.VerificationResult result = securityManager.verifyTwoFactorCode(email, code);
+            if (!result.success()) {
+                securityManager.registerAdminLoginFailure(clientIp, email);
+                return new Reponse(false, "Code de récupération invalide ou expiré.", null);
+            }
+
+            UtilisateurDAO.updateAdminPublicKey(email, newPublicKey);
+            securityManager.registerAdminLoginSuccess(clientIp, email);
+            
+            return new Reponse(true, "Sécurité restaurée. Vous pouvez maintenant vous connecter.", null);
+        } catch (SQLException e) {
+            return new Reponse(false, "Erreur serveur.", null);
+        }
+    }
 }
